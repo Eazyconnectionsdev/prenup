@@ -1,6 +1,13 @@
 "use client";
 
-import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Plus } from "lucide-react";
 import React from "react";
 
 type Property = {
@@ -13,11 +20,7 @@ type Property = {
   monthlyMortgage: string;
 };
 
-const SepratePropertyModal = ({
-  children,
-}: {
-  children: React.ReactNode;
-}) => {
+const SepratePropertyModal = ({ open, onClose }: any) => {
   const [properties, setProperties] = React.useState<Property[]>([
     {
       houseNumber: "",
@@ -56,102 +59,93 @@ const SepratePropertyModal = ({
   };
 
   return (
-    <Dialog>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+    <Dialog open={open} onOpenChange={onClose}>
       <DialogTitle />
-      <DialogContent className="min-w-[820px] w-full max-h-[550px] overflow-y-auto bg-white rounded-3xl shadow-xl border border-gray-100 p-8">
-        <div className="w-full space-y-10">
-          {/* Question 1 */}
+      <DialogContent className=" min-w-[820px] w-full max-h-[600px] overflow-y-auto overflow-x-hidden scrollbar-hide bg-white rounded-3xl border border-gray-100 shadow-[0_20px_60px_rgba(0,0,0,0.08)] p-10">
+        <div className="w-full space-y-8">
+          {/* Header */}
+          <div className="text-center">
+            <h1 className="text-2xl font-medium text-text-color">
+              Property Details
+            </h1>
+            <p className="text-base font-light text-gray-500">
+              Add properties you’d like to keep separate
+            </p>
+          </div>
 
-          {/* Dynamic Property Entries */}
+          {/* Property Cards */}
           {properties.map((property, index) => (
-            <div key={index} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <input
-                  placeholder="House number"
-                  value={property.houseNumber}
-                  onChange={(e) =>
-                    handleChange(index, "houseNumber", e.target.value)
-                  }
-                  className="rounded-lg border border-gray-200 px-4 py-2.5 focus:ring-2 focus:ring-gray-200 outline-none"
-                />
-
-                <input
-                  placeholder="Street name"
-                  value={property.street}
-                  onChange={(e) =>
-                    handleChange(index, "street", e.target.value)
-                  }
-                  className="rounded-lg border border-gray-200 px-4 py-2.5 focus:ring-2 focus:ring-gray-200 outline-none"
-                />
-
-                <input
-                  placeholder="Town / City"
-                  value={property.city}
-                  onChange={(e) =>
-                    handleChange(index, "city", e.target.value)
-                  }
-                  className="rounded-lg border border-gray-200 px-4 py-2.5 focus:ring-2 focus:ring-gray-200 outline-none"
-                />
-
-                <input
-                  placeholder="Postcode"
-                  value={property.postcode}
-                  onChange={(e) =>
-                    handleChange(index, "postcode", e.target.value)
-                  }
-                  className="rounded-lg border border-gray-200 px-4 py-2.5 focus:ring-2 focus:ring-gray-200 outline-none"
-                />
-
-                <input
-                  placeholder="Property value (£)"
-                  value={property.value}
-                  onChange={(e) =>
-                    handleChange(index, "value", e.target.value)
-                  }
-                  className="rounded-lg border border-gray-200 px-4 py-2.5 focus:ring-2 focus:ring-gray-200 outline-none"
-                />
-
-                <input
-                  placeholder="Outstanding mortgage (£)"
-                  value={property.outstandingMortgage}
-                  onChange={(e) =>
-                    handleChange(index, "outstandingMortgage", e.target.value)
-                  }
-                  className="rounded-lg border border-gray-200 px-4 py-2.5 focus:ring-2 focus:ring-gray-200 outline-none"
-                />
-
-                <input
-                  placeholder="Monthly mortgage (£)"
-                  value={property.monthlyMortgage}
-                  onChange={(e) =>
-                    handleChange(index, "monthlyMortgage", e.target.value)
-                  }
-                  className="rounded-lg border border-gray-200 px-4 py-2.5 focus:ring-2 focus:ring-gray-200 outline-none"
-                />
+            <div
+              key={index}
+              className="
+            bg-white border border-gray-100 rounded-2xl
+            shadow-sm p-4 space-y-5
+          "
+            >
+              {/* Title */}
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-normal text-text-color">
+                  Property {index + 1}
+                </h2>
+                {index > 0 && (
+                  <span className="text-xs text-gray-400">
+                    Additional Entry
+                  </span>
+                )}
               </div>
 
-              {index !== properties.length - 1 && (
-                <hr className="border-gray-200 mt-4" />
-              )}
+              {/* Inputs */}
+              <div className="grid grid-cols-2 gap-5">
+                {[
+                  { placeholder: "House number", key: "houseNumber" },
+                  { placeholder: "Street name", key: "street" },
+                  { placeholder: "Town / City", key: "city" },
+                  { placeholder: "Postcode", key: "postcode" },
+                  { placeholder: "Property value (£)", key: "value" },
+                  {
+                    placeholder: "Outstanding mortgage (£)",
+                    key: "outstandingMortgage",
+                  },
+                  {
+                    placeholder: "Monthly mortgage (£)",
+                    key: "monthlyMortgage",
+                  },
+                ].map((field) => (
+                  <Input
+                    key={field.key}
+                    placeholder={field.placeholder}
+                    value={(property as any)[field.key]}
+                    onChange={(e) =>
+                      handleChange(
+                        index,
+                        field.key as keyof Property,
+                        e.target.value
+                      )
+                    }
+                  />
+                ))}
+              </div>
             </div>
           ))}
 
           {/* Add Entry Button */}
-          <div
-            onClick={addNewEntry}
-            className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer hover:text-gray-900"
-          >
-            <div className="w-5 h-5 rounded-full bg-gray-900 text-white flex items-center justify-center text-xs">
-              +
-            </div>
-            Add New Entry
+          <div className="pt-2">
+            <button
+              onClick={addNewEntry}
+              className="bg-gradient-to-r from-secondary to-primary-foreground flex gap-3 items-center text-text-color font- px-8 shadow-md py-2 rounded-full  cursor-pointer"
+            >
+              <div
+                className="
+            w-6 h-6 rounded-full bg-gray-900 text-white
+            flex items-center justify-center text-base
+            shadow-sm
+          "
+              >
+                <Plus className="w-4 h-4" />
+              </div>
+              Add another property
+            </button>
           </div>
-
-          {/* Debug / Optional */}
-          {/* <pre className="text-xs bg-gray-50 p-3 rounded-lg overflow-auto">
-            {JSON.stringify(properties, null, 2)}
-          </pre> */}
         </div>
       </DialogContent>
     </Dialog>
