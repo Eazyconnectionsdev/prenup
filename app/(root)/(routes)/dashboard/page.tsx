@@ -191,7 +191,7 @@ const Dashboard = () => {
         <h1 className="text-3xl font-normal text-text-color">
           Background Information
         </h1>
-        <p className="text-base font-light text-muted-foreground">
+        <p className="text-base font-light text-text-color">
           Congratulations on your upcoming marriage! 👏🏻
         </p>
       </div>
