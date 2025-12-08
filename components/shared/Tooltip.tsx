@@ -1,21 +1,16 @@
-import { Button } from "@/components/ui/button"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
+// import { Button } from "@/components/ui/button"
 
-const Tooltip = () => {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button variant="outline">i</Button>
-      </TooltipTrigger>
-      <TooltipContent>
-        <p>Add to library</p>
-      </TooltipContent>
-    </Tooltip>
-  )
-}
+// const Tooltip = () => {
+//   return (
+//     <Tooltip>
+//       <TooltipTrigger asChild>
+//         <Button variant="outline">i</Button>
+//       </TooltipTrigger>
+//       <TooltipContent>
+//         <p>Add to library</p>
+//       </TooltipContent>
+//     </Tooltip>
+//   )
+// }
 
-export default Tooltip
+// export default Tooltip
