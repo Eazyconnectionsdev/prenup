@@ -66,7 +66,7 @@ export default function QuestionsPage() {
     <main className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-center justify-center p-6">
       <div className="w-full max-w-3xl">
         <header className="mb-6 text-center">
-          <h1 className="text-3xl md:text-4xl font-serif text-slate-900">Pre-Meeting Questionnaire</h1>
+          <h1 className="text-3xl md:text-4xl font-serif text-slate-900">Pre-Lawyer Questionnaire</h1>
           <p className="mt-2 text-sm text-slate-500">Your answers will be shared with your assigned lawyer. Please answer honestly.</p>
         </header>
 
