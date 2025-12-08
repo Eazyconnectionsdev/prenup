@@ -30,6 +30,9 @@ const numberedNavItems: NavItem[] = [
   { icon: ListOrdered, label: "Questionnaire", number: 1, href: "/questionnaire" },
   { icon: Eye, label: "Financial Disclosure", number: 2, href: "/financial" },
   { icon: Handshake, label: "Alignment", number: 3, href: "/alignment" },
+  { icon: Handshake, label: "step1", number: 3, href: "/step1" },
+  { icon: Handshake, label: "step2", number: 3, href: "/step2" },
+  { icon: Handshake, label: "lawyer selection", number: 3, href: "/lawyers" },
 ];
 
 const bottomNavItems: NavItem[] = [
