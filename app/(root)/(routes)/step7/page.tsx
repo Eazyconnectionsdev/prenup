@@ -19,11 +19,12 @@ const QUESTIONS = [
 ];
 
 export default function AreasOfComplexityPage() {
-  // 'yes' | 'no' | null for each question
-  const [answers, setAnswers] = useState<( "yes" | "no" | null)[]>(() => Array(QUESTIONS.length).fill(null));
-
-  // Overview text for each question (shown when answer === 'yes')
-  const [overviews, setOverviews] = useState<string[]>(() => Array(QUESTIONS.length).fill(""));
+  const [answers, setAnswers] = useState<("yes" | "no" | null)[]>(
+    () => Array(QUESTIONS.length).fill(null)
+  );
+  const [overviews, setOverviews] = useState<string[]>(
+    () => Array(QUESTIONS.length).fill("")
+  );
 
   const setAnswer = (idx: number, val: "yes" | "no") => {
     setAnswers((prev) => {
@@ -31,9 +32,6 @@ export default function AreasOfComplexityPage() {
       copy[idx] = val;
       return copy;
     });
-
-    // If switched to "no", optionally clear the overview (keeps data if user toggles back)
-    // setOverviews(prev => { const c = [...prev]; if (val === "no") c[idx] = ""; return c; });
   };
 
   const setOverview = (idx: number, text: string) => {
@@ -56,32 +54,30 @@ export default function AreasOfComplexityPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-start justify-center p-6">
-      <div className="w-full max-w-3xl">
-        <header className="mb-4 text-center">
-          <h1 className="text-3xl md:text-4xl font-serif text-slate-900">{HEADING}</h1>
-          <p className="mt-2 text-sm text-slate-500">{SUBTEXT}</p>
+    <div className="h-full">
+      <div className="w-full max-w-5xl mx-auto pl-16 py-2 pr-26">
+        {/* Header: left-aligned and same sizing as your sample */}
+        <header className="mb-4">
+          <h1 className="text-3xl font-normal text-text-color">{HEADING}</h1>
+          <p className="mt-2 text-[15px] font-light text-text-color">{SUBTEXT}</p>
         </header>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-2xl ring-1 ring-slate-100 p-6 md:p-8 space-y-6">
-          <div className="space-y-6">
+        {/* Gradient box holding questions — mirrors your second snippet */}
+        <form onSubmit={handleSubmit} className="space-y-0">
+          <div className="space-y-10 bg-gradient-to-br from-secondary to-primary-foreground text-white py-10 px-6 rounded-lg my-10">
             {QUESTIONS.map((q, qi) => (
-              <div key={qi} className="pb-4 border-b border-slate-100">
-                <div className="mb-3 text-slate-800">
-                  <p className="text-base md:text-lg leading-relaxed text-left">
-                    <span className="font-medium mr-2">{qi + 1}.</span>
-                    {q}
-                  </p>
-                </div>
+              <div key={qi} className="flex flex-col items-center text-center pb-6 border-b border-white/20">
+                <span className="text-base font-normal text-text-color max-w-md">
+                  <span className="font-medium mr-2">{qi + 1}.</span>
+                  {q}
+                </span>
 
-                <div className="flex items-center gap-4 mb-4 justify-center">
+                <div className="flex gap-3 mt-6">
                   <button
                     type="button"
                     onClick={() => setAnswer(qi, "yes")}
-                    aria-pressed={answers[qi] === "yes"}
-                    className={`px-6 py-2 rounded-full font-medium shadow-sm border-2 ${
-                      answers[qi] === "yes" ? "bg-green-600 text-white border-green-600" : "bg-white text-slate-700 border-slate-200 hover:shadow"
-                    }`}
+                    className={`px-14 shadow-md hover:bg-white/95 py-1.5 rounded-full font-medium cursor-pointer ${answers[qi] === "yes" ? "bg-white text-text-color" : "bg-white text-text-color/90"
+                      }`}
                   >
                     Yes
                   </button>
@@ -89,42 +85,43 @@ export default function AreasOfComplexityPage() {
                   <button
                     type="button"
                     onClick={() => setAnswer(qi, "no")}
-                    aria-pressed={answers[qi] === "no"}
-                    className={`px-6 py-2 rounded-full font-medium shadow-sm border-2 ${
-                      answers[qi] === "no" ? "bg-red-600 text-white border-red-600" : "bg-white text-slate-700 border-slate-200 hover:shadow"
-                    }`}
+                    className={`px-14 shadow-md py-1.5 rounded-full font-medium cursor-pointer ${answers[qi] === "no" ? "bg-primary text-white" : "bg-primary text-white/90"
+                      }`}
                   >
                     No
                   </button>
                 </div>
 
+                {/* White overview area shown when 'Yes' */}
                 {answers[qi] === "yes" && (
-                  <div className="mt-2">
+                  <div className="mt-6 w-full max-w-3xl text-left">
                     <div className="text-sm text-slate-700 mb-2 font-medium">Please provide an overview of it</div>
                     <textarea
                       rows={5}
                       value={overviews[qi]}
                       onChange={(e) => setOverview(qi, e.target.value)}
-                      className="w-full rounded-md border border-slate-200 px-3 py-2"
+                      className="w-full rounded-md border border-slate-200 px-3 py-2 bg-white text-slate-900"
                       placeholder="Please provide a short overview..."
                     />
                   </div>
                 )}
               </div>
             ))}
+
+            <div className="flex items-center justify-center">
+              <button type="submit" className="px-6 py-3 rounded-full bg-gradient-to-r from-[#1E3A8A] to-[#76E0FF] text-white font-medium shadow">
+                Save / Continue
+              </button>
+            </div>
+
           </div>
 
-          <div className="flex items-center justify-center">
-            <button type="submit" className="px-6 py-3 rounded-full bg-gradient-to-r from-[#1E3A8A] to-[#76E0FF] text-white font-medium shadow">
-              Save / Continue
-            </button>
-          </div>
         </form>
 
         <footer className="mt-6 text-xs text-slate-400 text-center">
           Answers are saved locally in this demo (check console). I can add localStorage autosave, inline validation, or server integration if you'd like.
         </footer>
       </div>
-    </main>
+    </div >
   );
 }
