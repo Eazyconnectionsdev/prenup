@@ -27,12 +27,27 @@ const mainNavItems: NavItem[] = [
 ];
 
 const numberedNavItems: NavItem[] = [
-  { icon: ListOrdered, label: "Questionnaire", number: 1, href: "/questionnaire" },
-  { icon: Eye, label: "Financial Disclosure", number: 2, href: "/financial" },
-  { icon: Handshake, label: "Alignment", number: 3, href: "/alignment" },
-  { icon: Handshake, label: "step1", number: 3, href: "/step1" },
-  { icon: Handshake, label: "step2", number: 3, href: "/step2" },
-  { icon: Handshake, label: "lawyer selection", number: 3, href: "/lawyers" },
+  // Parent questionnaire link
+  { icon: ListOrdered, label: "Questionnaire", href: "/questionnaire" },
+
+  // All steps that appear inside the questionnaire
+  { icon: Handshake, label: "Invite your Partner", number: 1, href: "/questionnaire/invite" },
+  { icon: User, label: "Your Details", number: 1, href: "/your-details" },
+  { icon: CreditCard, label: "Your Finances", number: 2, href: "/your-finances" },
+  { icon: User, label: "Partner's Details", number: 3, href: "/partners-details" },
+  { icon: CreditCard, label: "Partner's Finances", number: 4, href: "/partners-finances" },
+  { icon: Handshake, label: "Joint Assets", number: 5, href: "/joint-assets" },
+  { icon: ListOrdered, label: "Future Assets", number: 6, href: "/future-assets" },
+  { icon: HelpCircle, label: "Area of Complexity", number: 7, href: "/area-of-complexity" },
+];
+
+// Second menu: Lawyer Selection (keeps the same look/behaviour as the questionnaire items)
+const lawyerNavItems: NavItem[] = [
+  { icon: ListOrdered, label: "Lawyer ", href: "#" },
+  { icon: ListOrdered, label: "Lawyers Selection",number: 31, href: "/lawyers/selection" },
+  { icon: ListOrdered, label: "Your Pre-Lawyer Questioner", number: 32, href: "/questionnaire" },
+  { icon: ListOrdered, label: "Partners Pre-Lawyer Questioner", number: 33, href: "/partner-questionnaire" },
+  
 ];
 
 const bottomNavItems: NavItem[] = [
@@ -113,6 +128,21 @@ export function AppSidebar({ activeItem = "/" }: AppSidebarProps) {
         {/* Divider */}
         <div className="my-3 border-t border-sidebar-border" />
 
+        {/* Lawyer Selection (same look as above) */}
+        <ul className="mt-4 space-y-1">
+          {lawyerNavItems.map((item) => (
+            <NavItem
+              key={item.href}
+              item={item}
+              isExpanded={isExpanded}
+              isActive={activeItem === item.href}
+            />
+          ))}
+        </ul>
+
+        {/* Divider */}
+        <div className="my-3 border-t border-sidebar-border" />
+
         {/* Bottom Navigation Items */}
         <ul className="space-y-1">
           {bottomNavItems.map((item) => (
@@ -138,15 +168,6 @@ export function AppSidebar({ activeItem = "/" }: AppSidebarProps) {
           {isExpanded && <span className="text-sm font-medium">Sign out</span>}
         </button>
       </div>
-
-      {/* Footer */}
-      {/* {isExpanded && (
-        <div className="px-6 pb-6 text-center text-xs text-muted-foreground">
-          <p>
-            Made with <span className="text-accent">♥</span> in Boston© Hello Prenup, Inc. 2025.
-          </p>
-        </div>
-      )} */}
     </aside>
   );
 }
@@ -178,7 +199,7 @@ function NavItem({ item, isExpanded, isActive }: NavItemProps) {
               isActive ? "text-white" : "text-muted-foreground"
             )}
           >
-            {item.number}
+            
           </span>
         ) : (
           <Icon className={cn("h-5 w-5 flex-shrink-0", isActive && "text-black")} />
