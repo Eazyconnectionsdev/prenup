@@ -26,12 +26,12 @@ export default function LawyerProfiles() {
   return (
     <section className="py-12 px-6 bg-white">
       <div className="max-w-6xl mx-auto">
-        <p className="text-sm text-slate-500 uppercase text-center tracking-wider">Your agreement</p>
-
-        {/* Heading moved slightly up */}
-        <h2 className="mt-4 text-4xl text-center font-serif text-slate-900">Lawyer Profiles</h2>
-
-        <div className="mt-10">
+        <header className="mb-4">
+          <h1 className="text-3xl font-normal text-text-color">Lawyer Profiles</h1>
+          <p className="mt-2 text-[15px] font-light text-text-color">Please select a lawyer.</p>
+        </header>
+        
+        <div className="mt-20">
           {/* Added vertical row space using gap-y-10 */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-y-10 gap-x-6">
             {lawyers.map((lawyer) => {

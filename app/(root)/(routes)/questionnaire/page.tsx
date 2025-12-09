@@ -1,4 +1,4 @@
-"use client"; 
+"use client";
 
 import React, { useEffect, useState } from "react";
 
@@ -63,14 +63,15 @@ export default function QuestionsPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-b  to-white flex items-center justify-center p-6">
-      <div className="w-full max-w-3xl">
-        <header className="mb-6 text-center">
-          <h1 className="text-3xl md:text-4xl font-serif text-slate-900">Pre-Meeting Questionnaire</h1>
-          <p className="mt-2 text-sm text-slate-500">Your answers will be shared with your assigned lawyer. Please answer honestly.</p>
+    <div className="h-full">
+      <div className="w-full max-w-5xl mx-auto pl-16 py-2 pr-26">
+
+        <header className="mb-10">
+          <h1 className="text-3xl font-normal text-text-color">Pre-Meeting Questionnaire</h1>
+          <p className="mt-2 text-[15px] font-light text-text-color">Your answers will be shared with your assigned lawyer. Please answer honestly.</p>
         </header>
 
-        <section className="bg-white rounded-2xl shadow-2xl ring-1 ring-slate-100 p-8 md:p-10">
+        <section className="space-y-10 bg-gradient-to-br from-secondary to-primary-foreground text-black py-10 px-10 rounded-lg ">
           {/* Progress */}
           <div className="mb-4">
             <div className="flex items-center justify-between text-sm text-slate-500">
@@ -87,13 +88,13 @@ export default function QuestionsPage() {
           </div>
 
           {/* Question content centered */}
-          <div className="py-4 md:py-6 flex flex-col items-center justify-center gap-6">
-            <div className="prose prose-slate max-w-none text-center text-lg md:text-xl leading-relaxed">
+          <div className=" flex flex-col items-center justify-center gap-6">
+            <div className="prose prose-slate max-w-none text-center text-lg md:text-xl leading-relaxed mt-8">
               <p>{QUESTIONS[index]}</p>
             </div>
 
             {/* Yes / No buttons */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 mt-6">
               <button
                 onClick={() => setAnswer(index, "yes")}
                 className={`px-6 py-2 rounded-full font-medium shadow-sm border-2 ${answers[index] === 'yes' ? 'bg-green-600 text-white border-green-600' : 'bg-white text-slate-700 border-slate-200 hover:shadow'}`}
@@ -120,18 +121,17 @@ export default function QuestionsPage() {
           </div>
 
           {/* Navigation buttons */}
-          <div className="mt-6 flex items-center justify-between">
+          <div className="flex items-center justify-between">
             <button
               onClick={prev}
               disabled={index === 0}
-              className={`px-5 py-2 rounded-full font-medium border ${index === 0 ? 'border-slate-200 text-slate-300 bg-slate-50' : 'border-slate-200 text-slate-700 hover:shadow-sm'}`}
-              aria-label="Previous question"
+               className="px-6 py-2 rounded-full bg-gradient-to-r from-[#1E3A8A] to-[#76E0FF] text-white font-medium shadow"
+                aria-label="Previous question"
             >
               Previous
             </button>
 
             <div className="flex items-center gap-3">
-              <div className="text-sm text-slate-500 hidden md:block">Progress saved locally in this session.</div>
 
               <button
                 onClick={() => {
@@ -149,9 +149,8 @@ export default function QuestionsPage() {
             </div>
           </div>
 
-          <div className="mt-4 text-xs text-slate-400">All answers will be shown to your lawyer. If you need to pause, return later to continue.</div>
         </section>
       </div>
-    </main>
+    </div>
   );
 }

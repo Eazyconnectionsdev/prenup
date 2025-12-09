@@ -126,7 +126,7 @@ export default function AboutYouPage() {
     <div className="h-full">
       <div className="w-full max-w-5xl mx-auto pl-16 py-2 pr-26">
         <header className="mb-4">
-          <h1 className="text-3xl font-normal text-text-color">About Partner</h1>
+          <h1 className="text-3xl font-normal text-text-color">About you</h1>
           <p className="mt-2 text-[15px] font-light text-text-color">Please complete all relevant fields — use the Add buttons to add multiple records (e.g., children).</p>
         </header>
 
