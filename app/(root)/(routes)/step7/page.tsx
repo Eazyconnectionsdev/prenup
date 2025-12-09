@@ -72,21 +72,23 @@ export default function AreasOfComplexityPage() {
                   {q}
                 </span>
 
-                <div className="flex gap-3 mt-6">
+                <div className="flex gap-3 mt-6" role="group" aria-label={`Question ${qi + 1} answer`}>
+                  {/* YES button - default white, turns green when selected */}
                   <button
                     type="button"
                     onClick={() => setAnswer(qi, "yes")}
-                    className={`px-14 shadow-md hover:bg-white/95 py-1.5 rounded-full font-medium cursor-pointer ${answers[qi] === "yes" ? "bg-white text-text-color" : "bg-white text-text-color/90"
-                      }`}
+                    aria-pressed={answers[qi] === "yes"}
+                    className={`px-14 shadow-md hover:bg-gray-100 py-1.5 rounded-full font-medium cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-300 ${answers[qi] === "yes" ? "bg-green-600 text-white" : "bg-white text-text-color"}`}
                   >
                     Yes
                   </button>
 
+                  {/* NO button - default white, turns red when selected */}
                   <button
                     type="button"
                     onClick={() => setAnswer(qi, "no")}
-                    className={`px-14 shadow-md py-1.5 rounded-full font-medium cursor-pointer ${answers[qi] === "no" ? "bg-primary text-white" : "bg-primary text-white/90"
-                      }`}
+                    aria-pressed={answers[qi] === "no"}
+                    className={`px-14 shadow-md hover:bg-gray-100 py-1.5 rounded-full font-medium cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-300 ${answers[qi] === "no" ? "bg-red-600 text-white" : "bg-white text-text-color"}`}
                   >
                     No
                   </button>
