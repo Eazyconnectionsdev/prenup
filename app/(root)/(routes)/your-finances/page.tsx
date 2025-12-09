@@ -28,18 +28,12 @@ type FieldDef = {
   placeholder?: string;
 };
 
-/**
- * Fields for each question (index-aligned with QUESTIONS)
- * 0 => earnings, 1 => properties, etc.
- */
 const QUESTION_FIELDS: FieldDef[][] = [
-  // 0: earnings
   [
     { key: "source", label: "Source of income", type: "select", options: ["Salary", "Self-employed", "Rental", "Investment", "Other"] },
     { key: "company", label: "Name of company", type: "text", placeholder: "Company / Employer name" },
     { key: "amount", label: "Amount (GBP)", type: "number", placeholder: "£" },
   ],
-  // 1: properties (previous property fields)
   [
     { key: "line1", label: "Address Line 1", type: "text" },
     { key: "line2", label: "Address Line 2", type: "text" },
@@ -48,23 +42,19 @@ const QUESTION_FIELDS: FieldDef[][] = [
     { key: "value", label: "Property Value (GBP)", type: "number", placeholder: "£" },
     { key: "extra", label: "Mortgage / Outstanding / Notes", type: "text" },
   ],
-  // 2: savings
   [
     { key: "savingsName", label: "Savings name", type: "text" },
     { key: "amount", label: "Amount (GBP)", type: "number", placeholder: "£" },
   ],
-  // 3: pensions
   [
     { key: "pensionName", label: "Name of pension", type: "text" },
     { key: "amount", label: "Amount (GBP)", type: "number", placeholder: "£" },
   ],
-  // 4: debts
   [
     { key: "lender", label: "Account / Lender", type: "text" },
     { key: "description", label: "Description", type: "text" },
     { key: "value", label: "Value (GBP)", type: "number", placeholder: "£" },
   ],
-  // 5: businesses
   [
     { key: "businessName", label: "Business name", type: "text" },
     { key: "businessDescription", label: "Business description", type: "text" },
@@ -75,12 +65,10 @@ const QUESTION_FIELDS: FieldDef[][] = [
     { key: "profits", label: "Profits", type: "number", placeholder: "£" },
     { key: "explanation", label: "Explanation of business", type: "textarea" },
   ],
-  // 6: chattels (car example)
   [
     { key: "registration", label: "Car registration number", type: "text" },
     { key: "amount", label: "Amount (GBP)", type: "number", placeholder: "£" },
   ],
-  // 7: other assets
   [
     { key: "provider", label: "Account provider", type: "text" },
     { key: "description", label: "Description of assets", type: "text" },
@@ -94,10 +82,7 @@ type Entry = {
 };
 
 export default function QuestionsPage() {
-  // answers for each question: "yes" | "no" | null
   const [answers, setAnswers] = useState<("yes" | "no" | null)[]>(() => Array(QUESTIONS.length).fill(null));
-
-  // entries per question (only when answer === 'yes')
   const [entries, setEntries] = useState<Entry[][]>(() => Array(QUESTIONS.length).fill([]).map(() => []));
 
   const setAnswer = (qIndex: number, val: "yes" | "no") => {
@@ -161,62 +146,70 @@ export default function QuestionsPage() {
     });
   };
 
+  const handleSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const payload = {
+      heading: "Your separate assets",
+      questions: QUESTIONS.map((q, i) => ({ question: q, answer: answers[i], entries: entries[i] })),
+      savedAt: new Date().toISOString(),
+    };
+    console.log("QUESTIONS PAGE SUBMIT", payload);
+    alert("Your separate assets saved locally (check console). Replace handler with API POST if needed.");
+  };
+
   return (
-    <main className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-start justify-center p-6">
-      <div className="w-full max-w-3xl">
-        <header className="mb-4 text-center">
-          <h1 className="text-3xl md:text-4xl font-serif text-slate-900">Your separate assets</h1>
-          <p className="mt-2 text-sm text-slate-500">Please fill in each of the sections below to complete your agreement.</p>
+    <div className="h-full">
+      <div className="w-full max-w-5xl mx-auto pl-16 py-2 pr-26">
+        <header className="mb-4">
+          <h1 className="text-3xl font-normal text-text-color">Your separate assets</h1>
+          <p className="mt-2 text-[15px] font-light text-text-color">Please fill in each of the sections below to complete your agreement.</p>
         </header>
 
-        <section className="bg-white rounded-2xl shadow-2xl ring-1 ring-slate-100 p-6 md:p-8">
-          {/* Information box (not a question) */}
-          <div className="mb-8 rounded-md bg-blue-50 border-l-4 border-blue-500 p-4 text-sm text-slate-700">
-            {INFO}
-          </div>
+        <form onSubmit={handleSubmit} className="space-y-0">
+          <div className="space-y-10 bg-gradient-to-br from-secondary to-primary-foreground text-white py-10 px-6 rounded-lg my-10">
+            {/* Info box inside gradient (white card look) */}
+            <div className="w-full max-w-4xl text-left mx-auto">
+              <div className="rounded-md bg-white text-slate-900 p-4 mb-6 border">
+                {INFO}
+              </div>
+            </div>
 
-          {/* Questions list */}
-          <div className="space-y-6">
+            {/* Questions */}
             {QUESTIONS.map((q, qi) => {
               const defs = QUESTION_FIELDS[qi] || [];
               return (
-                <div key={qi} className="pb-4 border-b border-slate-100">
-                  <div className="mb-3 text-slate-800">
-                    <p className="text-base md:text-lg leading-relaxed text-left">{q}</p>
-                  </div>
+                <div key={qi} className="flex flex-col items-center text-center pb-6 border-b border-white/20">
+                  <span className="text-base font-normal text-text-color max-w-3xl">
+                    <span className="font-medium mr-2">{qi + 1}.</span>
+                    {q}
+                  </span>
 
-                  {/* Yes / No buttons centered below the question */}
-                  <div className="flex items-center gap-4 mb-4 justify-center">
+                  <div className="flex gap-3 mt-6" role="group" aria-label={`Question ${qi + 1} answer`}>
                     <button
+                      type="button"
                       onClick={() => setAnswer(qi, "yes")}
                       aria-pressed={answers[qi] === "yes"}
-                      aria-label={`Answer yes to q${qi + 1}`}
-                      className={`px-6 py-2 rounded-full font-medium shadow-sm border-2 ${
-                        answers[qi] === "yes" ? "bg-green-600 text-white border-green-600" : "bg-white text-slate-700 border-slate-200 hover:shadow"
-                      }`}
+                      className={`px-14 shadow-md hover:bg-gray-100 py-1.5 rounded-full font-medium cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-300 ${answers[qi] === "yes" ? "bg-green-600 text-white" : "bg-white text-text-color"}`}
                     >
                       Yes
                     </button>
 
                     <button
+                      type="button"
                       onClick={() => setAnswer(qi, "no")}
                       aria-pressed={answers[qi] === "no"}
-                      aria-label={`Answer no to q${qi + 1}`}
-                      className={`px-6 py-2 rounded-full font-medium shadow-sm border-2 ${
-                        answers[qi] === "no" ? "bg-red-600 text-white border-red-600" : "bg-white text-slate-700 border-slate-200 hover:shadow"
-                      }`}
+                      className={`px-14 shadow-md hover:bg-gray-100 py-1.5 rounded-full font-medium cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-300 ${answers[qi] === "no" ? "bg-red-600 text-white" : "bg-white text-text-color"}`}
                     >
                       No
                     </button>
                   </div>
 
-                  {/* When answered yes — show entries list */}
+                  {/* Entries when answered yes */}
                   {answers[qi] === "yes" && (
-                    <div className="bg-white/40 p-4 rounded-lg border border-slate-100">
+                    <div className="mt-6 w-full max-w-4xl text-left bg-white/90 rounded-md p-4 mx-auto text-slate-900">
                       <div className="space-y-4">
                         {(entries[qi] || []).map((entry) => (
-                          <div key={entry.id} className="relative grid grid-cols-1 md:grid-cols-2 gap-3 bg-white rounded-md p-4 shadow-sm">
-                            {/* Remove button on right */}
+                          <div key={entry.id} className="relative grid grid-cols-1 md:grid-cols-2 gap-3 bg-white text-slate-900 rounded-md p-4 shadow-sm">
                             <button
                               onClick={() => removeEntry(qi, entry.id)}
                               aria-label="Remove entry"
@@ -225,17 +218,16 @@ export default function QuestionsPage() {
                               ×
                             </button>
 
-                            {/* Render fields in two columns when possible */}
                             <div className="space-y-3">
                               {defs.slice(0, Math.ceil(defs.length / 2)).map((f) => {
                                 const val = entry.values[f.key] ?? "";
                                 if (f.type === "select") {
                                   return (
-                                    <label key={f.key} className="block">
+                                    <label key={f.key} className="block text-slate-900">
                                       <select
                                         value={String(val)}
                                         onChange={(e) => updateEntryField(qi, entry.id, f.key, e.target.value)}
-                                        className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm bg-white"
+                                        className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm bg-white text-slate-900"
                                       >
                                         <option value="">Select {f.label}</option>
                                         {f.options?.map((opt) => (
@@ -249,19 +241,19 @@ export default function QuestionsPage() {
                                 }
                                 if (f.type === "textarea") {
                                   return (
-                                    <label key={f.key} className="block">
+                                    <label key={f.key} className="block text-slate-900">
                                       <textarea
                                         value={String(val)}
                                         onChange={(e) => updateEntryField(qi, entry.id, f.key, e.target.value)}
                                         placeholder={f.label}
-                                        className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                                        className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-900"
                                         rows={4}
                                       />
                                     </label>
                                   );
                                 }
                                 return (
-                                  <label key={f.key} className="block">
+                                  <label key={f.key} className="block text-slate-900">
                                     <input
                                       type={f.type === "number" ? "number" : "text"}
                                       step={f.type === "number" ? "any" : undefined}
@@ -270,7 +262,7 @@ export default function QuestionsPage() {
                                         updateEntryField(qi, entry.id, f.key, f.type === "number" ? (e.target.value === "" ? "" : Number(e.target.value)) : e.target.value)
                                       }
                                       placeholder={f.placeholder ?? f.label}
-                                      className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                                      className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm bg-white text-slate-900"
                                     />
                                   </label>
                                 );
@@ -282,11 +274,11 @@ export default function QuestionsPage() {
                                 const val = entry.values[f.key] ?? "";
                                 if (f.type === "select") {
                                   return (
-                                    <label key={f.key} className="block">
+                                    <label key={f.key} className="block text-slate-900">
                                       <select
                                         value={String(val)}
                                         onChange={(e) => updateEntryField(qi, entry.id, f.key, e.target.value)}
-                                        className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm bg-white"
+                                        className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm bg-white text-slate-900"
                                       >
                                         <option value="">Select {f.label}</option>
                                         {f.options?.map((opt) => (
@@ -300,19 +292,19 @@ export default function QuestionsPage() {
                                 }
                                 if (f.type === "textarea") {
                                   return (
-                                    <label key={f.key} className="block">
+                                    <label key={f.key} className="block text-slate-900">
                                       <textarea
                                         value={String(val)}
                                         onChange={(e) => updateEntryField(qi, entry.id, f.key, e.target.value)}
                                         placeholder={f.label}
-                                        className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                                        className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-900"
                                         rows={4}
                                       />
                                     </label>
                                   );
                                 }
                                 return (
-                                  <label key={f.key} className="block">
+                                  <label key={f.key} className="block text-slate-900">
                                     <input
                                       type={f.type === "number" ? "number" : "text"}
                                       step={f.type === "number" ? "any" : undefined}
@@ -321,7 +313,7 @@ export default function QuestionsPage() {
                                         updateEntryField(qi, entry.id, f.key, f.type === "number" ? (e.target.value === "" ? "" : Number(e.target.value)) : e.target.value)
                                       }
                                       placeholder={f.placeholder ?? f.label}
-                                      className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                                      className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm bg-white text-slate-900"
                                     />
                                   </label>
                                 );
@@ -329,30 +321,36 @@ export default function QuestionsPage() {
                             </div>
                           </div>
                         ))}
-                      </div>
 
-                      {/* Add New Entry button centered */}
-                      <div className="mt-4 flex justify-center">
-                        <button
-                          onClick={() => addEntry(qi)}
-                          className="inline-flex items-center gap-3 px-4 py-2 rounded-md bg-white text-slate-700 font-medium shadow border"
-                        >
-                          <span className="w-6 h-6 rounded-full flex items-center justify-center bg-red-500 text-white text-sm font-bold">+</span>
-                          Add New Entry
-                        </button>
+                        <div className="mt-4 flex justify-center">
+                          <button
+                            type="button"
+                            onClick={() => addEntry(qi)}
+                            className="inline-flex items-center gap-3 px-4 py-2 rounded-md bg-white text-slate-900 font-medium shadow border"
+                          >
+                            <span className="w-6 h-6 rounded-full flex items-center justify-center bg-red-500 text-white text-sm font-bold">+</span>
+                            Add New Entry
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
                 </div>
               );
             })}
-          </div>
-        </section>
 
-        <footer className="mt-6 text-xs text-slate-400 text-center">
-          These input labels are set per question — update QUESTION_FIELDS if you want different names or types.
-        </footer>
+            <div className="flex items-center justify-center">
+              <button type="submit" className="px-6 py-3 rounded-full bg-gradient-to-r from-[#1E3A8A] to-[#76E0FF] text-white font-medium shadow">
+                Save / Continue
+              </button>
+            </div>
+
+            <footer className="mt-6 text-xs text-slate-200 text-center">
+              These input labels are set per question — update QUESTION_FIELDS if you want different names or types.
+            </footer>
+          </div>
+        </form>
       </div>
-    </main>
+    </div>
   );
 }
