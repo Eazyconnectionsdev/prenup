@@ -46,7 +46,7 @@ const lawyerNavItems: NavItem[] = [
   { icon: ListOrdered, label: "Lawyer ", href: "#" },
   { icon: ListOrdered, label: "Lawyers Selection",number: 31, href: "/lawyers/selection" },
   { icon: ListOrdered, label: "Your Pre-Lawyer Questioner", number: 32, href: "/questionnaire" },
-  { icon: ListOrdered, label: "Partners Pre-Lawyer Questioner", number: 33, href: "/questionnaire" },
+  { icon: ListOrdered, label: "Partners Pre-Lawyer Questioner", number: 33, href: "/partner-questionnaire" },
   
 ];
 
