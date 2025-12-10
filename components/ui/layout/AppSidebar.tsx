@@ -53,7 +53,7 @@ const lawyerNavItems: NavItem[] = [
 const bottomNavItems: NavItem[] = [
   { icon: CreditCard, label: "Payment", href: "/payment" },
   { icon: HelpCircle, label: "Help", href: "/help" },
-  { icon: User, label: "Account", href: "/account" },
+  { icon: User, label: "Account", href: "/account-managment" },
 ];
 
 interface AppSidebarProps {
