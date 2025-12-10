@@ -71,28 +71,6 @@ const Questionnaries = () => {
           </div>
         ))}
       </div>
-
-      {/* 🔹 Modals rendered conditionally */}
-
-      {activeModal === "earnings" && (
-        <IncomeModal open={true} onClose={closeModal} />
-      )}
-
-      {activeModal === "properties" && (
-        <SepratePropertyModal open={true} onClose={closeModal} />
-      )}
-
-      {activeModal === "savings" && (
-        <SavingsModal open={true} onClose={closeModal} />
-      )}
-
-      {activeModal === "pensions" && (
-      <PensionModal open={true} onClose={closeModal} />
-      )}
-
-      {activeModal === "debts" && (
-        <div>{/* Your Debts Modal Component Here */}</div>
-      )}
     </div>
   );
 };
