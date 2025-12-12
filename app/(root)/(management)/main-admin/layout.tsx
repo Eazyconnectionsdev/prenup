@@ -2,7 +2,7 @@ import React from 'react'
 import Sidebar from '@/components/admin/Sidebar'
 
 export const metadata = {
-  title: 'Admin - Manage Users'
+  title: 'Main Admin'
 }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

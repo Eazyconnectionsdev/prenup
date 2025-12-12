@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react'
 import UserReportFilter from '@/components/admin/UserReportFilter'
-import UserTable from '@/components/admin/UserTable'
+import UserTable from '@/components/admin/tables/UserTable'
 import Pagination from '@/components/admin/common/pagination'
 
 const makeUser = (i: number) => ({

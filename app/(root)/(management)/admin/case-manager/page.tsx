@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react'
 import UserReportFilter from '@/components/admin/UserReportFilter'
-import UserTable from '@/components/admin/tables/UserTable'
+import UserTable from '@/components/admin/tables/caseManagerTable'
 import Pagination from '@/components/admin/common/pagination'
 
 const makeUser = (i: number) => ({
@@ -38,8 +38,8 @@ export default function Page() {
       <div className="max-w-[1400px] mx-auto">
         <div className="p-4 bg-white rounded shadow-sm mb-4 flex items-start justify-between gap-6">
           <div>
-            <h1 className="text-xl font-bold">Manage User</h1>
-            <p className="text-sm text-slate-600">View and manage registered users</p>
+            <h1 className="text-xl font-bold">Case Manager</h1>
+            <p className="text-sm text-slate-600">View and manage registered cases</p>
           </div>
 
           <div className="flex items-center gap-6">
@@ -63,7 +63,7 @@ export default function Page() {
         <UserReportFilter setQuery={setQuery} />
 
         <div className="mt-4 bg-white rounded shadow-sm overflow-hidden">
-          <UserTable users={filtered} />
+          <UserTable />
         </div>
 
         <div className="mt-4 flex justify-between items-center">
