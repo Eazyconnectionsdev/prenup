@@ -1,5 +1,5 @@
 import React from 'react'
-import { AppSidebar } from './AppSidebar'
+import AppSidebar from './AppSidebar'
 
 const Sidebar = ({children} : {children : React.ReactNode}) => {
   return (

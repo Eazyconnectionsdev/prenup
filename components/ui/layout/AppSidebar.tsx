@@ -1,11 +1,11 @@
-"use client"
+// File: components/AppSidebar.tsx
+"use client";
 
-import { useState } from "react";
-import { cn } from "@/lib/utils";
+import React, { useState } from "react";
+import Link from "next/link";
 import {
   Home,
   ListOrdered,
-  Eye,
   Handshake,
   CreditCard,
   HelpCircle,
@@ -13,41 +13,66 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  Check,
 } from "lucide-react";
 
-interface NavItem {
-  icon: React.ElementType;
-  label: string;
-  number?: number;
-  href: string;
+/**
+ * Small local `cn` helper so this file is copy/paste-ready.
+ * If you already have a `cn` in your project, remove this and import yours instead:
+ * import { cn } from "@/lib/utils";
+ */
+function cn(...inputs: Array<string | false | null | undefined>) {
+  return inputs.filter(Boolean).join(" ");
 }
 
-const mainNavItems: NavItem[] = [
-  { icon: Home, label: "Dashboard", href: "/" },
-];
+/* ---------------------------
+   Types / Data
+   --------------------------- */
 
-const numberedNavItems: NavItem[] = [
-  // Parent questionnaire link
-  { icon: ListOrdered, label: "Questionnaire", href: "/questionnaire" },
+type NavItem = {
+  label: string;
+  href: string;
+  icon?: React.ElementType;
+  number?: number;
+};
 
-  // All steps that appear inside the questionnaire
-  { icon: Handshake, label: "Invite your Partner", number: 1, href: "/questionnaire/invite" },
-  { icon: User, label: "Your Details", number: 1, href: "/your-details" },
-  { icon: CreditCard, label: "Your Finances", number: 2, href: "/your-finances" },
-  { icon: User, label: "Partner's Details", number: 3, href: "/partners-details" },
-  { icon: CreditCard, label: "Partner's Finances", number: 4, href: "/partners-finances" },
-  { icon: Handshake, label: "Joint Assets", number: 5, href: "/joint-assets" },
-  { icon: ListOrdered, label: "Future Assets", number: 6, href: "/future-assets" },
-  { icon: HelpCircle, label: "Area of Complexity", number: 7, href: "/area-of-complexity" },
-];
+type Section = {
+  title: string;
+  items: Array<{ label: string; href: string }>;
+};
 
-// Second menu: Lawyer Selection (keeps the same look/behaviour as the questionnaire items)
-const lawyerNavItems: NavItem[] = [
-  { icon: ListOrdered, label: "Lawyer ", href: "#" },
-  { icon: ListOrdered, label: "Lawyers Selection",number: 31, href: "/lawyers/selection" },
-  { icon: ListOrdered, label: "Your Pre-Lawyer Questioner", number: 32, href: "/questionnaire" },
-  { icon: ListOrdered, label: "Partners Pre-Lawyer Questioner", number: 33, href: "/partner-questionnaire" },
-  
+/* top-level (single links) */
+const mainNavItems: NavItem[] = [{ icon: Home, label: "Dashboard", href: "/" }];
+
+/* grouped sections (what you asked for) */
+const sectionedNav: Section[] = [
+  {
+    title: "Questionnaire",
+    items: [
+      { label: "Your Details", href: "/questionnaire/background" },
+      { label: "Your Assets", href: "/questionnaire/property" },
+      { label: "Partners Details", href: "/questionnaire/debts" },
+      { label: "Partners Assets", href: "/questionnaire/financial" },
+      { label: "Joint Assets", href: "/questionnaire/joint-assets" },
+      { label: "Future Assets", href: "/questionnaire/future-assets" },
+      {
+        label: "Area of Complexity",
+        href: "/questionnaire/area-of-complexity",
+      },
+    ],
+  },
+  {
+    title: "Lawyer",
+    items: [
+      { label: "Your Pre-Lawyer Questioner", href: "/lawyers/selection" },
+      { label: "Lawyer Selection", href: "/questionnaire-1" },
+      {
+        label: "Partners Pre-Lawyer Questioner",
+        href: "/partner-questionnaire",
+      },
+      { label: "Lawyer Selection", href: "/partner-questionnaire-2" },
+    ],
+  },
 ];
 
 const bottomNavItems: NavItem[] = [
@@ -56,25 +81,28 @@ const bottomNavItems: NavItem[] = [
   { icon: User, label: "Account", href: "/account-managment" },
 ];
 
+/* ---------------------------
+   Components
+   --------------------------- */
+
 interface AppSidebarProps {
   activeItem?: string;
 }
 
-export function AppSidebar({ activeItem = "/" }: AppSidebarProps) {
+export default function AppSidebar({ activeItem = "/" }: AppSidebarProps) {
   const [isExpanded, setIsExpanded] = useState(true);
-
-  const toggleSidebar = () => setIsExpanded(!isExpanded);
 
   return (
     <aside
       className={cn(
-        "h-screen bg-sidebar border-r border-sidebar-border flex flex-col sidebar-transition relative",
+        "h-screen relative bg-sidebar border-r border-sidebar-border flex flex-col sidebar-transition",
         isExpanded ? "w-[270px]" : "w-[72px]"
       )}
     >
       {/* Toggle Button */}
       <button
-        onClick={toggleSidebar}
+        onClick={() => setIsExpanded((v) => !v)}
+        aria-label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
         className="absolute -right-3 top-8 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-sm hover:bg-secondary sidebar-transition"
       >
         {isExpanded ? (
@@ -84,27 +112,42 @@ export function AppSidebar({ activeItem = "/" }: AppSidebarProps) {
         )}
       </button>
 
-      {/* Logo Section */}
+      {/* Logo */}
       <div className="flex items-center gap-3 p-6">
         <div className="flex h-10 w-10 items-center justify-center">
           <svg viewBox="0 0 40 40" className="h-10 w-10">
-            <circle cx="14" cy="20" r="10" fill="none" stroke="hsl(45, 90%, 55%)" strokeWidth="3" />
-            <circle cx="26" cy="20" r="10" fill="none" stroke="hsl(45, 90%, 55%)" strokeWidth="3" />
+            <circle
+              cx="14"
+              cy="20"
+              r="10"
+              fill="none"
+              stroke="hsl(45, 90%, 55%)"
+              strokeWidth="3"
+            />
+            <circle
+              cx="26"
+              cy="20"
+              r="10"
+              fill="none"
+              stroke="hsl(45, 90%, 55%)"
+              strokeWidth="3"
+            />
           </svg>
         </div>
+
         {isExpanded && (
-          <span className="text-lg font-bold text-primary whitespace-nowrap sidebar-transition">
+          <span className="text-lg font-bold text-primary whitespace-nowrap">
             LET'S PRENUP
           </span>
         )}
       </div>
 
-      {/* Main Navigation */}
-      <nav className="flex-1 px-3 py-2">
-        {/* Dashboard */}
+      {/* Navigation */}
+      <nav className="flex-1 px-3 py-2 overflow-auto">
+        {/* Main nav (Dashboard etc.) */}
         <ul className="space-y-1">
           {mainNavItems.map((item) => (
-            <NavItem
+            <MainNavItem
               key={item.href}
               item={item}
               isExpanded={isExpanded}
@@ -113,40 +156,32 @@ export function AppSidebar({ activeItem = "/" }: AppSidebarProps) {
           ))}
         </ul>
 
-        {/* Numbered Items */}
-        <ul className="mt-4 space-y-1">
-          {numberedNavItems.map((item) => (
-            <NavItem
-              key={item.href}
-              item={item}
-              isExpanded={isExpanded}
-              isActive={activeItem === item.href}
-            />
+        {/* Sections (Questionnaire, Lawyer, etc.) */}
+        <div className="mt-4">
+          {sectionedNav.map((section, index) => (
+            <div key={section.title} className="mt-4">
+              <SectionHeading title={section.title} number={index+1} isExpanded={isExpanded} />
+              <ul className="mt-2 space-y-1">
+                {section.items.map((child) => (
+                  <SidebarChildItem
+                    key={child.href}
+                    item={child}
+                    isExpanded={isExpanded}
+                    isActive={activeItem === child.href}
+                  />
+                ))}
+              </ul>
+            </div>
           ))}
-        </ul>
+        </div>
 
         {/* Divider */}
         <div className="my-3 border-t border-sidebar-border" />
 
-        {/* Lawyer Selection (same look as above) */}
-        <ul className="mt-4 space-y-1">
-          {lawyerNavItems.map((item) => (
-            <NavItem
-              key={item.href}
-              item={item}
-              isExpanded={isExpanded}
-              isActive={activeItem === item.href}
-            />
-          ))}
-        </ul>
-
-        {/* Divider */}
-        <div className="my-3 border-t border-sidebar-border" />
-
-        {/* Bottom Navigation Items */}
+        {/* Bottom nav */}
         <ul className="space-y-1">
           {bottomNavItems.map((item) => (
-            <NavItem
+            <MainNavItem
               key={item.href}
               item={item}
               isExpanded={isExpanded}
@@ -156,7 +191,7 @@ export function AppSidebar({ activeItem = "/" }: AppSidebarProps) {
         </ul>
       </nav>
 
-      {/* Sign Out Button */}
+      {/* Sign out */}
       <div className="p-3">
         <button
           className={cn(
@@ -172,44 +207,115 @@ export function AppSidebar({ activeItem = "/" }: AppSidebarProps) {
   );
 }
 
-interface NavItemProps {
+/* ---------------------------
+   Subcomponents
+   --------------------------- */
+
+function MainNavItem({
+  item,
+  isExpanded,
+  isActive,
+}: {
   item: NavItem;
   isExpanded: boolean;
   isActive: boolean;
-}
-
-function NavItem({ item, isExpanded, isActive }: NavItemProps) {
+}) {
   const Icon = item.icon;
-
   return (
     <li>
-      <a
+      <Link
         href={item.href}
         className={cn(
           "flex items-center gap-3 rounded-2xl px-4 py-3 sidebar-transition",
-            isActive ? "bg-gradient-to-r from-secondary to-secondary-foreground"
+          isActive
+            ? "bg-gradient-to-r from-secondary to-secondary-foreground"
             : "text-muted-foreground hover:bg-gradient-to-r hover:from-secondary hover:to-secondary-foreground hover:text-foreground",
-          !isExpanded && "justify-center px-0 "
+          !isExpanded && "justify-center px-0"
         )}
       >
-        {item.number && !isActive ? (
-          <span
-            className={cn(
-              "flex h-6 w-6 items-center justify-center text-sm font-medium",
-              isActive ? "text-white" : "text-muted-foreground"
-            )}
-          >
-            
-          </span>
+        {Icon ? (
+          <Icon
+            className={cn("h-5 w-5 flex-shrink-0", isActive && "text-black")}
+          />
         ) : (
-          <Icon className={cn("h-5 w-5 flex-shrink-0", isActive && "text-black")} />
+          <div className="h-5 w-5" />
         )}
+
         {isExpanded && (
-          <span className={cn("whitespace-nowrap text-sm font-normal", isActive && "text-black")}>
-            {item.label}
-          </span>
+          <div className="flex items-center gap-2">
+            <span
+              className={cn(
+                "whitespace-nowrap text-sm font-normal",
+                isActive && "text-black"
+              )}
+            >
+              {item.label}
+            </span>
+          </div>
         )}
-      </a>
+      </Link>
+    </li>
+  );
+}
+
+function SectionHeading({
+  title,
+  number,
+  isExpanded,
+}: {
+  title: string;
+  number: any;
+  isExpanded: boolean;
+}) {
+  return (
+    <div className="">
+      {isExpanded ? (
+        <div className="flex items-center gap-2 rounded-2xl px-4 py-2 sidebar-transition text-muted-foreground hover:bg-gradient-to-r hover:from-secondary hover:to-secondary-foreground hover:text-foreground">
+          <span className="block h-5 w-5 bg-primary flex items-center justify-center rounded-full text-white text-sm">{number}</span>
+          <h3>{title}</h3>
+        </div>
+      ) : (
+        <div className="flex justify-center items-center h-8">
+          <span className="sr-only">{title}</span>
+          {/* small dot or icon when collapsed */}
+          <div className="h-2 w-2 rounded-full bg-muted-foreground" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SidebarChildItem({
+  item,
+  isExpanded,
+  isActive,
+}: {
+  item: { label: string; href: string };
+  isExpanded: boolean;
+  isActive: boolean;
+}) {
+  return (
+    <li>
+      <Link
+        href={item.href}
+        className={cn(
+          "flex items-center gap-3 rounded-xl px-4 py-2 sidebar-transition",
+          isActive
+            ? "bg-primary/10 text-primary"
+            : "text-muted-foreground hover:bg-secondary",
+          !isExpanded && "justify-center px-0"
+        )}
+      >
+        <div className=" h-3 flex items-end justify-end">
+          <span className="block h-4 w-4 rounded-full shrink-0 mt-[2px] bg-gray-300 p-[2px]">
+            <Check className="h-3 w-3 " />
+          </span>
+        </div>
+        <span className={cn("text-sm", isActive && "text-primary font-medium")}>
+          {item.label}
+        </span>
+        
+      </Link>
     </li>
   );
 }

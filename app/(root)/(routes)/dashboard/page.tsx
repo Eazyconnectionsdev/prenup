@@ -189,10 +189,10 @@ const Dashboard = () => {
     <div className="px-16 py-2">
       <div className="space-y-2">
         <h1 className="text-3xl font-normal text-text-color">
-          Background Information
+          Hello!
         </h1>
         <p className="text-base font-light text-text-color">
-          Congratulations on your upcoming marriage! 👏🏻
+          Welcome to Lets Prenup dashboard! This page will help guide you through your prenup journey.
         </p>
       </div>
 
@@ -208,8 +208,8 @@ const Dashboard = () => {
         <div className="space-y-4">
           <StepCard
             svg={firstSvg}
-            title="Fill out your Questionnaire"
-            description="Select your prenup terms. We guide you through state-specific processes."
+            title="Fill out the Questionnaire"
+            description="Please ensure both partners fill out the questionnaire"
             stepNumber={1}
             variant="green"
             disabled={false}
@@ -217,8 +217,8 @@ const Dashboard = () => {
 
           <StepCard
             svg={secondSvg}
-            title="Complete your Financial Disclosure"
-            description="List your assets, debts, and income to ensure a fair and valid prenup."
+            title="Collaborate with your Partner"
+            description="Discuss and align your answers together / Collaborate with your partner to address any mismatches"
             stepNumber={2}
             variant="orange"
             disabled={false}
@@ -226,8 +226,8 @@ const Dashboard = () => {
 
           <StepCard
             svg={thirdSvg}
-            title="Collaborate with your Partner"
-            description="Resolve answer differences with your partner."
+            title="Review and Sign"
+            description="Review, approve, and sign the final document"
             stepNumber={3}
             variant="red"
             disabled={false}
