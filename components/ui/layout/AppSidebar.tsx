@@ -1,81 +1,39 @@
-"use client"
+"use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
-import {
-  Home,
-  ListOrdered,
-  Eye,
-  Handshake,
-  CreditCard,
-  HelpCircle,
-  User,
-  LogOut,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { useRoutes } from "@/hooks/useRoutes"; // <-- adjust path
+import { ChevronLeft, ChevronRight, LogOut, Check } from "lucide-react";
+import { useDispatch } from "react-redux";
+import { AppDispatch } from "@/store/store";
+import { logOutUser } from "@/store/asyncThunk/authThunk";
 
-interface NavItem {
-  icon: React.ElementType;
-  label: string;
-  number?: number;
-  href: string;
-}
+export default function AppSidebar() {
+  const dispatch = useDispatch<AppDispatch>();
 
-const mainNavItems: NavItem[] = [
-  { icon: Home, label: "Dashboard", href: "/" },
-];
-
-const numberedNavItems: NavItem[] = [
-  // Parent questionnaire link
-  { icon: ListOrdered, label: "Questionnaire", href: "/questionnaire" },
-
-  // All steps that appear inside the questionnaire
-  { icon: Handshake, label: "Invite your Partner", number: 1, href: "/questionnaire/invite" },
-  { icon: User, label: "Your Details", number: 1, href: "/your-details" },
-  { icon: CreditCard, label: "Your Finances", number: 2, href: "/your-finances" },
-  { icon: User, label: "Partner's Details", number: 3, href: "/partners-details" },
-  { icon: CreditCard, label: "Partner's Finances", number: 4, href: "/partners-finances" },
-  { icon: Handshake, label: "Joint Assets", number: 5, href: "/joint-assets" },
-  { icon: ListOrdered, label: "Future Assets", number: 6, href: "/future-assets" },
-  { icon: HelpCircle, label: "Area of Complexity", number: 7, href: "/area-of-complexity" },
-];
-
-// Second menu: Lawyer Selection (keeps the same look/behaviour as the questionnaire items)
-const lawyerNavItems: NavItem[] = [
-  { icon: ListOrdered, label: "Lawyer ", href: "#" },
-  { icon: ListOrdered, label: "Lawyers Selection",number: 31, href: "/lawyers/selection" },
-  { icon: ListOrdered, label: "Your Pre-Lawyer Questioner", number: 32, href: "/questionnaire" },
-  { icon: ListOrdered, label: "Partners Pre-Lawyer Questioner", number: 33, href: "/partner-questionnaire" },
-  
-];
-
-const bottomNavItems: NavItem[] = [
-  { icon: CreditCard, label: "Payment", href: "/payment" },
-  { icon: HelpCircle, label: "Help", href: "/help" },
-  { icon: User, label: "Account", href: "/account-managment" },
-];
-
-interface AppSidebarProps {
-  activeItem?: string;
-}
-
-export function AppSidebar({ activeItem = "/" }: AppSidebarProps) {
   const [isExpanded, setIsExpanded] = useState(true);
+  const { routes, bottomRoutes } = useRoutes();
 
-  const toggleSidebar = () => setIsExpanded(!isExpanded);
+  const handleLogOut = async () => {
+    const result = await dispatch(logOutUser());
+
+    if (logOutUser.fulfilled.match(result)) {
+      window.location.assign("/login");
+    }
+  };
 
   return (
     <aside
       className={cn(
-        "h-screen bg-sidebar border-r border-sidebar-border flex flex-col sidebar-transition relative",
+        "h-screen relative bg-sidebar border-r border-sidebar-border flex flex-col transition-all duration-300",
         isExpanded ? "w-[270px]" : "w-[72px]"
       )}
     >
-      {/* Toggle Button */}
+      {/* Toggle */}
       <button
-        onClick={toggleSidebar}
-        className="absolute -right-3 top-8 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-sm hover:bg-secondary sidebar-transition"
+        onClick={() => setIsExpanded((v) => !v)}
+        className="absolute -right-3 top-8 z-10 flex h-6 w-6 items-center justify-center rounded-full border bg-sidebar shadow-sm"
       >
         {isExpanded ? (
           <ChevronLeft className="h-4 w-4" />
@@ -84,132 +42,137 @@ export function AppSidebar({ activeItem = "/" }: AppSidebarProps) {
         )}
       </button>
 
-      {/* Logo Section */}
+      {/* Logo */}
       <div className="flex items-center gap-3 p-6">
         <div className="flex h-10 w-10 items-center justify-center">
           <svg viewBox="0 0 40 40" className="h-10 w-10">
-            <circle cx="14" cy="20" r="10" fill="none" stroke="hsl(45, 90%, 55%)" strokeWidth="3" />
-            <circle cx="26" cy="20" r="10" fill="none" stroke="hsl(45, 90%, 55%)" strokeWidth="3" />
+            <circle
+              cx="14"
+              cy="20"
+              r="10"
+              fill="none"
+              stroke="hsl(45, 90%, 55%)"
+              strokeWidth="3"
+            />
+            <circle
+              cx="26"
+              cy="20"
+              r="10"
+              fill="none"
+              stroke="hsl(45, 90%, 55%)"
+              strokeWidth="3"
+            />
           </svg>
         </div>
         {isExpanded && (
-          <span className="text-lg font-bold text-primary whitespace-nowrap sidebar-transition">
-            LET'S PRENUP
+          <span className="text-lg font-bold whitespace-nowrap">
+            LET&apos;S PRENUP
           </span>
         )}
       </div>
 
-      {/* Main Navigation */}
-      <nav className="flex-1 px-3 py-2">
-        {/* Dashboard */}
-        <ul className="space-y-1">
-          {mainNavItems.map((item) => (
-            <NavItem
-              key={item.href}
-              item={item}
-              isExpanded={isExpanded}
-              isActive={activeItem === item.href}
-            />
-          ))}
-        </ul>
+      {/* Navigation */}
+      <nav className="flex-1 overflow-auto px-3">
+        <ul className="space-y-2">
+          {routes.map((route) => {
+            const Icon = route.icon;
 
-        {/* Numbered Items */}
-        <ul className="mt-4 space-y-1">
-          {numberedNavItems.map((item) => (
-            <NavItem
-              key={item.href}
-              item={item}
-              isExpanded={isExpanded}
-              isActive={activeItem === item.href}
-            />
-          ))}
-        </ul>
+            return (
+              <li key={route.href}>
+                {/* Parent */}
+                <Link
+                  href={route.href}
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl px-4 py-3 transition-all",
+                    route.isActive
+                      ? "bg-gradient-to-br from-secondary to-secondary-foreground text-foreground"
+                      : "text-muted-foreground hover:bg-gradient-to-br from-secondary to-primary-foreground hover:text-text-color",
+                    !isExpanded && "justify-center px-0"
+                  )}
+                >
+                  {Icon && <Icon className="h-5 w-5 shrink-0" />}
+                  {isExpanded && (
+                    <span className="text-base font-normal">{route.label}</span>
+                  )}
+                </Link>
 
-        {/* Divider */}
-        <div className="my-3 border-t border-sidebar-border" />
+                {/* Sub Menu */}
+                {route.subMenu && (
+                  <ul className="mt-2 ml-4 space-y-1">
+                    {route.subMenu.map((sub) => (
+                      <li key={sub.href}>
+                        <Link
+                          href={sub.href}
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-2 py-2 text-[15px] transition-all",
+                            sub.isActive
+                              ? "text-primary font-normal"
+                              : "text-muted-foreground hover:text-text-color",
+                            !isExpanded && "justify-center px-0"
+                          )}
+                        >
+                          <span className="h-4 w-4 rounded-full shrink-0 bg-gray-300 flex items-center justify-center">
+                            <Check className="h-3 w-3" />
+                          </span>
 
-        {/* Lawyer Selection (same look as above) */}
-        <ul className="mt-4 space-y-1">
-          {lawyerNavItems.map((item) => (
-            <NavItem
-              key={item.href}
-              item={item}
-              isExpanded={isExpanded}
-              isActive={activeItem === item.href}
-            />
-          ))}
-        </ul>
-
-        {/* Divider */}
-        <div className="my-3 border-t border-sidebar-border" />
-
-        {/* Bottom Navigation Items */}
-        <ul className="space-y-1">
-          {bottomNavItems.map((item) => (
-            <NavItem
-              key={item.href}
-              item={item}
-              isExpanded={isExpanded}
-              isActive={activeItem === item.href}
-            />
-          ))}
+                          {isExpanded && sub.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            );
+          })}
         </ul>
       </nav>
 
-      {/* Sign Out Button */}
+      {/* Divider */}
+      <div className="my-3 border-t border-sidebar-border" />
+
+      {/* Bottom Navigation */}
+      <nav className="overflow-auto px-3">
+        <ul className="space-y-2">
+          {bottomRoutes.map((route) => {
+            const Icon = route.icon;
+
+            return (
+              <li key={route.href}>
+                {/* Parent */}
+                <Link
+                  href={route.href}
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl px-4 py-3 transition-all",
+                    route.isActive
+                      ? "bg-gradient-to-br from-secondary to-primary-foreground text-foreground"
+                      : "text-muted-foreground hover:bg-gradient-to-br from-secondary to-primary-foreground hover:text-text-color",
+                    !isExpanded && "justify-center px-0"
+                  )}
+                >
+                  {Icon && <Icon className="h-5 w-5 shrink-0" />}
+                  {isExpanded && (
+                    <span className="text-sm font-normal">{route.label}</span>
+                  )}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+
+      {/* Sign out */}
       <div className="p-3">
         <button
+          onClick={handleLogOut}
           className={cn(
-            "flex w-full items-center justify-center gap-3 rounded-full border border-muted-foreground py-3 text-sidebar-foreground hover:bg-secondary sidebar-transition",
+            "flex w-full items-center justify-center gap-3 rounded-full border py-3 transition-all hover:bg-secondary",
             !isExpanded && "px-0"
           )}
         >
           <LogOut className="h-4 w-4" />
-          {isExpanded && <span className="text-sm font-medium">Sign out</span>}
+          {isExpanded && <span className="text-sm">Sign out</span>}
         </button>
       </div>
     </aside>
-  );
-}
-
-interface NavItemProps {
-  item: NavItem;
-  isExpanded: boolean;
-  isActive: boolean;
-}
-
-function NavItem({ item, isExpanded, isActive }: NavItemProps) {
-  const Icon = item.icon;
-
-  return (
-    <li>
-      <a
-        href={item.href}
-        className={cn(
-          "flex items-center gap-3 rounded-2xl px-4 py-3 sidebar-transition",
-            isActive ? "bg-gradient-to-r from-secondary to-secondary-foreground"
-            : "text-muted-foreground hover:bg-gradient-to-r hover:from-secondary hover:to-secondary-foreground hover:text-foreground",
-          !isExpanded && "justify-center px-0 "
-        )}
-      >
-        {item.number && !isActive ? (
-          <span
-            className={cn(
-              "flex h-6 w-6 items-center justify-center text-sm font-medium",
-              isActive ? "text-white" : "text-muted-foreground"
-            )}
-          >
-            
-          </span>
-        ) : (
-          <Icon className={cn("h-5 w-5 flex-shrink-0", isActive && "text-black")} />
-        )}
-        {isExpanded && (
-          <span className={cn("whitespace-nowrap text-sm font-normal", isActive && "text-black")}>
-            {item.label}
-          </span>
-        )}
-      </a>
-    </li>
   );
 }
