@@ -34,7 +34,7 @@ const coreNavItems: NavItem[] = [
   { icon: Home, label: 'Case Manager', href: '/admin/case-manager' },
   { icon: BarChart2, label: 'User Reports', href: '/admin/reports' },
   { icon: Inbox, label: 'Enquiry Dashboard', href: '/admin/enquiry-dashboard' },
-  { icon: UserPlus, label: 'Lawyer & Company Creation', href: '/admin/lawyers-company' },
+  { icon: UserPlus, label: 'Lawyer & Company Creation', href: '/admin/lawyer-company-creation' },
   { icon: FileText, label: 'Audit Logs', href: '/admin/audit-logs' },
   { icon: AlertTriangle, label: 'Internal Errors', href: '/admin/internal-errors' }
 ]
