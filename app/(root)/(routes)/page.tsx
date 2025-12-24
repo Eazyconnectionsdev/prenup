@@ -1,4 +1,5 @@
 "use client";
+import { Loader } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
@@ -11,7 +12,9 @@ const MainPage = () => {
     }
   }, []);
 
-  return <div>MainPage</div>;
+  return <div className="w-full h-full flex items-center justify-center">
+    <Loader className="animate-spin text-gray-600"/>
+  </div>;
 };
 
 export default MainPage;

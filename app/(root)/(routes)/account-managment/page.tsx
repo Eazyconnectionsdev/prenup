@@ -1,6 +1,16 @@
 "use client";
 
+import { RootState } from "@/store/store";
+import { useSelector } from "react-redux";
+
 const AccountManagment = () => {
+
+  const {user} = useSelector((state : RootState) => state.auth)
+
+  const handleChange = () => {
+    
+  }
+
   return (
     <div className="w-full max-w-4xl bg-gray-50  p-6 rounded-xl space-y-10">
       {/* SECTION 1 */}
@@ -57,6 +67,8 @@ const AccountManagment = () => {
               <input
                 type="email"
                 placeholder="example@email.com"
+                value={user?.email}
+                onChange={handleChange}
                 className="border border-gray-300 rounded-lg px-3 py-2 text-sm placeholder:text-[14px]"
               />
             </div>
