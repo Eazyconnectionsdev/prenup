@@ -1,10 +1,15 @@
 // file: app/future-assets/Page.tsx
 "use client";
 
+import Axios from "@/lib/ApiConfig";
+import { RootState } from "@/store/store";
 import React, { useState } from "react";
+import { useSelector } from "react-redux";
+import { toast } from "react-toastify";
 
 const HEADING = "Future Assets";
-const SUBTEXT = "Please fill in each of the sections below to complete your agreement.";
+const SUBTEXT =
+  "Please fill in each of the sections below to complete your agreement.";
 
 const QUESTIONS = [
   `If one of you inherits something, will the inheritance be considered the separate asset (Separate) for the person who inherits it, or a joint asset (Joint) shared between both of you?`,
@@ -15,7 +20,10 @@ const QUESTIONS = [
 
 export default function FutureAssetsPage() {
   const [answers, setAnswers] = useState<("yes" | "no" | null)[]>(() => Array(QUESTIONS.length).fill(null));
+
   const [willsHelp, setWillsHelp] = useState<"yes" | "no" | null>(null);
+  const {caseId} = useSelector((state: RootState) => state.auth);
+  
 
   type Inheritance = {
     originalAmount: string;
@@ -39,27 +47,56 @@ export default function FutureAssetsPage() {
   });
 
   const setAnswer = (idx: number, val: "yes" | "no") => {
-    setAnswers(prev => {
+    setAnswers((prev) => {
       const copy = [...prev];
       copy[idx] = val;
       return copy;
     });
   };
 
-  const handleSubmit = (e?: React.FormEvent) => {
+  const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
+
     const payload = {
-      heading: HEADING,
-      questions: QUESTIONS.map((q, i) => ({ question: q, answer: answers[i] })),
-      willsHelp,
-      inheritance: {
-        "Sooriya Kumar Coimbatore Rajendran": inheritanceA,
-        "Gomathi Chandran": inheritanceB,
+      inheritanceSeparate: answers[0] === "yes",
+      giftsSeparate: answers[1] === "yes",
+      futureSoleAssetsSeparate: answers[2] === "yes",
+      sameAsWill: answers[3] === "yes",
+      wantWillAssistance: willsHelp === "yes",
+
+      sooriyaFutureInheritance: {
+        originalAmount: inheritanceA.originalAmount
+          ? Number(inheritanceA.originalAmount)
+          : null,
+        originalCurrency: inheritanceA.originalCurrency || null,
+        gbpEquivalent: inheritanceA.gbpEquivalent
+          ? Number(inheritanceA.gbpEquivalent)
+          : null,
+        basisOfEstimate: inheritanceA.basisOfEstimate || null,
       },
-      savedAt: new Date().toISOString(),
+
+      gomathiFutureInheritance: {
+        originalAmount: inheritanceB.originalAmount
+          ? Number(inheritanceB.originalAmount)
+          : null,
+        originalCurrency: inheritanceB.originalCurrency || null,
+        gbpEquivalent: inheritanceB.gbpEquivalent
+          ? Number(inheritanceB.gbpEquivalent)
+          : null,
+        basisOfEstimate: inheritanceB.basisOfEstimate || null,
+      },
     };
-    console.log("FUTURE ASSETS SUBMIT", payload);
-    alert("Future assets saved locally (check console). Replace handler with API POST to persist.");
+
+    try {
+      const { data } = await Axios.post(`/cases/${caseId}/steps/6`, payload);
+      console.log("Submitted data:", data);
+    toast.success("Submitted Successfully");
+        } catch (error: any) {
+          console.error("Error submitting questionnaire:", error);
+          if (error && error.response.data && error.response.data.message) {
+            toast.error(error.response.data.message || error.message);
+          }
+        }
   };
 
   return (
@@ -67,7 +104,9 @@ export default function FutureAssetsPage() {
       <div className="w-full max-w-5xl mx-auto pl-16 py-2 pr-26">
         <header className="mb-4">
           <h1 className="text-3xl font-normal text-text-color">{HEADING}</h1>
-          <p className="mt-2 text-[15px] font-light text-text-color">{SUBTEXT}</p>
+          <p className="mt-2 text-[15px] font-light text-text-color">
+            {SUBTEXT}
+          </p>
         </header>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -75,18 +114,29 @@ export default function FutureAssetsPage() {
           <div className="space-y-8 bg-gradient-to-br from-secondary to-primary-foreground py-10 px-6 rounded-lg my-6 text-text-color">
             {/* Top questions */}
             {QUESTIONS.map((q, qi) => (
-              <div key={qi} className="flex flex-col items-center text-center pb-6 border-b border-white/20">
+              <div
+                key={qi}
+                className="flex flex-col items-center text-center pb-6 border-b border-white/20"
+              >
                 <span className="text-base font-normal max-w-3xl">
                   <span className="font-medium mr-2">{qi + 1}.</span>
                   {q}
                 </span>
 
-                <div className="flex gap-3 mt-6" role="group" aria-label={`Question ${qi + 1} answer`}>
+                <div
+                  className="flex gap-3 mt-6"
+                  role="group"
+                  aria-label={`Question ${qi + 1} answer`}
+                >
                   <button
                     type="button"
                     onClick={() => setAnswer(qi, "yes")}
                     aria-pressed={answers[qi] === "yes"}
-                    className={`px-14 shadow-md hover:bg-gray-100 py-1.5 rounded-full font-medium cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-300 ${answers[qi] === "yes" ? "bg-green-600 text-white" : "bg-white text-text-color"}`}
+                    className={`px-14 shadow-md hover:bg-gray-100 py-1.5 rounded-full font-medium cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-300 ${
+                      answers[qi] === "yes"
+                        ? "bg-green-600 text-white"
+                        : "bg-white text-text-color"
+                    }`}
                   >
                     Yes
                   </button>
@@ -95,7 +145,11 @@ export default function FutureAssetsPage() {
                     type="button"
                     onClick={() => setAnswer(qi, "no")}
                     aria-pressed={answers[qi] === "no"}
-                    className={`px-14 shadow-md hover:bg-gray-100 py-1.5 rounded-full font-medium cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-300 ${answers[qi] === "no" ? "bg-red-600 text-white" : "bg-white text-text-color"}`}
+                    className={`px-14 shadow-md hover:bg-gray-100 py-1.5 rounded-full font-medium cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-300 ${
+                      answers[qi] === "no"
+                        ? "bg-red-600 text-white"
+                        : "bg-white text-text-color"
+                    }`}
                   >
                     No
                   </button>
@@ -106,15 +160,24 @@ export default function FutureAssetsPage() {
             {/* Wills offer — inside same gradient */}
             <div className="flex flex-col items-center text-center pb-6 border-b border-white/20">
               <span className="text-base font-normal max-w-3xl">
-                You are both entitled to a Discount on our Wills Product as a Wenup Customer, would you like us to help you with your will?
+                You are both entitled to a Discount on our Wills Product as a
+                Wenup Customer, would you like us to help you with your will?
               </span>
 
-              <div className="flex gap-3 mt-6" role="group" aria-label="Would you like help with wills?">
+              <div
+                className="flex gap-3 mt-6"
+                role="group"
+                aria-label="Would you like help with wills?"
+              >
                 <button
                   type="button"
                   onClick={() => setWillsHelp("yes")}
                   aria-pressed={willsHelp === "yes"}
-                  className={`px-14 shadow-md hover:bg-gray-100 py-1.5 rounded-full font-medium cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-300 ${willsHelp === "yes" ? "bg-green-600 text-white" : "bg-white text-text-color"}`}
+                  className={`px-14 shadow-md hover:bg-gray-100 py-1.5 rounded-full font-medium cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-300 ${
+                    willsHelp === "yes"
+                      ? "bg-green-600 text-white"
+                      : "bg-white text-text-color"
+                  }`}
                 >
                   Yes
                 </button>
@@ -123,7 +186,11 @@ export default function FutureAssetsPage() {
                   type="button"
                   onClick={() => setWillsHelp("no")}
                   aria-pressed={willsHelp === "no"}
-                  className={`px-14 shadow-md hover:bg-gray-100 py-1.5 rounded-full font-medium cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-300 ${willsHelp === "no" ? "bg-red-600 text-white" : "bg-white text-text-color"}`}
+                  className={`px-14 shadow-md hover:bg-gray-100 py-1.5 rounded-full font-medium cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-300 ${
+                    willsHelp === "no"
+                      ? "bg-red-600 text-white"
+                      : "bg-white text-text-color"
+                  }`}
                 >
                   No
                 </button>
@@ -132,8 +199,15 @@ export default function FutureAssetsPage() {
 
             {/* Inheritance A — inputs stay white but label and helper text use small black font */}
             <div className="w-full max-w-4xl text-left py-4">
-              <h2 className="text-lg font-medium mb-1">Please provide details on the approximate value and composition of Sooriya Kumar Coimbatore Rajendran's Future Inheritance.</h2>
-              <p className="text-[13px] opacity-80 mb-4">All figures must be in Pounds Sterling (GBP). If converting from another currency include both the original amount and the GBP equivalent.</p>
+              <h2 className="text-lg font-medium mb-1">
+                Please provide details on the approximate value and composition
+                of Sooriya Kumar Coimbatore Rajendran's Future Inheritance.
+              </h2>
+              <p className="text-[13px] opacity-80 mb-4">
+                All figures must be in Pounds Sterling (GBP). If converting from
+                another currency include both the original amount and the GBP
+                equivalent.
+              </p>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <label>
@@ -142,7 +216,12 @@ export default function FutureAssetsPage() {
                     type="number"
                     step="any"
                     value={inheritanceA.originalAmount}
-                    onChange={(e) => setInheritanceA({ ...inheritanceA, originalAmount: e.target.value })}
+                    onChange={(e) =>
+                      setInheritanceA({
+                        ...inheritanceA,
+                        originalAmount: e.target.value,
+                      })
+                    }
                     placeholder="Original amount"
                     className="w-full rounded-md border border-white/20 px-3 py-2 bg-white text-slate-900"
                   />
@@ -152,7 +231,12 @@ export default function FutureAssetsPage() {
                   <div className="text-sm mb-1">Original currency</div>
                   <input
                     value={inheritanceA.originalCurrency}
-                    onChange={(e) => setInheritanceA({ ...inheritanceA, originalCurrency: e.target.value })}
+                    onChange={(e) =>
+                      setInheritanceA({
+                        ...inheritanceA,
+                        originalCurrency: e.target.value,
+                      })
+                    }
                     placeholder="e.g. INR, USD"
                     className="w-full rounded-md border border-white/20 px-3 py-2 bg-white text-slate-900"
                   />
@@ -164,7 +248,12 @@ export default function FutureAssetsPage() {
                     type="number"
                     step="any"
                     value={inheritanceA.gbpEquivalent}
-                    onChange={(e) => setInheritanceA({ ...inheritanceA, gbpEquivalent: e.target.value })}
+                    onChange={(e) =>
+                      setInheritanceA({
+                        ...inheritanceA,
+                        gbpEquivalent: e.target.value,
+                      })
+                    }
                     placeholder="£"
                     className="w-full rounded-md border border-white/20 px-3 py-2 bg-white text-slate-900"
                   />
@@ -176,7 +265,12 @@ export default function FutureAssetsPage() {
                 <textarea
                   rows={5}
                   value={inheritanceA.basisOfEstimate}
-                  onChange={(e) => setInheritanceA({ ...inheritanceA, basisOfEstimate: e.target.value })}
+                  onChange={(e) =>
+                    setInheritanceA({
+                      ...inheritanceA,
+                      basisOfEstimate: e.target.value,
+                    })
+                  }
                   className="w-full rounded-md border border-white/20 px-3 py-2 bg-white text-slate-900"
                   placeholder="Explain how this estimate was reached (assets, valuations, valuation dates, sources...)"
                 />
@@ -185,8 +279,15 @@ export default function FutureAssetsPage() {
 
             {/* Inheritance B */}
             <div className="w-full max-w-4xl text-left py-4">
-              <h2 className="text-lg font-medium mb-1">Please provide details on the approximate value and composition of Gomathi Chandran's Future Inheritance.</h2>
-              <p className="text-[13px] opacity-80 mb-4">All figures must be in Pounds Sterling (GBP). If converting from another currency include both the original amount and the GBP equivalent.</p>
+              <h2 className="text-lg font-medium mb-1">
+                Please provide details on the approximate value and composition
+                of Gomathi Chandran's Future Inheritance.
+              </h2>
+              <p className="text-[13px] opacity-80 mb-4">
+                All figures must be in Pounds Sterling (GBP). If converting from
+                another currency include both the original amount and the GBP
+                equivalent.
+              </p>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <label>
@@ -195,7 +296,12 @@ export default function FutureAssetsPage() {
                     type="number"
                     step="any"
                     value={inheritanceB.originalAmount}
-                    onChange={(e) => setInheritanceB({ ...inheritanceB, originalAmount: e.target.value })}
+                    onChange={(e) =>
+                      setInheritanceB({
+                        ...inheritanceB,
+                        originalAmount: e.target.value,
+                      })
+                    }
                     placeholder="Original amount"
                     className="w-full rounded-md border border-white/20 px-3 py-2 bg-white text-slate-900"
                   />
@@ -205,7 +311,12 @@ export default function FutureAssetsPage() {
                   <div className="text-sm mb-1">Original currency</div>
                   <input
                     value={inheritanceB.originalCurrency}
-                    onChange={(e) => setInheritanceB({ ...inheritanceB, originalCurrency: e.target.value })}
+                    onChange={(e) =>
+                      setInheritanceB({
+                        ...inheritanceB,
+                        originalCurrency: e.target.value,
+                      })
+                    }
                     placeholder="e.g. INR, USD"
                     className="w-full rounded-md border border-white/20 px-3 py-2 bg-white text-slate-900"
                   />
@@ -217,7 +328,12 @@ export default function FutureAssetsPage() {
                     type="number"
                     step="any"
                     value={inheritanceB.gbpEquivalent}
-                    onChange={(e) => setInheritanceB({ ...inheritanceB, gbpEquivalent: e.target.value })}
+                    onChange={(e) =>
+                      setInheritanceB({
+                        ...inheritanceB,
+                        gbpEquivalent: e.target.value,
+                      })
+                    }
                     placeholder="£"
                     className="w-full rounded-md border border-white/20 px-3 py-2 bg-white text-slate-900"
                   />
@@ -229,7 +345,12 @@ export default function FutureAssetsPage() {
                 <textarea
                   rows={5}
                   value={inheritanceB.basisOfEstimate}
-                  onChange={(e) => setInheritanceB({ ...inheritanceB, basisOfEstimate: e.target.value })}
+                  onChange={(e) =>
+                    setInheritanceB({
+                      ...inheritanceB,
+                      basisOfEstimate: e.target.value,
+                    })
+                  }
                   className="w-full rounded-md border border-white/20 px-3 py-2 bg-white text-slate-900"
                   placeholder="Explain how this estimate was reached (assets, valuations, valuation dates, sources...)"
                 />
@@ -238,7 +359,10 @@ export default function FutureAssetsPage() {
 
             {/* Save button inside the gradient box */}
             <div className="flex items-center justify-center pt-2">
-              <button type="submit" className="px-6 py-3 rounded-full bg-gradient-to-r from-[#1E3A8A] to-[#76E0FF] text-white font-medium shadow">
+              <button
+                type="submit"
+                className="px-6 py-3 rounded-full bg-gradient-to-r from-[#1E3A8A] to-[#76E0FF] text-white font-medium shadow"
+              >
                 Save / Continue
               </button>
             </div>
