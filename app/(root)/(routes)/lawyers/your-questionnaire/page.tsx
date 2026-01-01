@@ -1,6 +1,10 @@
 "use client";
 
+import Axios from "@/lib/ApiConfig";
+import { RootState } from "@/store/store";
 import React, { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
+import { toast } from "react-toastify";
 
 // Questions array (each string is the content to display — do NOT prefix with the word "Question").
 const QUESTIONS: string[] = [
@@ -38,6 +42,8 @@ const QUESTIONS: string[] = [
 ];
 
 export default function QuestionsPage() {
+  const {caseId} = useSelector((state: RootState) => state.auth);
+
   const [index, setIndex] = useState(0);
   // answers: 'yes' | 'no' | null
   const [answers, setAnswers] = useState<("yes" | "no" | null)[]>(() => Array(QUESTIONS.length).fill(null));
@@ -62,7 +68,19 @@ export default function QuestionsPage() {
     });
   };
 
-  console.log("answers", answers)
+
+  const handleSubmit = async (answers : any) => {
+    try{  
+      const {data} = await Axios.post(`/cases/${caseId}/pre-questionnaire`, {answers : [...answers]})
+      console.log("Questionnaire submitted successfully:", data);
+    }catch(error : any){ 
+      console.error("Error submitting questionnaire:", error);
+      if(error && error.response.data && error.response.data.message){
+        toast.error(error.response.data.message ||error.message);
+      }
+
+    } 
+  }
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-center justify-center p-6">
@@ -140,7 +158,7 @@ export default function QuestionsPage() {
                   if (index === QUESTIONS.length - 1) {
                     // finished behaviour — simple summary for now
                     const answered = answers.filter(Boolean).length;
-                    alert(`You have finished the questionnaire. Answers provided: ${answered} of ${QUESTIONS.length}`);
+                    handleSubmit(answers)
                   } else next();
                 }}
                 className="px-6 py-2 rounded-full bg-gradient-to-r from-[#1E3A8A] to-[#76E0FF] text-white font-medium shadow"

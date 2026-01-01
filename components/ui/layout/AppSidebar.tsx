@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { useRoutes } from "@/hooks/useRoutes"; // <-- adjust path
-import { ChevronLeft, ChevronRight, LogOut, Check } from "lucide-react";
+import { useState } from "react";
+
 import { useDispatch } from "react-redux";
 import { AppDispatch } from "@/store/store";
+import { useRoutes } from "@/hooks/useRoutes";
 import { logOutUser } from "@/store/asyncThunk/authThunk";
+import { ChevronLeft, ChevronRight, LogOut, Check } from "lucide-react";
 
 export default function AppSidebar() {
   const dispatch = useDispatch<AppDispatch>();

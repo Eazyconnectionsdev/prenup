@@ -48,9 +48,9 @@ export const useRoutes = () => {
           isActive: pathname === "/questionnaire/your-details",
         },
         {
-          label: "Your Assets",
-          href: "/questionnaire/your-assets",
-          isActive: pathname === "/questionnaire/your-assets",
+          label: "Your Finances",
+          href: "/questionnaire/your-finances",
+          isActive: pathname === "/questionnaire/your-finances",
         },
         {
           label: "Partners Details",
@@ -58,9 +58,9 @@ export const useRoutes = () => {
           isActive: pathname === "/questionnaire/partners-details",
         },
         {
-          label: "Partners Assets",
-          href: "/questionnaire/financial",
-          isActive: pathname === "/questionnaire/financial",
+          label: "Partners Finances",
+          href: "/questionnaire/partners-finances",
+          isActive: pathname === "/questionnaire/partners-finances",
         },
         {
           label: "Joint Assets",
@@ -87,23 +87,13 @@ export const useRoutes = () => {
       subMenu: [
         {
           label: "Your Pre-Lawyer Questioner",
+          href: "/lawyers/your-questionnaire",
+          isActive: pathname === "/lawyers/your-questionnaire",
+        },
+        {
+          label: "Lawyer Selection",
           href: "/lawyers/selection",
           isActive: pathname === "/lawyers/selection",
-        },
-        {
-          label: "Lawyer Selection",
-          href: "/questionnaire-1",
-          isActive: pathname === "/questionnaire-1",
-        },
-        {
-          label: "Partners Pre-Lawyer Questioner",
-          href: "/partner-questionnaire",
-          isActive: pathname === "/partner-questionnaire",
-        },
-        {
-          label: "Lawyer Selection",
-          href: "/partner-questionnaire-2",
-          isActive: pathname === "/partner-questionnaire-2",
         },
       ],
     },

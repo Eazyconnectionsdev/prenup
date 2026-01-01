@@ -22,6 +22,7 @@ export default function LoginPageStatic() {
     password: "",
   });
 
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     setForm((prev) => ({

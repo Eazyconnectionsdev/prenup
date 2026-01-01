@@ -1,7 +1,11 @@
 // file: app/joint-assets/Page.tsx
 "use client";
 
+import Axios from "@/lib/ApiConfig";
+import { RootState } from "@/store/store";
 import React, { useState } from "react";
+import { useSelector } from "react-redux";
+import { toast } from "react-toastify";
 
 const HEADING = "Joint assets";
 const SUBTEXT = "Unless you specify otherwise below, it will be assumed that each of these joint assets are split equally with your partner.";
@@ -21,6 +25,9 @@ const FOLLOW_UPS = [
 ];
 
 export default function JointAssetsPage() {
+
+    const {caseId} = useSelector((state: RootState) => state.auth);
+  
   const [answers, setAnswers] = useState<("yes" | "no" | null)[]>(() => Array(QUESTIONS.length).fill(null));
   const [firstQuestion, setFirstQuestion] = useState<"yes" | "no" | null>(null);
   const [followUps, setFollowUps] = useState<("yes" | "no" | null)[]>(() => Array(FOLLOW_UPS.length).fill(null));
@@ -46,7 +53,7 @@ export default function JointAssetsPage() {
     });
   };
 
-  const handleSubmit = (e?: React.FormEvent) => {
+  const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
     const payload = {
       heading: HEADING,
@@ -55,8 +62,20 @@ export default function JointAssetsPage() {
       followUps: FOLLOW_UPS.map((q, i) => ({ question: q, answer: followUps[i] })),
       savedAt: new Date().toISOString(),
     };
-    console.log("JOINT ASSETS SUBMIT", payload);
-    alert("Joint assets saved locally (check console). Replace handler to POST to your API if you'd like.");
+
+     try{
+    
+          const {data} = await Axios.post(`/cases/${caseId}/steps/5`, payload);
+    
+          console.log("Submitted data:", data);
+    
+        toast.success("Submitted Successfully");
+            } catch (error: any) {
+              console.error("Error submitting questionnaire:", error);
+              if (error && error.response.data && error.response.data.message) {
+                toast.error(error.response.data.message || error.message);
+              }
+            }
   };
 
   return (

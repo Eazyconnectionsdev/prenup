@@ -56,6 +56,7 @@ export default function SignUpPageStatic() {
       phone: form.phone,
       password: form.password,
       acceptedTerms: form.acceptedTerms,
+      endUserType: "user1",
       marketingConsent: form.marketingConsent,
     };
 
