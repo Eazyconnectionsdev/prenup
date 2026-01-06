@@ -9,6 +9,7 @@ import { AppDispatch } from "@/store/store";
 import { useRoutes } from "@/hooks/useRoutes";
 import { logOutUser } from "@/store/asyncThunk/authThunk";
 import { ChevronLeft, ChevronRight, LogOut, Check } from "lucide-react";
+import { Button } from "../button";
 
 export default function AppSidebar() {
   const dispatch = useDispatch<AppDispatch>();
@@ -75,27 +76,55 @@ export default function AppSidebar() {
       {/* Navigation */}
       <nav className="flex-1 overflow-auto px-3">
         <ul className="space-y-2">
-          {routes.map((route) => {
+          {routes.map((route, index) => {
             const Icon = route.icon;
 
             return (
               <li key={route.href}>
                 {/* Parent */}
-                <Link
-                  href={route.href}
-                  className={cn(
-                    "flex items-center gap-3 rounded-xl px-4 py-3 transition-all",
-                    route.isActive
-                      ? "bg-gradient-to-br from-secondary to-secondary-foreground text-foreground"
-                      : "text-muted-foreground hover:bg-gradient-to-br from-secondary to-primary-foreground hover:text-text-color",
-                    !isExpanded && "justify-center px-0"
-                  )}
-                >
-                  {Icon && <Icon className="h-5 w-5 shrink-0" />}
-                  {isExpanded && (
-                    <span className="text-base font-normal">{route.label}</span>
-                  )}
-                </Link>
+                {route.href ? (
+                  <Link
+                    href={route.href}
+                    className={cn(
+                      "flex items-center gap-3 rounded-xl px-3 py-3 transition-all",
+                      route.isActive
+                        ? "bg-gradient-to-br from-secondary to-secondary-foreground text-foreground"
+                        : "text-muted-foreground hover:bg-gradient-to-br from-secondary to-primary-foreground hover:text-text-color",
+                      !isExpanded && "justify-center px-0"
+                    )}
+                  >
+                    {Icon ? (
+                      <Icon className="h-6 w-6 shrink-0" />
+                    ) : (
+                      <span className="h-6 w-6 rounded-full bg-primary font-normal text-sm text-white flex items-center justify-center">
+                        {index}
+                      </span>
+                    )}
+                    {/* {Icon && <Icon className="h-5 w-5 shrink-0" />} */}
+                    {isExpanded && (
+                      <span className="text-base font-normal">
+                        {route.label}
+                      </span>
+                    )}
+                  </Link>
+                ) : (
+                  <button
+                    className={cn(
+                      "w-full flex items-center gap-3 rounded-xl px-4 py-3 transition-all",
+                      route.isActive
+                        ? "bg-gradient-to-br from-secondary to-secondary-foreground text-foreground"
+                        : "text-muted-foreground hover:bg-gradient-to-br from-secondary to-primary-foreground hover:text-text-color",
+                      !isExpanded && "justify-center px-0"
+                    )}
+                  >
+                    {Icon && <Icon className="h-5 w-5 shrink-0" />}
+                    {isExpanded && (
+                      <span className="text-base font-normal">
+                        {route.label}
+                      </span>
+                    )}
+                  </button>
+                )}
 
                 {/* Sub Menu */}
                 {route.subMenu && (
@@ -105,18 +134,21 @@ export default function AppSidebar() {
                         <Link
                           href={sub.href}
                           className={cn(
-                            "flex items-center gap-3 rounded-lg px-2 py-2 text-[15px] transition-all",
+                            "flex items-center gap-3 rounded-lg pl-2 pr-4 py-2 text-[15px] transition-all",
                             sub.isActive
                               ? "text-primary font-normal"
                               : "text-muted-foreground hover:text-text-color",
                             !isExpanded && "justify-center px-0"
                           )}
                         >
-                          <span className="h-4 w-4 rounded-full shrink-0 bg-gray-300 flex items-center justify-center">
-                            <Check className="h-3 w-3" />
-                          </span>
-
-                          {isExpanded && sub.label}
+                          {isExpanded && <p className="flex-1">{sub.label}</p>}
+                          {true ? (
+                            <span className="block w-3 h-3 rounded-full text-text-color border border-gray-400" />
+                          ) : (
+                            <span className="h-4 w-4 rounded-full shrink-0 bg-gray-300 flex items-center justify-center">
+                              <Check className="h-3 w-3" />
+                            </span>
+                          )}
                         </Link>
                       </li>
                     ))}
@@ -140,21 +172,43 @@ export default function AppSidebar() {
             return (
               <li key={route.href}>
                 {/* Parent */}
-                <Link
-                  href={route.href}
-                  className={cn(
-                    "flex items-center gap-3 rounded-xl px-4 py-3 transition-all",
-                    route.isActive
-                      ? "bg-gradient-to-br from-secondary to-primary-foreground text-foreground"
-                      : "text-muted-foreground hover:bg-gradient-to-br from-secondary to-primary-foreground hover:text-text-color",
-                    !isExpanded && "justify-center px-0"
-                  )}
-                >
-                  {Icon && <Icon className="h-5 w-5 shrink-0" />}
-                  {isExpanded && (
-                    <span className="text-sm font-normal">{route.label}</span>
-                  )}
-                </Link>
+                {route.href ? (
+                  <Link
+                    href={route.href}
+                    className={cn(
+                      "flex items-center gap-3 rounded-xl px-4 py-3 transition-all",
+                      route.isActive
+                        ? "bg-gradient-to-br from-secondary to-secondary-foreground text-foreground"
+                        : "text-muted-foreground hover:bg-gradient-to-br from-secondary to-primary-foreground hover:text-text-color",
+                      !isExpanded && "justify-center px-0"
+                    )}
+                  >
+                    {Icon && <Icon className="h-5 w-5 shrink-0" />}
+                    {isExpanded && (
+                      <span className="text-base font-normal">
+                        {route.label}
+                      </span>
+                    )}
+                  </Link>
+                ) : (
+                  <button
+                    className={cn(
+                      "w-full cursor-pointer flex items-center gap-3 rounded-xl px-4 py-3 transition-all",
+                      route.isActive
+                        ? "bg-gradient-to-br from-secondary to-secondary-foreground text-foreground"
+                        : "text-muted-foreground hover:bg-gradient-to-br from-secondary to-primary-foreground hover:text-text-color",
+                      !isExpanded && "justify-center px-0"
+                    )}
+                    onClick={route.onclick}
+                  >
+                    {Icon && <Icon className="h-5 w-5 shrink-0" />}
+                    {isExpanded && (
+                      <span className="text-base font-normal">
+                        {route.label}
+                      </span>
+                    )}
+                  </button>
+                )}
               </li>
             );
           })}

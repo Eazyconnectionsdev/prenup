@@ -11,13 +11,19 @@ import {
   ChevronRight,
   Check,
   ListOrdered,
+  UserPlus,
 } from "lucide-react";
+import { useDispatch } from "react-redux";
+import { openInvitePartnerModel } from "@/store/slices/modelSlice";
+import { MouseEventHandler } from "react";
+import { GoHomeFill } from "react-icons/go";
 
 type RouteType = {
   label: string;
-  href: string;
+  href: string | null;
   icon?: any;
-  isActive: boolean;
+  isActive ?: boolean;
+  onclick?: MouseEventHandler<HTMLButtonElement>;
   subMenu?: Array<{
     label: string;
     href: string;
@@ -26,21 +32,21 @@ type RouteType = {
 };
 
 export const useRoutes = () => {
+  const dispatch = useDispatch()
   const pathname = usePathname();
 
   const routes: RouteType[] = [
     {
       label: "Dashboard",
       href: "/dashboard",
-      icon: Home,
+      icon: GoHomeFill,
       isActive: pathname === "/dashboard",
       subMenu: null,
     },
     {
       label: "Questionnaire",
-      href: "/questionnaire",
-      icon: ListOrdered,
-      isActive: pathname.includes("/questionnaire"),
+      href: "/questionnaire/your-details",
+      isActive: pathname.includes("/questionnaire/your-details"),
       subMenu: [
         {
           label: "Your Details",
@@ -82,7 +88,6 @@ export const useRoutes = () => {
     {
       label: "Lawyers",
       href: "/lawyers",
-      icon: ListOrdered,
       isActive: pathname.includes("/lawyers"),
       subMenu: [
         {
@@ -107,12 +112,20 @@ export const useRoutes = () => {
       isActive: pathname === "/payment",
       subMenu: null,
     },
-    {
+     {
       label: "Help",
       href: "/help",
       icon: HelpCircle,
       isActive: pathname.includes("/help"),
       subMenu: null,
+
+    },
+    {
+      label: "Invite Partner",
+      href: null,
+      icon: UserPlus,
+      subMenu: null,
+      onclick: () => dispatch(openInvitePartnerModel("invite-partner"))
 
     },
     {
