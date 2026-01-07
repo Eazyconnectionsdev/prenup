@@ -1,8 +1,8 @@
 import React from 'react'
-import Sidebar from '@/components/admin/Sidebar'
+import Sidebar from '@/components/admin/SidebarCaseManager'
 
 export const metadata = {
-  title: 'Case Manager'
+  title: 'Admin'
 }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -12,7 +12,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="flex items-center gap-4">
           
         </div>
-        <div className="text-sm opacity-80">Admin panel</div>
+        <div className="text-sm opacity-80">CM panel</div>
       </header>
 
       <div className="flex">

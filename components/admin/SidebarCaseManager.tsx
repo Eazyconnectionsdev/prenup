@@ -26,21 +26,16 @@ interface NavItem {
 }
 
 const mainNavItems: NavItem[] = [
-  { icon: Home, label: 'Internal Settings', href: '/internal-settings' }
+  { icon: Home, label: 'Dashboard', href: '/cm' }
 ]
 
 
 const coreNavItems: NavItem[] = [
-  { icon: Home, label: 'Case Dashboard', href: '/case-dashboard' },
-  { icon: BarChart2, label: 'Reports', href: '/reports' },
-  { icon: Inbox, label: 'Enquiry Dashboard', href: '/enquiry-dashboard' },
-  { icon: UserPlus, label: 'Lawyer & Company Creation', href: '/lawyers-company' },
-  { icon: FileText, label: 'Audit Logs', href: '/audit-logs' },
-  { icon: AlertTriangle, label: 'Internal Errors', href: '/internal-errors' }
+  { icon: Home, label: 'Case Manager', href: '/cm/case-manager' },
+  { icon: Inbox, label: 'Enquiry Dashboard', href: '/cm/enquiry-dashboard' },
 ]
 
 const bottomNavItems: NavItem[] = [
-  { icon: HelpCircle, label: 'Help', href: '/help' },
   { icon: User, label: 'Account', href: '/account' }
 ]
 
@@ -71,7 +66,7 @@ export default function Sidebar({ activeItem = '/management/admin' }: SidebarPro
         {isExpanded && (
           <div className="flex flex-col">
             <span className="text-sm font-bold text-slate-800">Hello Prenup</span>
-            <span className="text-xs text-slate-500">Admin</span>
+            <span className="text-xs text-slate-500">CM</span>
           </div>
         )}
       </div>

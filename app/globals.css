@@ -130,7 +130,11 @@ body,
     @apply border-border outline-ring/50;
   }
 }
-
+@layer base {
+  html {
+    font-size: 80%;
+  }
+}
 @layer utilities {
   .sidebar-item-active {
     @apply bg-gradient-to-r from-[hsl(var(--accent-gradient-from))] to-[hsl(var(--accent-gradient-to))] text-white shadow-md;
