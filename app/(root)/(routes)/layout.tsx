@@ -1,4 +1,5 @@
 import Sidebar from "@/components/ui/layout/Sidebar";
+import ModalProvider from "@/providers/ModalProvider";
 
 export default function MainLayouyt({
   children,
@@ -6,8 +7,11 @@ export default function MainLayouyt({
   children: React.ReactNode;
 }) {
   return (
-    <Sidebar>
-      <div className="h-full">{children}</div>
-    </Sidebar>
+    <>
+      <ModalProvider />
+      <Sidebar>
+        <div className="h-full">{children}</div>
+      </Sidebar>
+    </>
   );
 }

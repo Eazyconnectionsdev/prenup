@@ -1,26 +1,46 @@
-// file: app/about-you/Page.tsx
 "use client";
 
+import React, { useCallback, useEffect, useState } from "react";
 import Axios from "@/lib/ApiConfig";
 import { RootState } from "@/store/store";
-import React, { useState } from "react";
 import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
+import { toDateInputValue } from "@/lib/utils";
+
+// ---------------- Types ----------------
+type YesNo = "yes" | "no" | "";
 
 type ChildEntry = {
   id: string;
   firstName: string;
   lastName: string;
-  dob: string; // ISO date string
-  specialNeeds: "yes" | "no" | ""; // will keep as yes/no
-  fromCurrentRelationship: "yes" | "no" | "";
-  livesWithYou: "yes" | "no" | "";
+  dob: string;
+  specialNeeds: YesNo;
+  fromCurrentRelationship: YesNo;
+  livesWithYou: YesNo;
   maintenanceAndCustody: string;
 };
 
+// ---------------- Helpers ----------------
+const makeChild = (): ChildEntry => ({
+  id:
+    typeof crypto !== "undefined" && (crypto as any).randomUUID
+      ? (crypto as any).randomUUID()
+      : String(Date.now()) + Math.random().toString(36).slice(2),
+  firstName: "",
+  lastName: "",
+  dob: "",
+  specialNeeds: "",
+  fromCurrentRelationship: "",
+  livesWithYou: "",
+  maintenanceAndCustody: "",
+});
+
+// ---------------- Component ----------------
 export default function AboutYouPage() {
   const { caseId } = useSelector((state: RootState) => state.auth);
 
+  // -------- Personal --------
   const [firstName, setFirstName] = useState("");
   const [middleNames, setMiddleNames] = useState("");
   const [lastName, setLastName] = useState("");
@@ -28,22 +48,18 @@ export default function AboutYouPage() {
   const [address, setAddress] = useState("");
   const [dateOfMarriage, setDateOfMarriage] = useState("");
 
-  // Children section
-  const [hasChildren, setHasChildren] = useState<"yes" | "no" | "">("");
+  // -------- Other fields --------
+  const [hasChildren, setHasChildren] = useState<YesNo>("");
   const [children, setChildren] = useState<ChildEntry[]>([]);
-
-  // Other personal fields
-  const [englishFluent, setEnglishFluent] = useState<"yes" | "no" | "">("");
+  const [englishFluent, setEnglishFluent] = useState<YesNo>("");
   const [nationality, setNationality] = useState("");
   const [domicileResidency, setDomicileResidency] = useState("");
   const [occupation, setOccupation] = useState("");
-  const [incomeGBP, setIncomeGBP] = useState<string>("");
-
-  // Long text areas
+  const [incomeGBP, setIncomeGBP] = useState<number | "">("");
   const [agreementOverview, setAgreementOverview] = useState("");
   const [livingSituationSummary, setLivingSituationSummary] = useState("");
 
-  // Checkboxes (confirmations)
+  // -------- Confirmations --------
   const [confirmDraft, setConfirmDraft] = useState(false);
   const [confirmPersonalPossessions, setConfirmPersonalPossessions] =
     useState(false);
@@ -51,91 +67,161 @@ export default function AboutYouPage() {
   const [confirmCourtPower, setConfirmCourtPower] = useState(false);
   const [confirmCostsShared, setConfirmCostsShared] = useState(false);
 
-  // Helper to create child entry
-  const makeChild = (): ChildEntry => ({
-    id: String(Date.now()) + Math.random().toString(36).slice(2),
-    firstName: "",
-    lastName: "",
-    dob: "",
-    specialNeeds: "",
-    fromCurrentRelationship: "",
-    livesWithYou: "",
-    maintenanceAndCustody: "",
-  });
+  // -------- Meta --------
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [hasExisting, setHasExisting] = useState(false);
 
-  // When user selects hasChildren = yes, create first blank child if none
-  const setHasChildrenAndMaybeInit = (val: "yes" | "no") => {
+  // ---------------- Children helpers ----------------
+  const addChild = () => setChildren((prev) => [...prev, makeChild()]);
+
+  const removeChild = (id: string) =>
+    setChildren((prev) => prev.filter((c) => c.id !== id));
+
+  const updateChild = (id: string, patch: Partial<ChildEntry>) =>
+    setChildren((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, ...patch } : c))
+    );
+
+  const setHasChildrenSafe = (val: YesNo) => {
     setHasChildren(val);
     if (val === "yes" && children.length === 0) setChildren([makeChild()]);
     if (val === "no") setChildren([]);
   };
 
-  const addChild = () => setChildren((c) => [...c, makeChild()]);
-  const removeChild = (id: string) =>
-    setChildren((c) => c.filter((x) => x.id !== id));
-  const updateChild = (id: string, patch: Partial<ChildEntry>) =>
-    setChildren((c) => c.map((x) => (x.id === id ? { ...x, ...patch } : x)));
+  // helpers (define once, outside useEffect)
+  const boolToYesNo = (v?: boolean | null): "yes" | "no" | "" =>
+    v === true ? "yes" : v === false ? "no" : "";
 
-  const handleSubmit = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-
+  // ---------------- Validation ----------------
+  const validate = useCallback(() => {
     const errors: string[] = [];
     if (!firstName.trim()) errors.push("First name is required");
     if (!lastName.trim()) errors.push("Last name is required");
     if (!dob) errors.push("Date of birth is required");
+
     if (hasChildren === "yes") {
-      children.forEach((ch, idx) => {
-        if (!ch.firstName.trim())
-          errors.push(`Child ${idx + 1}: first name required`);
-        if (!ch.lastName.trim())
-          errors.push(`Child ${idx + 1}: last name required`);
-        if (!ch.dob) errors.push(`Child ${idx + 1}: date of birth required`);
+      children.forEach((c, i) => {
+        if (!c.firstName.trim())
+          errors.push(`Child ${i + 1}: first name required`);
+        if (!c.lastName.trim())
+          errors.push(`Child ${i + 1}: last name required`);
+        if (!c.dob) errors.push(`Child ${i + 1}: date of birth required`);
       });
     }
+    return errors;
+  }, [firstName, lastName, dob, hasChildren, children]);
+
+  // ---------------- Fetch existing ----------------
+  useEffect(() => {
+    if (!caseId) return;
+    let mounted = true;
+
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const { data } = await Axios.get(`/cases/${caseId}/steps/3`);
+        const d = data?.data;
+        if (!d || !mounted) return;
+
+        setFirstName(d.firstName ?? "");
+        setMiddleNames(d.middleNames ?? "");
+        setLastName(d.lastName ?? "");
+        setDob(d.dateOfBirth ?? ""); // ✅ FIXED
+        setAddress(d.address ?? "");
+        setDateOfMarriage(d.dateOfMarriage ?? "");
+
+        setHasChildren(boolToYesNo(d.hasChildren)); // ✅ FIXED
+        setChildren(
+          d.hasChildren && Array.isArray(d.children) ? d.children : []
+        );
+
+        setEnglishFluent(boolToYesNo(d.fluentInEnglish)); // ✅ FIXED
+        setNationality(d.nationality ?? "");
+        setDomicileResidency(d.domicileResidencyStatus ?? ""); // ✅ FIXED
+        setOccupation(d.occupation ?? "");
+        setIncomeGBP(d.incomeGBP ?? "");
+
+        setAgreementOverview(d.overviewAim ?? ""); // ✅ FIXED
+        setLivingSituationSummary(d.currentLivingSituation ?? ""); // ✅ FIXED
+
+        setConfirmDraft(!!d.confirm_wenup_platform_used); // ✅ FIXED
+        setConfirmPersonalPossessions(!!d.property_personal_possessions_remain); // ✅ FIXED
+        setConfirmContentsDivide(!!d.family_home_divided_equally); // ✅ FIXED
+        setConfirmCourtPower(!!d.court_can_depart_for_children); // ✅ FIXED
+        setConfirmCostsShared(!!d.agree_costs_shared); // ✅ FIXED
+
+        setHasExisting(true);
+      } catch (err) {
+        console.error("Fetch error", err);
+      } finally {
+        mounted && setLoading(false);
+      }
+    };
+
+    fetchData();
+    return () => {
+      mounted = false;
+    };
+  }, [caseId]);
+
+  // ---------------- Submit ----------------
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const errors = validate();
     if (errors.length) {
-      alert("Please fix the following:\n\n" + errors.join("\n"));
+      toast.error("Please fix validation errors (see console)");
+      console.warn(errors);
       return;
     }
 
     const payload = {
-      personal: {
-        firstName,
-        middleNames,
-        lastName,
-        dob,
-        address,
-        dateOfMarriage,
-      },
-      children: hasChildren === "yes" ? children : [],
-      englishFluent,
+      firstName,
+      middleNames,
+      lastName,
+      dateOfBirth: dob,
+      address,
+      dateOfMarriage,
+
+      hasChildren: hasChildren === "yes",
+      fluentInEnglish: englishFluent === "yes",
       nationality,
-      domicileResidency,
+      domicileResidencyStatus: domicileResidency,
       occupation,
-      incomeGBP,
-      agreementOverview,
-      livingSituationSummary,
-      confirmations: {
-        confirmDraft,
-        confirmPersonalPossessions,
-        confirmContentsDivide,
-        confirmCourtPower,
-        confirmCostsShared,
-      },
-      meta: { savedAt: new Date().toISOString() },
+      incomeGBP: incomeGBP === "" ? null : Number(incomeGBP),
+
+      overviewAim: agreementOverview,
+      currentLivingSituation: livingSituationSummary,
+
+      confirm_wenup_platform_used: confirmDraft,
+      property_personal_possessions_remain: confirmPersonalPossessions,
+      family_home_divided_equally: confirmContentsDivide,
+      court_can_depart_for_children: confirmCourtPower,
+      agree_costs_shared: confirmCostsShared,
     };
 
+    setSaving(true);
     try {
-      const { data } = await Axios.post(`/cases/${caseId}/steps/1`, payload);
-      console.log("Submitted data:", data);
-      toast.success("Submitted Successfully");
-    } catch (error: any) {
-      console.error("Error submitting questionnaire:", error);
+      if (hasExisting) {
+        await Axios.post(`/cases/${caseId}/steps/3`, payload);
+        toast.success("Updated successfully");
+      } else {
+        await Axios.post(`/cases/${caseId}/steps/3`, payload);
+        toast.success("Saved successfully");
+        setHasExisting(true);
+      }
+    } catch (err: any) {
       const msg =
-        error?.response?.data?.message ?? error?.message ?? "Submission failed";
+        err?.response?.data?.message ?? err?.message ?? "Submission failed";
       toast.error(msg);
+    } finally {
+      setSaving(false);
     }
   };
 
+  const disabled = loading || saving || !caseId;
+
+  // NOTE: JSX layout + Tailwind classes intentionally unchanged
   return (
     <div className="h-full">
       <div className="w-full max-w-5xl mx-auto pl-16 py-2 pr-26">
@@ -149,8 +235,9 @@ export default function AboutYouPage() {
 
         <form onSubmit={handleSubmit} className="space-y-0">
           <div className="space-y-10 bg-gradient-to-br from-secondary to-primary-foreground text-white py-10 px-6 rounded-lg my-10">
+            {/* container with vertical gaps between major rows */}
             <div className="w-full max-w-4xl mx-auto space-y-8">
-              {/* --- Row 1: First / Middle / Last (with gap) --- */}
+              {/* Row 1: First / Middle / Last */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <label className="block">
                   <div className="text-sm text-slate-900 mb-1">First Name</div>
@@ -185,16 +272,19 @@ export default function AboutYouPage() {
                 </label>
               </div>
 
-              {/* --- Row 2: DOB and Marriage (with gap) --- */}
+              {/* Row 2: Date of Birth & Date of Marriage (half / half) */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <label className="block">
-                  <div className="text-sm text-slate-900 mb-1">Date of Birth</div>
+                  <div className="text-sm text-slate-900 mb-1">
+                    Date of Birth
+                  </div>
 
                   <div className="relative">
-                    {/* calendar icon */}
                     <div className="absolute inset-y-0 left-0 pl-3 pr-2 flex items-center pointer-events-none">
                       <svg
-                        className={`w-4 h-4 ${dob ? "text-slate-900" : "text-slate-400"}`}
+                        className={`w-4 h-4 ${
+                          dob ? "text-slate-900" : "text-slate-400"
+                        }`}
                         viewBox="0 0 24 24"
                         fill="none"
                         xmlns="http://www.w3.org/2000/svg"
@@ -210,7 +300,6 @@ export default function AboutYouPage() {
                       </svg>
                     </div>
 
-                    {/* placeholder-like text when empty */}
                     {!dob && (
                       <div className="absolute inset-y-0 left-10 pl-1 flex items-center pointer-events-none">
                         <span className="text-slate-400 text-sm">dd/mm/yy</span>
@@ -219,7 +308,7 @@ export default function AboutYouPage() {
 
                     <input
                       type="date"
-                      value={dob}
+                      value={toDateInputValue(dob)}
                       onChange={(e) => setDob(e.target.value)}
                       className={`w-full rounded-md border border-slate-200 px-3 py-2 bg-white ${
                         dob ? "text-slate-900" : "text-transparent"
@@ -264,7 +353,7 @@ export default function AboutYouPage() {
 
                     <input
                       type="date"
-                      value={dateOfMarriage}
+                      value={toDateInputValue(dateOfMarriage)}
                       onChange={(e) => setDateOfMarriage(e.target.value)}
                       className={`w-full rounded-md border border-slate-200 px-3 py-2 bg-white ${
                         dateOfMarriage ? "text-slate-900" : "text-transparent"
@@ -276,7 +365,7 @@ export default function AboutYouPage() {
                 </label>
               </div>
 
-              {/* --- Row 3: Address / Occupation / Income (3 in one line) with gap --- */}
+              {/* Row 3: Address / Occupation / Income — 3 in one line */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <label className="block">
                   <div className="text-sm text-slate-900 mb-1">Address</div>
@@ -300,19 +389,25 @@ export default function AboutYouPage() {
                 </label>
 
                 <label className="block">
-                  <div className="text-sm text-slate-900 mb-1">Income (GBP)</div>
+                  <div className="text-sm text-slate-900 mb-1">
+                    Income (GBP)
+                  </div>
                   <input
                     type="number"
                     step="any"
-                    value={incomeGBP}
-                    onChange={(e) => setIncomeGBP(e.target.value)}
+                    value={incomeGBP === "" ? "" : incomeGBP}
+                    onChange={(e) =>
+                      setIncomeGBP(
+                        e.target.value === "" ? "" : Number(e.target.value)
+                      )
+                    }
                     className="w-full rounded-md border border-slate-200 px-3 py-2 bg-white text-slate-900"
                     aria-label="Income (GBP)"
                   />
                 </label>
               </div>
 
-              {/* --- Row 4: English Fluent / Nationality / Domicile (3 in one line) with gap --- */}
+              {/* Row 4: English Fluent / Nationality / Domicile — 3 in one line */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 items-center">
                 <div>
                   <div className="text-sm text-slate-900 mb-1">
@@ -369,37 +464,35 @@ export default function AboutYouPage() {
                 </label>
               </div>
 
-              {/* --- Children question moved below the English/Nationality row (with gap) --- */}
+              {/* Children question moved below the English/Nationality row */}
               <div className="w-full pb-4 border-b border-white/20">
                 <div className="mb-3 text-black">
                   <p className="text-base leading-relaxed">
-                    Do you have any children either from your current relationship
-                    or a previous relationship?
+                    Do you have any children either from your current
+                    relationship or a previous relationship?
                   </p>
                 </div>
 
                 <div className="flex items-center gap-4 mb-4 justify-center">
                   <button
                     type="button"
-                    onClick={() => setHasChildrenAndMaybeInit("yes")}
+                    onClick={() => setHasChildrenSafe("yes")}
                     className={`px-6 py-2 rounded-full font-medium shadow-sm border-2 transition-colors ${
                       hasChildren === "yes"
                         ? "bg-green-600 text-white border-green-600"
                         : "bg-white text-slate-900 border-slate-200"
                     }`}
-                    aria-pressed={hasChildren === "yes"}
                   >
                     Yes
                   </button>
                   <button
                     type="button"
-                    onClick={() => setHasChildrenAndMaybeInit("no")}
+                    onClick={() => setHasChildrenSafe("no")}
                     className={`px-6 py-2 rounded-full font-medium shadow-sm border-2 transition-colors ${
                       hasChildren === "no"
                         ? "bg-red-600 text-white border-red-600"
                         : "bg-white text-slate-900 border-slate-200"
                     }`}
-                    aria-pressed={hasChildren === "no"}
                   >
                     No
                   </button>
@@ -429,10 +522,11 @@ export default function AboutYouPage() {
                             <input
                               value={ch.firstName}
                               onChange={(e) =>
-                                updateChild(ch.id, { firstName: e.target.value })
+                                updateChild(ch.id, {
+                                  firstName: e.target.value,
+                                })
                               }
                               className="w-full rounded-md border border-slate-200 px-3 py-2 bg-white text-slate-900"
-                              aria-label={`Child ${idx + 1} first name`}
                             />
                           </label>
 
@@ -446,7 +540,6 @@ export default function AboutYouPage() {
                                 updateChild(ch.id, { lastName: e.target.value })
                               }
                               className="w-full rounded-md border border-slate-200 px-3 py-2 bg-white text-slate-900"
-                              aria-label={`Child ${idx + 1} surname`}
                             />
                           </label>
 
@@ -461,14 +554,13 @@ export default function AboutYouPage() {
                                 updateChild(ch.id, { dob: e.target.value })
                               }
                               className="w-full rounded-md border border-slate-200 px-3 py-2 bg-white text-slate-900"
-                              aria-label={`Child ${idx + 1} date of birth`}
                             />
                           </label>
 
                           <div>
                             <div className="text-sm text-slate-900 mb-1">
-                              Does the child have any special needs that will mean
-                              they remain dependent after 18?
+                              Does the child have any special needs that will
+                              mean they remain dependent after 18?
                             </div>
                             <div className="flex gap-3">
                               <button
@@ -523,7 +615,9 @@ export default function AboutYouPage() {
                               <button
                                 type="button"
                                 onClick={() =>
-                                  updateChild(ch.id, { fromCurrentRelationship: "no" })
+                                  updateChild(ch.id, {
+                                    fromCurrentRelationship: "no",
+                                  })
                                 }
                                 className={`px-3 py-1 rounded-full border transition-colors ${
                                   ch.fromCurrentRelationship === "no"
@@ -583,7 +677,6 @@ export default function AboutYouPage() {
                               }
                               rows={3}
                               className="w-full rounded-md border border-slate-200 px-3 py-2 bg-white text-slate-900"
-                              aria-label={`Child ${idx + 1} maintenance and custody`}
                             />
                           </label>
                         </div>
@@ -606,7 +699,7 @@ export default function AboutYouPage() {
                 )}
               </div>
 
-              {/* --- Long text areas (agreement overview & living summary) --- */}
+              {/* Long text areas */}
               <div className="space-y-6">
                 <div>
                   <div className="text-sm text-slate-900 mb-1">
@@ -614,23 +707,22 @@ export default function AboutYouPage() {
                     with your agreement and why you want it in place.
                   </div>
                   <div className="text-xs text-slate-400 mb-2">
-                    Please avoid first-person (use third-person: e.g., "Jenny owns
-                    a house").
+                    Please avoid first-person (use third-person: e.g., &apos;Jenny
+                    owns a house&apos;).
                   </div>
                   <textarea
                     value={agreementOverview}
                     onChange={(e) => setAgreementOverview(e.target.value)}
                     rows={6}
                     className="w-full rounded-md border border-slate-200 px-3 py-2 bg-white text-slate-900"
-                    aria-label="Agreement overview"
                   />
                 </div>
 
                 <div>
                   <div className="text-sm text-slate-900 mb-1">
-                    Please provide a summary of your current living situation, and
-                    any future plans (e.g., significant asset purchases, house
-                    moves, key life decisions).
+                    Please provide a summary of your current living situation,
+                    and any future plans (e.g., significant asset purchases,
+                    house moves, key life decisions).
                   </div>
                   <div className="text-xs text-slate-400 mb-2">
                     Please avoid first-person (use third-person).
@@ -640,13 +732,12 @@ export default function AboutYouPage() {
                     onChange={(e) => setLivingSituationSummary(e.target.value)}
                     rows={6}
                     className="w-full rounded-md border border-slate-200 px-3 py-2 bg-white text-slate-900"
-                    aria-label="Living situation summary"
                   />
                 </div>
               </div>
 
-              {/* --- Confirmations / checkboxes (now with gaps between each) --- */}
-              <div className="pt-2 border-t border-white/20 space-y-0 text-slate-900">
+              {/* Confirmations / checkboxes with gaps between each */}
+              <div className="w-full max-w-4xl mx-auto pt-2 border-t border-white/20 space-y-0 text-slate-900">
                 <label className="block mb-4">
                   <input
                     type="checkbox"
@@ -658,8 +749,8 @@ export default function AboutYouPage() {
                   draft, which will later be edited to cater to our needs by our
                   respective legal advisors. We understand that Wenup is not
                   providing legal advice and cannot be held liable for any
-                  omissions or inaccuracies in the agreement, neither can Wenup be
-                  liable for any losses or damages related to it, or if for
+                  omissions or inaccuracies in the agreement, neither can Wenup
+                  be liable for any losses or damages related to it, or if for
                   whatever reason, the agreement is not upheld in future.
                 </label>
 
@@ -672,9 +763,10 @@ export default function AboutYouPage() {
                     }
                     className="mr-2"
                   />
-                  Do you agree that any items of personal possessions shall remain
-                  the absolute property of the person who, as between the couple,
-                  purchased the item in the event of a Relationship Ending Event?
+                  Do you agree that any items of personal possessions shall
+                  remain the absolute property of the person who, as between the
+                  couple, purchased the item in the event of a Relationship
+                  Ending Event?
                 </label>
 
                 <label className="block mb-4">
@@ -696,10 +788,10 @@ export default function AboutYouPage() {
                     onChange={(e) => setConfirmCourtPower(e.target.checked)}
                     className="mr-2"
                   />
-                  Do you recognise that the court has the power to depart from any
-                  provision of this agreement in the exercise of its jurisdiction
-                  to make provision for the needs of any child of the family
-                  (under Schedule 1 of the Children Act 1989)?
+                  Do you recognise that the court has the power to depart from
+                  any provision of this agreement in the exercise of its
+                  jurisdiction to make provision for the needs of any child of
+                  the family (under Schedule 1 of the Children Act 1989)?
                 </label>
 
                 <label className="block mb-4">
@@ -710,13 +802,14 @@ export default function AboutYouPage() {
                     className="mr-2"
                   />
                   Do you agree that the costs of this agreement shall be shared
-                  equally between you. In the event that one party bears more than
-                  his/her/their share of the cost, do you acknowledge that this is
-                  not evidence that that party has undue influence on the other?
+                  equally between you. In the event that one party bears more
+                  than his/her/their share of the cost, do you acknowledge that
+                  this is not evidence that that party has undue influence on
+                  the other?
                 </label>
               </div>
 
-              {/* --- Submit --- */}
+              {/* Submit */}
               <div className="flex items-center justify-center">
                 <button
                   type="submit"

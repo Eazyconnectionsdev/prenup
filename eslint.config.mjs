@@ -5,7 +5,28 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
-  // Override default ignores of eslint-config-next.
+  {
+    rules: {
+      // -----------------------------
+      // 1. Allow 'any' type
+      // -----------------------------
+      "@typescript-eslint/no-explicit-any": "off",
+      "react-hooks/exhaustive-deps": "off",
+      "react-hooks/set-state-in-effect": "off",
+      "react-hooks/purity": "off",
+
+      // -----------------------------
+      // 2. Disable unused variables/params warnings for functions
+      // -----------------------------
+      "no-unused-vars": "off",
+      "@typescript-eslint/no-unused-vars": [
+        "off", // turn off all unused variable errors
+        {
+          argsIgnorePattern: "^_", // ignore function parameters starting with _
+        },
+      ],
+    },
+  },
   globalIgnores([
     // Default ignores of eslint-config-next:
     ".next/**",

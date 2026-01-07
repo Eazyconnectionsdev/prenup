@@ -3,7 +3,7 @@
 
 import Axios from "@/lib/ApiConfig";
 import { RootState } from "@/store/store";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 
@@ -54,50 +54,102 @@ export default function FutureAssetsPage() {
     });
   };
 
-  const handleSubmit = async (e?: React.FormEvent) => {
-    e?.preventDefault();
+  const boolToYesNo = (v: boolean | null | undefined): "yes" | "no" | null =>
+  v === true ? "yes" : v === false ? "no" : null;
 
-    const payload = {
-      inheritanceSeparate: answers[0] === "yes",
-      giftsSeparate: answers[1] === "yes",
-      futureSoleAssetsSeparate: answers[2] === "yes",
-      sameAsWill: answers[3] === "yes",
-      wantWillAssistance: willsHelp === "yes",
+const handleSubmit = async (e?: React.FormEvent) => {
+  e?.preventDefault();
 
-      sooriyaFutureInheritance: {
-        originalAmount: inheritanceA.originalAmount
-          ? Number(inheritanceA.originalAmount)
-          : null,
-        originalCurrency: inheritanceA.originalCurrency || null,
-        gbpEquivalent: inheritanceA.gbpEquivalent
-          ? Number(inheritanceA.gbpEquivalent)
-          : null,
-        basisOfEstimate: inheritanceA.basisOfEstimate || null,
-      },
+  const payload = {
+    questions: QUESTIONS.map((q, i) => ({
+      question: q,
+      answer: answers[i] ?? null, // "yes" | "no" | null
+    })),
 
-      gomathiFutureInheritance: {
-        originalAmount: inheritanceB.originalAmount
-          ? Number(inheritanceB.originalAmount)
-          : null,
-        originalCurrency: inheritanceB.originalCurrency || null,
-        gbpEquivalent: inheritanceB.gbpEquivalent
-          ? Number(inheritanceB.gbpEquivalent)
-          : null,
-        basisOfEstimate: inheritanceB.basisOfEstimate || null,
-      },
-    };
+    inheritanceSeparate: answers[0] === "yes",
+    giftsSeparate: answers[1] === "yes",
+    futureSoleAssetsSeparate: answers[2] === "yes",
+    sameAsWill: answers[3] === "yes",
+    wantWillAssistance: willsHelp === "yes",
 
-    try {
-      const { data } = await Axios.post(`/cases/${caseId}/steps/6`, payload);
-      console.log("Submitted data:", data);
-    toast.success("Submitted Successfully");
-        } catch (error: any) {
-          console.error("Error submitting questionnaire:", error);
-          if (error && error.response.data && error.response.data.message) {
-            toast.error(error.response.data.message || error.message);
-          }
-        }
+    sooriyaFutureInheritance: {
+      originalAmount: inheritanceA.originalAmount
+        ? Number(inheritanceA.originalAmount)
+        : null,
+      originalCurrency: inheritanceA.originalCurrency || null,
+      gbpEquivalent: inheritanceA.gbpEquivalent
+        ? Number(inheritanceA.gbpEquivalent)
+        : null,
+      basisOfEstimate: inheritanceA.basisOfEstimate || null,
+    },
+
+    gomathiFutureInheritance: {
+      originalAmount: inheritanceB.originalAmount
+        ? Number(inheritanceB.originalAmount)
+        : null,
+      originalCurrency: inheritanceB.originalCurrency || null,
+      gbpEquivalent: inheritanceB.gbpEquivalent
+        ? Number(inheritanceB.gbpEquivalent)
+        : null,
+      basisOfEstimate: inheritanceB.basisOfEstimate || null,
+    },
   };
+
+  try {
+    const { data } = await Axios.post(`/cases/${caseId}/steps/6`, payload);
+    console.log("Submitted data:", data);
+    toast.success("Submitted Successfully");
+  } catch (error: any) {
+    console.error("Error submitting questionnaire:", error);
+    const msg =
+      error?.response?.data?.message ?? error?.message ?? "Submission failed";
+    toast.error(msg);
+  }
+};
+
+  useEffect(() => {
+  if (!caseId) return;
+
+  const fetchData = async () => {
+    try {
+      const { data } = await Axios.get(`/cases/${caseId}/steps/6`);
+      const d = data?.data;
+      if (!d) return;
+
+      // ---------------- Set questions ----------------
+      setAnswers([
+        boolToYesNo(d.inheritanceSeparate),
+        boolToYesNo(d.giftsSeparate),
+        boolToYesNo(d.futureSoleAssetsSeparate),
+        boolToYesNo(d.sameAsWill),
+      ]);
+
+      // ---------------- Will help ----------------
+      setWillsHelp(boolToYesNo(d.wantWillAssistance));
+
+      // ---------------- Inheritance A ----------------
+      setInheritanceA({
+        originalAmount: d.sooriyaFutureInheritance?.originalAmount ?? "",
+        originalCurrency: d.sooriyaFutureInheritance?.originalCurrency ?? "",
+        gbpEquivalent: d.sooriyaFutureInheritance?.gbpEquivalent ?? "",
+        basisOfEstimate: d.sooriyaFutureInheritance?.basisOfEstimate ?? "",
+      });
+
+      // ---------------- Inheritance B ----------------
+      setInheritanceB({
+        originalAmount: d.gomathiFutureInheritance?.originalAmount ?? "",
+        originalCurrency: d.gomathiFutureInheritance?.originalCurrency ?? "",
+        gbpEquivalent: d.gomathiFutureInheritance?.gbpEquivalent ?? "",
+        basisOfEstimate: d.gomathiFutureInheritance?.basisOfEstimate ?? "",
+      });
+
+    } catch (err) {
+      console.error("Fetch error", err);
+    }
+  };
+
+  fetchData();
+}, [caseId]);
 
   return (
     <div className="h-full">
@@ -201,7 +253,7 @@ export default function FutureAssetsPage() {
             <div className="w-full max-w-4xl text-left py-4">
               <h2 className="text-lg font-medium mb-1">
                 Please provide details on the approximate value and composition
-                of Sooriya Kumar Coimbatore Rajendran's Future Inheritance.
+                of Sooriya Kumar Coimbatore Rajendran&apos;s Future Inheritance.
               </h2>
               <p className="text-[13px] opacity-80 mb-4">
                 All figures must be in Pounds Sterling (GBP). If converting from
@@ -281,7 +333,7 @@ export default function FutureAssetsPage() {
             <div className="w-full max-w-4xl text-left py-4">
               <h2 className="text-lg font-medium mb-1">
                 Please provide details on the approximate value and composition
-                of Gomathi Chandran's Future Inheritance.
+                of Gomathi Chandran&apos;s Future Inheritance.
               </h2>
               <p className="text-[13px] opacity-80 mb-4">
                 All figures must be in Pounds Sterling (GBP). If converting from

@@ -22,7 +22,6 @@ export default function LoginPageStatic() {
     password: "",
   });
 
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     setForm((prev) => ({
@@ -39,10 +38,14 @@ export default function LoginPageStatic() {
       password: form.password,
     };
 
-    const result = await dispatch(LoginUser(payload));
-    
-    if (LoginUser.fulfilled.match(result)) {
-      window.location.assign("/dashboard");
+    try {
+      const result = await dispatch(LoginUser(payload));
+
+      if (LoginUser.fulfilled.match(result)) {
+        window.location.assign("/dashboard");
+      }
+    } catch (error: any) {
+      console.log("Login error:", error.message);
     }
   };
 

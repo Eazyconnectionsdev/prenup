@@ -5,7 +5,6 @@ import { LoginUser, logOutUser, registerUser } from "@/store/asyncThunk/authThun
 
 interface authState {
   isLoading: boolean;
-  jwtToken: string | null;
   caseId: string | any;
   user: { [key: string]: any };
   message: string | null;
@@ -14,7 +13,6 @@ interface authState {
 
 const initialState: authState = {
   isLoading: true,
-  jwtToken: null,
   caseId: null,
   user: {},
   message: null,
@@ -25,6 +23,10 @@ const AuthSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
+    setUserProfileData(state, {payload} ) {
+      state.user = payload;
+    },
+
     clearError(state) {
       state.submitError = null;
     },
@@ -44,7 +46,6 @@ const AuthSlice = createSlice({
       .addCase(LoginUser.fulfilled, (state, { payload }) => {
         state.isLoading = false;
         state.caseId = payload.caseId;
-        state.jwtToken = payload.token;
         state.user = payload.user;
         state.message = payload.message;
         state.submitError = null;
@@ -66,7 +67,6 @@ const AuthSlice = createSlice({
       .addCase(registerUser.fulfilled, (state, { payload }) => {
         state.isLoading = true;
         state.caseId = payload.caseId;
-        state.jwtToken = payload.token;
         state.user = payload.user;
         state.message = payload.message;
         state.submitError = null;
@@ -88,7 +88,6 @@ const AuthSlice = createSlice({
       .addCase(logOutUser.fulfilled, (state, { payload }) => {
         state.isLoading = false;
         state.caseId = null;
-        state.jwtToken = null;
         state.user = {};
         state.message = null;
         state.submitError = null;
@@ -102,5 +101,5 @@ const AuthSlice = createSlice({
   },
 });
 
-export const { clearError, clearMessage } = AuthSlice.actions;
+export const { clearError, clearMessage, setUserProfileData } = AuthSlice.actions;
 export default AuthSlice.reducer;

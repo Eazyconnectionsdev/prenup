@@ -1,0 +1,75 @@
+{
+    "separateEarnings": true,
+    "earningsEntries": [
+        {
+            "source": "Salary - Falcon smart it",
+            "amount": 299,
+            "notes": ""
+        }
+    ],
+    "separateProperties": true,
+    "propertyEntries": [
+        {
+            "addressLine1": "itfaq town",
+            "addressLine2": "Renala Khurd",
+            "townOrCity": "okara",
+            "postcode": "56130",
+            "value": 400,
+            "mortgageOutstanding": "No Note",
+            "notes": ""
+        }
+    ],
+    "separateSavings": true,
+    "savingsEntries": [
+        {
+            "name": "Salary",
+            "amount": 100,
+            "notes": ""
+        }
+    ],
+    "separatePensions": true,
+    "pensionEntries": [
+        {
+            "name": "Pakistan",
+            "value": 99,
+            "notes": ""
+        }
+    ],
+    "separateDebts": true,
+    "debtEntries": [
+        {
+            "accountOrLender": "Meezab",
+            "description": "Nothing",
+            "amount": 100,
+            "notes": ""
+        }
+    ],
+    "separateBusinesses": true,
+    "businessEntries": [
+        {
+            "name": "Computer",
+            "description": "computer shop",
+            "value": 400,
+            "ownershipPercentage": 5,
+            "explanation": "Nothing important"
+        }
+    ],
+    "separateChattels": true,
+    "chattelEntries": [
+        {
+            "description": "Chattel",
+            "value": 202,
+            "registrationOrId": "7494",
+            "notes": ""
+        }
+    ],
+    "separateOtherAssets": true,
+    "otherAssetEntries": [
+        {
+            "provider": "Meezan",
+            "description": "Land",
+            "value": 500,
+            "notes": ""
+        }
+    ]
+}
