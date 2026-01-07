@@ -3,7 +3,7 @@
 
 import Axios from "@/lib/ApiConfig";
 import { RootState } from "@/store/store";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 
@@ -129,6 +129,9 @@ export default function QuestionsPage() {
       .fill([])
       .map(() => [])
   );
+
+  console.log("Current entries:", answers);
+
   const { caseId } = useSelector((state: RootState) => state.auth);
 
   const setAnswer = (qIndex: number, val: "yes" | "no") => {
@@ -183,12 +186,27 @@ export default function QuestionsPage() {
     });
   };
 
+  const yesNo = (val?: boolean): "yes" | "no" | null =>
+  typeof val === "boolean" ? (val ? "yes" : "no") : null;
+
+const mapEntries = (
+  list: any[],
+  mapFn: (item: any) => Record<string, string | number>
+): Entry[] =>
+  (list || []).map((item) => ({
+    id: String(Date.now()) + Math.random().toString(36).slice(2),
+    values: mapFn(item),
+  }));
+
   const updateEntryField = (
     qIndex: number,
     entryId: string,
     fieldKey: string,
     value: string | number
   ) => {
+
+    console.log(`Update Q${qIndex} Entry ${entryId} Field ${fieldKey} =`, value);
+
     setEntries((prev) => {
       const copy = prev.map((e) => e.map((x) => ({ ...x })));
       const list = copy[qIndex];
@@ -279,7 +297,7 @@ export default function QuestionsPage() {
     };
 
     try {
-      const { data } = await Axios.post(`/cases/${caseId}/steps/2`, payload);
+      const { data } = await Axios.post(`/cases/${caseId}/steps/4`, payload);
       console.log("Submitted data:", data);
       toast.success("Submitted Successfully");
     } catch (error: any) {
@@ -290,12 +308,94 @@ export default function QuestionsPage() {
     }
   };
 
+  // ---------------- Fetch existing ----------------
+useEffect(() => {
+  if (!caseId) return;
+
+  const fetchData = async () => {
+    try {
+      const { data } = await Axios.get(`/cases/${caseId}/steps/4`);
+      const d = data?.data;
+      if (!d) return;
+
+      /* Answers (Yes / No) */
+      setAnswers([
+        yesNo(d.separateEarnings),
+        yesNo(d.separateProperties),
+        yesNo(d.separateSavings),
+        yesNo(d.separatePensions),
+        yesNo(d.separateDebts),
+        yesNo(d.separateBusinesses),
+        yesNo(d.separateChattels),
+        yesNo(d.separateOtherAssets),
+      ]);
+
+      /* Entries */
+      setEntries([
+        mapEntries(d.earningsEntries, (x) => ({
+          source: x.source || "",
+          company: "",
+          amount: x.amount ?? "",
+        })),
+
+        mapEntries(d.propertyEntries, (x) => ({
+          line1: x.addressLine1 || "",
+          line2: x.addressLine2 || "",
+          town: x.townOrCity || "",
+          postcode: x.postcode || "",
+          value: x.value ?? "",
+          extra: x.mortgageOutstanding || "",
+        })),
+
+        mapEntries(d.savingsEntries, (x) => ({
+          savingsName: x.name || "",
+          amount: x.amount ?? "",
+        })),
+
+        mapEntries(d.pensionEntries, (x) => ({
+          pensionName: x.name || "",
+          amount: x.value ?? "",
+        })),
+
+        mapEntries(d.debtEntries, (x) => ({
+          lender: x.accountOrLender || "",
+          description: x.description || "",
+          value: x.amount ?? "",
+        })),
+
+        mapEntries(d.businessEntries, (x) => ({
+          businessName: x.name || "",
+          businessDescription: x.description || "",
+          businessValue: x.value ?? "",
+          sharePercentage: x.ownershipPercentage ?? "",
+          explanation: x.explanation || "",
+        })),
+
+        mapEntries(d.chattelEntries, (x) => ({
+          registration: x.registrationOrId || "",
+          amount: x.value ?? "",
+        })),
+
+        mapEntries(d.otherAssetEntries, (x) => ({
+          provider: x.provider || "",
+          description: x.description || "",
+          value: x.value ?? "",
+        })),
+      ]);
+    } catch (err) {
+      console.error("Fetch error", err);
+    }
+  };
+
+  fetchData();
+}, [caseId]);
+
   return (
     <div className="h-full">
       <div className="w-full max-w-5xl mx-auto pl-16 py-2 pr-26">
         <header className="mb-4">
           <h1 className="text-3xl font-normal text-text-color">
-            Partners separate assets
+            Partner separate assets
           </h1>
           <p className="mt-2 text-[15px] font-light text-text-color">
             Please fill in each of the sections below to complete your

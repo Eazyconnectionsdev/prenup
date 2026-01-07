@@ -1,6 +1,7 @@
 import {configureStore, combineReducers} from "@reduxjs/toolkit"
 import authSlice from "./slices/authSlice"
 import modelSlice from "./slices/modelSlice"
+import casesSlice from "./slices/casesSlice"
 
 import {
   persistReducer,
@@ -18,6 +19,7 @@ import storage   from "redux-persist/lib/storage";
 
 const rootReducers = combineReducers({
     auth : authSlice,
+    cases : casesSlice,
     model : modelSlice,
 })
 

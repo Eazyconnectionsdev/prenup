@@ -13,10 +13,11 @@ import {
   ListOrdered,
   UserPlus,
 } from "lucide-react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { openInvitePartnerModel } from "@/store/slices/modelSlice";
 import { MouseEventHandler } from "react";
 import { GoHomeFill } from "react-icons/go";
+import { RootState } from "@/store/store";
 
 type RouteType = {
   label: string;
@@ -26,6 +27,7 @@ type RouteType = {
   onclick?: MouseEventHandler<HTMLButtonElement>;
   subMenu?: Array<{
     label: string;
+    isCompleted?: boolean;
     href: string;
     isActive: boolean;
   }> | null;
@@ -34,6 +36,7 @@ type RouteType = {
 export const useRoutes = () => {
   const dispatch = useDispatch()
   const pathname = usePathname();
+  const {status} = useSelector((state: RootState) => state.cases);
 
   const routes: RouteType[] = [
     {
@@ -46,41 +49,48 @@ export const useRoutes = () => {
     {
       label: "Questionnaire",
       href: "/questionnaire/your-details",
-      isActive: pathname.includes("/questionnaire/your-details"),
+      isActive: pathname.includes("/questionnaire"),
       subMenu: [
         {
           label: "Your Details",
           href: "/questionnaire/your-details",
+          isCompleted: status?.step1?.submitted,
           isActive: pathname === "/questionnaire/your-details",
         },
         {
           label: "Your Finances",
           href: "/questionnaire/your-finances",
+          isCompleted: status?.step2?.submitted,
           isActive: pathname === "/questionnaire/your-finances",
         },
         {
           label: "Partners Details",
           href: "/questionnaire/partners-details",
+          isCompleted: status?.step3?.submitted,
           isActive: pathname === "/questionnaire/partners-details",
         },
         {
           label: "Partners Finances",
           href: "/questionnaire/partners-finances",
+          isCompleted: status?.step4?.submitted,
           isActive: pathname === "/questionnaire/partners-finances",
         },
         {
           label: "Joint Assets",
           href: "/questionnaire/joint-assets",
+          isCompleted: status?.step5?.submitted,
           isActive: pathname === "/questionnaire/joint-assets",
         },
         {
           label: "Future Assets",
           href: "/questionnaire/future-assets",
+          isCompleted: status?.step6?.submitted,
           isActive: pathname === "/questionnaire/future-assets",
         },
         {
           label: "Area of Complexity",
           href: "/questionnaire/area-of-complexity",
+          isCompleted: status?.step7?.submitted,
           isActive: pathname === "/questionnaire/area-of-complexity",
         },
       ],

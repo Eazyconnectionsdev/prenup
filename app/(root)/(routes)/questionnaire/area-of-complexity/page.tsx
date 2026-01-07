@@ -3,7 +3,7 @@
 
 import Axios from "@/lib/ApiConfig";
 import { RootState } from "@/store/store";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 
@@ -15,11 +15,8 @@ const QUESTIONS = [
   "Is one of you pregnant?",
   "Does one or both of you own a business that you work in together?",
   "Is one of you out of work, whether with no job or else on leave from work due to sickness or other circumstances, and/or financially dependant on the other person?",
-  "Is your family home owned with a 3rd party outside of the relationship?",
   "Are your combined assets worth more than £3m?",
-  "Is one of you out of work, whether with no job or else on leave from work due to sickness or other circumstances, and/or financially dependant on the other person?",
   "Is your family home owned with a 3rd party outside of the relationship?",
-  "Are your combined assets worth more than £3m?",
   "Do you have a child from either of your current or previous relationships living with you?",
 ];
 
@@ -48,6 +45,9 @@ export default function AreasOfComplexityPage() {
       return copy;
     });
   };
+
+  const boolToYesNo = (v: boolean | null | undefined): "yes" | "no" | null =>
+    v === true ? "yes" : v === false ? "no" : null;
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -78,38 +78,58 @@ export default function AreasOfComplexityPage() {
         overview: answers[4] === "yes" ? overviews[4] : "",
       },
 
-      outOfWorkDependent2: {
+      childLivingWithYou: {
         answer: answers[5] === "yes",
         overview: answers[5] === "yes" ? overviews[5] : "",
-      },
-
-      familyHomeThirdParty2: {
-        answer: answers[6] === "yes",
-        overview: answers[6] === "yes" ? overviews[6] : "",
-      },
-
-      assetsOver3M2: {
-        answer: answers[7] === "yes",
-        overview: answers[7] === "yes" ? overviews[7] : "",
-      },
-
-      childLivingWithYou: {
-        answer: answers[8] === "yes",
-        overview: answers[8] === "yes" ? overviews[8] : "",
       },
     };
 
     try {
       const { data } = await Axios.post(`/cases/${caseId}/steps/7`, payload);
       console.log("Submitted data:", data);
-    toast.success("Submitted Successfully");
-        } catch (error: any) {
-          console.error("Error submitting questionnaire:", error);
-          if (error && error.response.data && error.response.data.message) {
-            toast.error(error.response.data.message || error.message);
-          }
-        }
+      toast.success("Submitted Successfully");
+    } catch (error: any) {
+      console.log("Error submitting questionnaire:", error);
+      if (error && error.response.data && error.response.data.message) {
+        toast.error(error.response.data.message || error.message);
+      }
+    }
   };
+
+  useEffect(() => {
+    if (!caseId) return;
+
+    const fetchData = async () => {
+      try {
+        const { data } = await Axios.get(`/cases/${caseId}/steps/7`);
+        const d = data?.data;
+        if (!d) return;
+
+        setAnswers([
+          boolToYesNo(d.isOnePregnant),
+          boolToYesNo(d.businessWorkedTogether),
+          boolToYesNo(d.oneOutOfWorkOrDependent),
+          boolToYesNo(d.familyHomeOwnedWith3rdParty),
+          boolToYesNo(d.combinedAssetsOver3m),
+          boolToYesNo(d.childFromPreviousRelationshipsLivingWithYou),
+        ]);
+
+        // -------- Overviews --------
+        setOverviews([
+          d.isOnePregnantOverview ?? "",
+          d.businessWorkedTogetherOverview ?? "",
+          d.oneOutOfWorkOverview ?? "",
+          d.familyHome3rdPartyOverview ?? "",
+          d.combinedAssetsOver3mOverview ?? "",
+          d.childFromPreviousOverview ?? "",
+        ]);
+      } catch (err) {
+        console.error("Fetch error", err);
+      }
+    };
+
+    fetchData();
+  }, [caseId]);
 
   return (
     <div className="h-full">
@@ -197,12 +217,6 @@ export default function AreasOfComplexityPage() {
             </div>
           </div>
         </form>
-
-        <footer className="mt-6 text-xs text-slate-400 text-center">
-          Answers are saved locally in this demo (check console). I can add
-          localStorage autosave, inline validation, or server integration if
-          you'd like.
-        </footer>
       </div>
     </div>
   );

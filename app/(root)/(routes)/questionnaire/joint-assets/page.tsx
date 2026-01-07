@@ -3,7 +3,7 @@
 
 import Axios from "@/lib/ApiConfig";
 import { RootState } from "@/store/store";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 
@@ -28,51 +28,66 @@ const FOLLOW_UPS = [
 export default function JointAssetsPage() {
   const { caseId } = useSelector((state: RootState) => state.auth);
 
-  const [answers, setAnswers] = useState<("yes" | "no" | null)[]>(() =>
+  const [answers, setAnswers] = useState<(boolean | null)[]>(() =>
     Array(QUESTIONS.length).fill(null)
   );
-  const [firstQuestion, setFirstQuestion] = useState<"yes" | "no" | null>(null);
-  const [followUps, setFollowUps] = useState<("yes" | "no" | null)[]>(() =>
+
+  const [firstQuestion, setFirstQuestion] = useState<boolean | null>(null);
+
+  const [followUps, setFollowUps] = useState<(boolean | null)[]>(() =>
     Array(FOLLOW_UPS.length).fill(null)
   );
 
   const setMainAnswer = (idx: number, val: "yes" | "no") => {
+    const boolVal = val === "yes";
+
     setAnswers((prev) => {
       const copy = [...prev];
-      copy[idx] = val;
+      copy[idx] = boolVal;
       return copy;
     });
 
     if (idx === 0) {
-      setFirstQuestion(val);
-      if (val === "no") setFollowUps(Array(FOLLOW_UPS.length).fill(null));
+      setFirstQuestion(boolVal);
+      if (!boolVal) {
+        setFollowUps(Array(FOLLOW_UPS.length).fill(null));
+      }
     }
   };
 
   const setFollowUpAnswer = (idx: number, val: "yes" | "no") => {
+    const boolVal = val === "yes";
+
     setFollowUps((prev) => {
       const copy = [...prev];
-      copy[idx] = val;
+      copy[idx] = boolVal;
       return copy;
     });
   };
+
+  const boolToYesNo = (v: boolean | null): "yes" | "no" | null =>
+    v === true ? "yes" : v === false ? "no" : null;
+
+  const yesNoToBool = (v: any): boolean | null =>
+    v === "yes" ? true : v === "no" ? false : null;
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
     const payload = {
       heading: HEADING,
-      questions: QUESTIONS.map((q, i) => ({ question: q, answer: answers[i] })),
-      followUpsShown: firstQuestion === "yes",
+      questions: QUESTIONS.map((q, i) => ({
+        question: q,
+        answer: boolToYesNo(answers[i]),
+      })),
+      followUpsShown: firstQuestion === true,
       followUps: FOLLOW_UPS.map((q, i) => ({
         question: q,
-        answer: followUps[i],
+        answer: boolToYesNo(followUps[i]),
       })),
-      savedAt: new Date().toISOString(),
     };
 
     try {
       const { data } = await Axios.post(`/cases/${caseId}/steps/5`, payload);
-
       toast.success("Submitted Successfully");
     } catch (error: any) {
       console.error("Error submitting questionnaire:", error);
@@ -81,6 +96,48 @@ export default function JointAssetsPage() {
       }
     }
   };
+
+  // ---------------- Fetch existing ----------------
+
+  useEffect(() => {
+  if (!caseId) return;
+
+  const fetchData = async () => {
+    try {
+      const { data } = await Axios.get(`/cases/${caseId}/steps/5`);
+      const d = data?.data;
+      if (!d) return;
+
+      /* Main questions */
+      const mainAns = QUESTIONS.map((q) => {
+        const qa = d.questions?.find((item: any) => item.question === q);
+        return yesNoToBool(qa?.answer);
+      });
+
+      setAnswers(mainAns);
+
+      /* First question controls follow-ups */
+      const first = mainAns[0];
+      setFirstQuestion(first);
+
+      /* Follow-ups */
+      if (Array.isArray(d.followUps)) {
+        const follow = FOLLOW_UPS.map((q) => {
+          const qa = d.followUps.find((item: any) => item.question === q);
+          return yesNoToBool(qa?.answer);
+        });
+        setFollowUps(follow);
+      } else {
+        setFollowUps(Array(FOLLOW_UPS.length).fill(null));
+      }
+    } catch (err) {
+      console.error("Fetch error", err);
+    }
+  };
+
+  fetchData();
+}, [caseId]);
+
 
   return (
     <div className="h-full">
@@ -112,9 +169,9 @@ export default function JointAssetsPage() {
                   <button
                     type="button"
                     onClick={() => setMainAnswer(qi, "yes")}
-                    aria-pressed={answers[qi] === "yes"}
+                    aria-pressed={answers[qi] === true}
                     className={`px-14 shadow-md hover:bg-gray-100 py-1.5 rounded-full font-medium cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-300 ${
-                      answers[qi] === "yes"
+                      answers[qi] === true
                         ? "bg-green-600 text-white"
                         : "bg-white text-text-color"
                     }`}
@@ -125,9 +182,9 @@ export default function JointAssetsPage() {
                   <button
                     type="button"
                     onClick={() => setMainAnswer(qi, "no")}
-                    aria-pressed={answers[qi] === "no"}
+                    aria-pressed={answers[qi] === true}
                     className={`px-14 shadow-md hover:bg-gray-100 py-1.5 rounded-full font-medium cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-300 ${
-                      answers[qi] === "no"
+                      answers[qi] === false
                         ? "bg-red-600 text-white"
                         : "bg-white text-text-color"
                     }`}
@@ -136,7 +193,7 @@ export default function JointAssetsPage() {
                   </button>
                 </div>
 
-                {qi === 0 && firstQuestion === "yes" && (
+                {qi === 0 && firstQuestion === true && (
                   <div className="mt-6 w-full max-w-3xl text-left bg-white/90 rounded-md p-4">
                     <div className="text-sm text-slate-700 mb-3 font-medium">
                       Please answer the follow-up questions about other shared
@@ -159,9 +216,9 @@ export default function JointAssetsPage() {
                             <button
                               type="button"
                               onClick={() => setFollowUpAnswer(fidx, "yes")}
-                              aria-pressed={followUps[fidx] === "yes"}
+                              aria-pressed={followUps[fidx] === true}
                               className={`px-12 shadow-md hover:bg-gray-100 py-1.5 rounded-full font-medium cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-300 ${
-                                followUps[fidx] === "yes"
+                                followUps[fidx] === true
                                   ? "bg-green-600 text-white"
                                   : "bg-white text-text-color"
                               }`}
@@ -172,9 +229,9 @@ export default function JointAssetsPage() {
                             <button
                               type="button"
                               onClick={() => setFollowUpAnswer(fidx, "no")}
-                              aria-pressed={followUps[fidx] === "no"}
+                              aria-pressed={followUps[fidx] === false}
                               className={`px-12 shadow-md hover:bg-gray-100 py-1.5 rounded-full font-medium cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-300 ${
-                                followUps[fidx] === "no"
+                                followUps[fidx] === false
                                   ? "bg-red-600 text-white"
                                   : "bg-white text-text-color"
                               }`}
