@@ -253,7 +253,7 @@ const handleSubmit = async (e?: React.FormEvent) => {
             <div className="w-full max-w-4xl text-left py-4">
               <h2 className="text-lg font-medium mb-1">
                 Please provide details on the approximate value and composition
-                of Sooriya Kumar Coimbatore Rajendran's Future Inheritance.
+                of Sooriya Kumar Coimbatore Rajendran&apos;s Future Inheritance.
               </h2>
               <p className="text-[13px] opacity-80 mb-4">
                 All figures must be in Pounds Sterling (GBP). If converting from
@@ -333,7 +333,7 @@ const handleSubmit = async (e?: React.FormEvent) => {
             <div className="w-full max-w-4xl text-left py-4">
               <h2 className="text-lg font-medium mb-1">
                 Please provide details on the approximate value and composition
-                of Gomathi Chandran's Future Inheritance.
+                of Gomathi Chandran&apos;s Future Inheritance.
               </h2>
               <p className="text-[13px] opacity-80 mb-4">
                 All figures must be in Pounds Sterling (GBP). If converting from

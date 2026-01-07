@@ -707,8 +707,8 @@ export default function AboutYouPage() {
                     with your agreement and why you want it in place.
                   </div>
                   <div className="text-xs text-slate-400 mb-2">
-                    Please avoid first-person (use third-person: e.g., "Jenny
-                    owns a house").
+                    Please avoid first-person (use third-person: e.g., &quot;Jenny
+                    owns a house&quot;).
                   </div>
                   <textarea
                     value={agreementOverview}

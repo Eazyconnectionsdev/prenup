@@ -144,10 +144,10 @@ const AccountManagment = () => {
       <div className="space-y-4">
         <div className="space-y-1">
           <h1 className="text-xl font-normal text-text-color">
-            Fiance's Details
+            Fiance&apos;s Details
           </h1>
           <p className="text-xs font-light text-text-color">
-            Enter Your Fiance's detail here!
+            Enter Your Fiance&apos;s detail here!
           </p>
         </div>
 
@@ -159,7 +159,7 @@ const AccountManagment = () => {
               </span>
               <input
                 type="text"
-                placeholder="Your fiancé’s first name"
+                placeholder="Your fiancé&apos;s first name"
                 name="fianceFirstName"
                 onChange={handleChange}
                 value={form.fianceFirstName}
@@ -169,11 +169,11 @@ const AccountManagment = () => {
 
             <div className="flex flex-col flex-1 gap-1">
               <span className="text-xs text-gray-500">
-                Your fiancé’s middle name
+                Your fiancé&apos;s middle name
               </span>
               <input
                 type="text"
-                placeholder="Your fiancé’s middle name"
+                placeholder="Your fiancé&apos;s middle name"
                 name="fianceMiddleName"
                 onChange={handleChange}
                 value={form.fianceMiddleName}
@@ -183,7 +183,7 @@ const AccountManagment = () => {
 
             <div className="flex flex-col flex-1 gap-1">
               <span className="text-xs text-gray-500">
-                Your fiancé’s last name
+                Your fiancé&apos;s last name
               </span>
               <input
                 type="text"
@@ -210,7 +210,7 @@ const AccountManagment = () => {
 
           <div className="flex gap-3">
             <div className="flex flex-col flex-1 gap-1">
-              <span className="text-xs text-gray-500">Your fiancé’s email</span>
+              <span className="text-xs text-gray-500">Your fiancé&apos;s email</span>
               <input
                 type="email"
                 placeholder="Your fiancé’s email"
@@ -223,7 +223,7 @@ const AccountManagment = () => {
 
             <div className="flex flex-col w-40 gap-1">
               <span className="text-xs text-gray-500">
-                Your fiancé’s date of birth
+                Your fiancé&apos;s date of birth
               </span>
               <input
                 type="date"

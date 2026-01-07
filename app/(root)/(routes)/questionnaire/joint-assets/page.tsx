@@ -258,7 +258,7 @@ export default function JointAssetsPage() {
 
             <footer className="mt-6 text-xs text-slate-200 text-center">
               Answers are saved locally in this demo (check console). I can add
-              localStorage autosave or API integration if you'd like.
+              localStorage autosave or API integration if you&apos;d like.
             </footer>
           </div>
         </form>

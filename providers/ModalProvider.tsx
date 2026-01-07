@@ -2,13 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import InvitePartnerModal from '@/components/modals/invite-partner'
+import { useIsMounted } from '@/hooks/useIsMounted';
 
 const ModalProvider = () => {
-    const [isMounted, setIsMounted] = useState(false);
 
-    useEffect(() => {
-        setIsMounted(true);
-    },[])
+  const isMounted = useIsMounted();
 
     if(!isMounted){
         return null;
