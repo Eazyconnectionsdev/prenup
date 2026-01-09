@@ -11,6 +11,7 @@ import { logOutUser } from "@/store/asyncThunk/authThunk";
 import { ChevronLeft, ChevronRight, LogOut, Check } from "lucide-react";
 import { Button } from "../button";
 import { getCasesDetails } from "@/store/asyncThunk/casesThunk";
+import { toast } from "react-toastify";
 
 export default function AppSidebar() {
   const dispatch = useDispatch<AppDispatch>();
@@ -91,13 +92,17 @@ export default function AppSidebar() {
                 {/* Parent */}
                 {route.href ? (
                   <Link
-                    href={route.href}
+                    href={route.disbaled ? "#" : route.href}
+                    onClick={(e) => {
+                      if (route.disbaled) e.preventDefault();
+                    }}
                     className={cn(
                       "flex items-center gap-3 rounded-xl px-3 py-3 transition-all",
                       route.isActive
                         ? "bg-gradient-to-br from-secondary to-secondary-foreground text-foreground"
                         : "text-muted-foreground hover:bg-gradient-to-br from-secondary to-primary-foreground hover:text-text-color",
-                      !isExpanded && "justify-center px-0"
+                      !isExpanded && "justify-center px-0",
+                      route.disbaled && "opacity-50 hover:text-muted-foreground"
                     )}
                   >
                     {Icon ? (
@@ -107,9 +112,8 @@ export default function AppSidebar() {
                         {index}
                       </span>
                     )}
-                    {/* {Icon && <Icon className="h-5 w-5 shrink-0" />} */}
                     {isExpanded && (
-                      <span className="text-base font-normal">
+                      <span className="text-[14px] font-normal">
                         {route.label}
                       </span>
                     )}
@@ -126,9 +130,7 @@ export default function AppSidebar() {
                   >
                     {Icon && <Icon className="h-5 w-5 shrink-0" />}
                     {isExpanded && (
-                      <span className="text-base font-normal">
-                        {route.label}
-                      </span>
+                      <span className="text-sm font-normal">{route.label}</span>
                     )}
                   </button>
                 )}
@@ -142,31 +144,31 @@ export default function AppSidebar() {
                       return (
                         <li key={sub.href}>
                           <Link
-                            href={isDisabled ? "#" : sub.href}
+                            href={isDisabled || sub.disbaled ? "#" : sub.href}
                             onClick={(e) => {
                               if (isDisabled) e.preventDefault();
                             }}
-                            aria-disabled={isDisabled}
+                            aria-disabled={isDisabled || sub.disbaled}
                             className={cn(
-                              "flex items-center gap-3 rounded-lg pl-2 pr-4 py-2 text-[15px] transition-all",
+                              "flex items-center gap-3 rounded-lg pl-2 pr-4 py-2 text-[13px] transition-all",
                               sub.isActive
                                 ? "text-primary font-normal"
                                 : "text-muted-foreground hover:text-text-color",
                               !isExpanded && "justify-center px-0",
-                              isDisabled &&
+                              (isDisabled || sub.disbaled) &&
                                 "opacity-50 hover:text-muted-foreground"
                             )}
                           >
-                            {isExpanded && (
-                              <p className="flex-1">{sub.label}</p>
-                            )}
-
                             {sub.isCompleted ? (
                               <span className="h-4 w-4 rounded-full shrink-0 bg-green-600 flex items-center justify-center">
                                 <Check className="h-3 w-3 text-white" />
                               </span>
                             ) : (
                               <span className="block w-3 h-3 rounded-full border border-gray-400" />
+                            )}
+
+                            {isExpanded && (
+                              <p className="flex-1">{sub.label}</p>
                             )}
                           </Link>
                         </li>
@@ -184,7 +186,7 @@ export default function AppSidebar() {
       <div className="my-3 border-t border-sidebar-border" />
 
       {/* Bottom Navigation */}
-      <nav className="overflow-auto px-3">
+      <nav className="overflow-auto px-3 pb-10">
         <ul className="space-y-2">
           {bottomRoutes.map((route) => {
             const Icon = route.icon;
@@ -205,7 +207,7 @@ export default function AppSidebar() {
                   >
                     {Icon && <Icon className="h-5 w-5 shrink-0" />}
                     {isExpanded && (
-                      <span className="text-base font-normal">
+                      <span className="text-[14px] font-normal">
                         {route.label}
                       </span>
                     )}
@@ -240,7 +242,7 @@ export default function AppSidebar() {
         <button
           onClick={handleLogOut}
           className={cn(
-            "flex w-full items-center justify-center gap-3 rounded-full border py-3 transition-all hover:bg-secondary",
+            "flex w-full items-center justify-center gap-3 rounded-full border border-gray-400 py-3 transition-all hover:bg-secondary",
             !isExpanded && "px-0"
           )}
         >

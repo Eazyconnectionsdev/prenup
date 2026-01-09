@@ -9,13 +9,17 @@ import Microsoft from "@/images/icons/microsoft.png";
 import Google from "@/images/icons/google.png";
 import EyeOff from "@/images/icons/eye.png";
 import Eye from "@/images/icons/eye-off.png";
-import { useDispatch } from "react-redux";
-import { AppDispatch } from "@/store/store";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/store/store";
 import { LoginUser } from "@/store/asyncThunk/authThunk";
+import { toast } from "react-toastify";
+import { useRouter } from "next/navigation";
 
 export default function LoginPageStatic() {
+  const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const { isLoading } = useSelector((state: RootState) => state.auth);
 
   const [form, setForm] = useState({
     email: "",
@@ -39,13 +43,16 @@ export default function LoginPageStatic() {
     };
 
     try {
-      const result = await dispatch(LoginUser(payload));
+      const result = await dispatch(LoginUser(payload)).unwrap();
 
-      if (LoginUser.fulfilled.match(result)) {
-        window.location.assign("/dashboard");
+      if (result && result.success) {
+        router.push("/email-verification");
       }
     } catch (error: any) {
-      console.log("Login error:", error.message);
+      console.log("Error while Signing In", error.message);
+      if (error.message) {
+        toast.error(error.message || "Error while Signing In");
+      }
     }
   };
 
@@ -136,9 +143,10 @@ export default function LoginPageStatic() {
           {/* Submit */}
           <button
             type="submit"
-            className="w-full px-6 py-2 mt-4 text-white text-[12px] bg-[#6a69ff] rounded"
+            disabled={isLoading}
+            className="w-full px-6 py-2 mt-4 disabled:bg-[#6a69ff]/50 bg-[#6a69ff] text-white text-[14px] rounded"
           >
-            Sign In
+            {isLoading ? <span>Please wait...</span> : "Sign In"}
           </button>
 
           {/* Sign up link */}

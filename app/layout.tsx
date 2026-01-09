@@ -4,13 +4,11 @@ import "./globals.css";
 import { StoreProvider } from "@/providers/StoreProvider";
 import ToastContext from "@/providers/ToastProvider";
 
-
 const poppin = Poppins({
-  weight : ["100","200","300","400","500","600","700","800","900"],
-  subsets : ["latin"],
-  variable : "--font-poppin"
-
-})
+  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
+  subsets: ["latin"],
+  variable: "--font-poppin",
+});
 
 export const metadata: Metadata = {
   title: "Lets Prenup Portal",
@@ -25,7 +23,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-      cz-shortcut-listen="true"
+        cz-shortcut-listen="true"
         className={`${poppin.className} antialiased`}
       >
         <StoreProvider>

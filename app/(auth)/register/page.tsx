@@ -10,10 +10,12 @@ import EyeOff from "@/images/icons/eye.png";
 import Eye from "@/images/icons/eye-off.png";
 import Tick from "@/images/icons/tick.svg";
 import People from "@/images/people.svg";
-import { useDispatch } from "react-redux";
-import { AppDispatch } from "@/store/store";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/store/store";
 import { registerUser } from "@/store/asyncThunk/authThunk";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
 
 const Points = [
   "Get 50 free credits every month",
@@ -22,7 +24,9 @@ const Points = [
 ];
 
 export default function SignUpPageStatic() {
+  const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
+  const {isLoading} = useSelector((state : RootState) => state.auth);
 
   const [form, setForm] = useState({
     firstName: "",
@@ -48,7 +52,7 @@ export default function SignUpPageStatic() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-  
+
     const payload = {
       firstName: form.firstName,
       lastName: form.lastName,
@@ -60,10 +64,16 @@ export default function SignUpPageStatic() {
       marketingConsent: form.marketingConsent,
     };
 
-    const result = await dispatch(registerUser(payload));
-
-    if (registerUser.fulfilled.match(result)) {
-      window.location.assign("/dashboard");
+    try {
+      const result = await dispatch(registerUser(payload)).unwrap();
+      if (result && result.success) {
+        router.push("/email-verification");
+      }
+    } catch (error: any) {
+      console.log("Error while registering", error.message);
+      if (error.message) {
+        toast.error(error.message || "Error while Signing In");
+      }
     }
   };
 
@@ -225,9 +235,12 @@ export default function SignUpPageStatic() {
             {/* Submit */}
             <button
               type="submit"
-              className="w-full px-6 py-2 mt-4 text-white text-[14px] bg-[#6a69ff] rounded"
+              disabled={isLoading}
+              className="w-full px-6 py-2 mt-4 disabled:bg-[#6a69ff]/50 bg-[#6a69ff] text-white text-[14px] rounded"
             >
-              Create Account
+              {
+                isLoading ? <span>Please wait...</span> : "Create Account"
+              }
             </button>
 
             {/* Sign in */}

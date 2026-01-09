@@ -121,6 +121,8 @@ type Entry = {
 };
 
 export default function QuestionsPage() {
+    const { user : {endUserType}, caseId } = useSelector((state: RootState) => state?.auth);
+
   const [answers, setAnswers] = useState<("yes" | "no" | null)[]>(() =>
     Array(QUESTIONS.length).fill(null)
   );
@@ -130,9 +132,6 @@ export default function QuestionsPage() {
       .map(() => [])
   );
 
-  console.log("Current entries:", answers);
-
-  const { caseId } = useSelector((state: RootState) => state.auth);
 
   const setAnswer = (qIndex: number, val: "yes" | "no") => {
     setAnswers((prev) => {
@@ -297,8 +296,7 @@ const mapEntries = (
     };
 
     try {
-      const { data } = await Axios.post(`/cases/${caseId}/steps/4`, payload);
-      console.log("Submitted data:", data);
+      const { data } = await Axios.post(`/cases/${caseId}/steps/${endUserType === 'user1' ? '4' : '2'}`, payload);
       toast.success("Submitted Successfully");
     } catch (error: any) {
       console.error("Error submitting questionnaire:", error);
@@ -314,7 +312,7 @@ useEffect(() => {
 
   const fetchData = async () => {
     try {
-      const { data } = await Axios.get(`/cases/${caseId}/steps/4`);
+      const { data } = await Axios.get(`/cases/${caseId}/steps/${endUserType === 'user1' ? '4' : '2'}`);
       const d = data?.data;
       if (!d) return;
 

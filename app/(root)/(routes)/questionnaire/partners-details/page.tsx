@@ -38,7 +38,7 @@ const makeChild = (): ChildEntry => ({
 
 // ---------------- Component ----------------
 export default function AboutYouPage() {
-  const { caseId } = useSelector((state: RootState) => state.auth);
+  const { user : {endUserType}, caseId } = useSelector((state: RootState) => state?.auth);
 
   // -------- Personal --------
   const [firstName, setFirstName] = useState("");
@@ -120,7 +120,7 @@ export default function AboutYouPage() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const { data } = await Axios.get(`/cases/${caseId}/steps/3`);
+        const { data } = await Axios.get(`/cases/${caseId}/steps/${endUserType === 'user1' ? '3' : '1'}`);
         const d = data?.data;
         if (!d || !mounted) return;
 
@@ -203,10 +203,10 @@ export default function AboutYouPage() {
     setSaving(true);
     try {
       if (hasExisting) {
-        await Axios.post(`/cases/${caseId}/steps/3`, payload);
+        await Axios.post(`/cases/${caseId}/steps/${endUserType === "user1" ? "3" : "1"}`, payload);
         toast.success("Updated successfully");
       } else {
-        await Axios.post(`/cases/${caseId}/steps/3`, payload);
+        await Axios.post(`/cases/${caseId}/steps/${endUserType === "user1" ? "3" : "1"}`, payload);
         toast.success("Saved successfully");
         setHasExisting(true);
       }

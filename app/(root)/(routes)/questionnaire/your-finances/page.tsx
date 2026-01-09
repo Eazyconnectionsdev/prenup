@@ -130,9 +130,7 @@ export default function QuestionsPage() {
       .map(() => [])
   );
 
-  console.log("Current entries:", answers);
-
-  const { caseId } = useSelector((state: RootState) => state.auth);
+  const { user : {endUserType}, caseId } = useSelector((state: RootState) => state?.auth);
 
   const setAnswer = (qIndex: number, val: "yes" | "no") => {
     setAnswers((prev) => {
@@ -297,7 +295,7 @@ const mapEntries = (
     };
 
     try {
-      const { data } = await Axios.post(`/cases/${caseId}/steps/2`, payload);
+      const { data } = await Axios.post(`/cases/${caseId}/steps/${endUserType === "user1" ? "2" : "4"}`, payload);
       console.log("Submitted data:", data);
       toast.success("Submitted Successfully");
     } catch (error: any) {
@@ -314,7 +312,7 @@ useEffect(() => {
 
   const fetchData = async () => {
     try {
-      const { data } = await Axios.get(`/cases/${caseId}/steps/2`);
+      const { data } = await Axios.get(`/cases/${caseId}/steps/${endUserType === "user1" ? "2" : "4"}`);
       const d = data?.data;
       if (!d) return;
 
