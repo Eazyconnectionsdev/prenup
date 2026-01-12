@@ -816,7 +816,7 @@ export default function AboutYouPage() {
                   onClick={handleSubmit}
                   className="px-6 py-3 rounded-full bg-gradient-to-r from-[#1E3A8A] to-[#76E0FF] text-white font-medium shadow"
                 >
-                  Save / Submit
+                  Save
                 </button>
               </div>
 
