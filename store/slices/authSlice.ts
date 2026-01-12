@@ -1,10 +1,11 @@
 "use client";
 
 import { createSlice } from "@reduxjs/toolkit";
-import { LoginUser, logOutUser, registerUser } from "@/store/asyncThunk/authThunk";
+import { emailVerification, getFreshProfile, LoginUser, logOutUser, registerUser } from "@/store/asyncThunk/authThunk";
 
 interface authState {
   isLoading: boolean;
+  isAuthenticated : boolean;
   caseId: string | any;
   user: { [key: string]: any };
   message: string | null;
@@ -12,7 +13,8 @@ interface authState {
 }
 
 const initialState: authState = {
-  isLoading: true,
+  isLoading: false,
+  isAuthenticated : false,
   caseId: null,
   user: {},
   message: null,
@@ -45,6 +47,7 @@ const AuthSlice = createSlice({
       })
       .addCase(LoginUser.fulfilled, (state, { payload }) => {
         state.isLoading = false;
+        state.isAuthenticated = true;
         state.caseId = payload.caseId;
         state.user = payload.user;
         state.message = payload.message;
@@ -52,6 +55,7 @@ const AuthSlice = createSlice({
       })
       .addCase(LoginUser.rejected, (state, { payload }) => {
         state.isLoading = false;
+        state.isAuthenticated = false;
         state.message = null;
         state.user = {};
         state.submitError = payload as string;
@@ -65,15 +69,36 @@ const AuthSlice = createSlice({
         state.message = null;
       })
       .addCase(registerUser.fulfilled, (state, { payload }) => {
-        state.isLoading = true;
-        state.caseId = payload.caseId;
-        state.user = payload.user;
+        state.isLoading = false;
+        state.user.email = payload.email;
         state.message = payload.message;
         state.submitError = null;
       })
       .addCase(registerUser.rejected, (state, { payload }) => {
         state.isLoading = false;
         state.user = {};
+        state.message = null;
+        state.submitError = payload as string;
+      });
+
+      // Check Email Verification
+    builder
+      .addCase(emailVerification.pending, (state) => {
+        state.isLoading = true;
+        state.submitError = null;
+        state.message = null;
+      })
+      .addCase(emailVerification.fulfilled, (state, { payload }) => {
+        state.isLoading = false;
+        state.isAuthenticated = true;
+        state.caseId = payload.caseId;
+        state.user = payload.user;
+        state.message = payload.message;
+        state.submitError = null;
+      })
+      .addCase(emailVerification.rejected, (state, { payload }) => {
+        state.isLoading = false;
+        state.isAuthenticated = false;
         state.message = null;
         state.submitError = payload as string;
       });
@@ -87,6 +112,7 @@ const AuthSlice = createSlice({
       })
       .addCase(logOutUser.fulfilled, (state, { payload }) => {
         state.isLoading = false;
+        state.isAuthenticated = false;
         state.caseId = null;
         state.user = {};
         state.message = null;
@@ -94,6 +120,29 @@ const AuthSlice = createSlice({
       })
       .addCase(logOutUser.rejected, (state, { payload }) => {
         state.isLoading = false;
+        state.message = null;
+        state.user = {};
+        state.submitError = payload as string;
+      });
+
+      // fetch profile data
+    builder
+      .addCase(getFreshProfile.pending, (state) => {
+        state.isLoading = true;
+        state.submitError = null;
+        state.message = null;
+      })
+      .addCase(getFreshProfile.fulfilled, (state, { payload }) => {
+        state.isLoading = false;
+        state.isAuthenticated = true;
+        state.caseId = payload.user.inviteCaseId;
+        state.user = payload.user;
+        state.message = null;
+        state.submitError = null;
+      })
+      .addCase(getFreshProfile.rejected, (state, { payload }) => {
+        state.isLoading = false;
+        state.isAuthenticated = false;
         state.message = null;
         state.user = {};
         state.submitError = payload as string;

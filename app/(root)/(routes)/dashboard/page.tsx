@@ -218,7 +218,7 @@ const Dashboard = () => {
           <StepCard
             svg={secondSvg}
             title="Collaborate with your Partner"
-            description="Discuss and align your answers together / Collaborate with your partner to address any mismatches"
+            description="Discuss and align your responses with your lawyer to address any differences"
             stepNumber={2}
             variant="orange"
             disabled={false}

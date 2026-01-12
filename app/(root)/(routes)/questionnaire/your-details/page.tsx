@@ -38,7 +38,7 @@ const makeChild = (): ChildEntry => ({
 
 // ---------------- Component ----------------
 export default function AboutYouPage() {
-  const { caseId } = useSelector((state: RootState) => state.auth);
+  const { user : {endUserType}, caseId } = useSelector((state: RootState) => state?.auth);
 
   // -------- Personal --------
   const [firstName, setFirstName] = useState("");
@@ -120,36 +120,36 @@ export default function AboutYouPage() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const { data } = await Axios.get(`/cases/${caseId}/steps/1`);
+        const { data } = await Axios.get(`/cases/${caseId}/steps/${endUserType === "user1" ? "1" : "3"}`);
         const d = data?.data;
         if (!d || !mounted) return;
 
         setFirstName(d.firstName ?? "");
         setMiddleNames(d.middleNames ?? "");
         setLastName(d.lastName ?? "");
-        setDob(d.dateOfBirth ?? ""); // ✅ FIXED
+        setDob(d.dateOfBirth ?? "");
         setAddress(d.address ?? "");
         setDateOfMarriage(d.dateOfMarriage ?? "");
 
-        setHasChildren(boolToYesNo(d.hasChildren)); // ✅ FIXED
+        setHasChildren(boolToYesNo(d.hasChildren));
         setChildren(
           d.hasChildren && Array.isArray(d.children) ? d.children : []
         );
 
-        setEnglishFluent(boolToYesNo(d.fluentInEnglish)); // ✅ FIXED
+        setEnglishFluent(boolToYesNo(d.fluentInEnglish));
         setNationality(d.nationality ?? "");
-        setDomicileResidency(d.domicileResidencyStatus ?? ""); // ✅ FIXED
+        setDomicileResidency(d.domicileResidencyStatus ?? "");
         setOccupation(d.occupation ?? "");
         setIncomeGBP(d.incomeGBP ?? "");
 
-        setAgreementOverview(d.overviewAim ?? ""); // ✅ FIXED
-        setLivingSituationSummary(d.currentLivingSituation ?? ""); // ✅ FIXED
+        setAgreementOverview(d.overviewAim ?? "");
+        setLivingSituationSummary(d.currentLivingSituation ?? "");
 
-        setConfirmDraft(!!d.confirm_wenup_platform_used); // ✅ FIXED
-        setConfirmPersonalPossessions(!!d.property_personal_possessions_remain); // ✅ FIXED
-        setConfirmContentsDivide(!!d.family_home_divided_equally); // ✅ FIXED
-        setConfirmCourtPower(!!d.court_can_depart_for_children); // ✅ FIXED
-        setConfirmCostsShared(!!d.agree_costs_shared); // ✅ FIXED
+        setConfirmDraft(!!d.confirm_wenup_platform_used);
+        setConfirmPersonalPossessions(!!d.property_personal_possessions_remain);
+        setConfirmContentsDivide(!!d.family_home_divided_equally);
+        setConfirmCourtPower(!!d.court_can_depart_for_children);
+        setConfirmCostsShared(!!d.agree_costs_shared);
 
         setHasExisting(true);
       } catch (err) {
@@ -203,10 +203,10 @@ export default function AboutYouPage() {
     setSaving(true);
     try {
       if (hasExisting) {
-        await Axios.post(`/cases/${caseId}/steps/1`, payload);
+        await Axios.post(`/cases/${caseId}/steps/${endUserType === "user1" ? "1" : "3"}`, payload);
         toast.success("Updated successfully");
       } else {
-        await Axios.post(`/cases/${caseId}/steps/1`, payload);
+        await Axios.post(`/cases/${caseId}/steps/${endUserType === "user1" ? "1" : "3"}`, payload);
         toast.success("Saved successfully");
         setHasExisting(true);
       }
@@ -816,7 +816,7 @@ export default function AboutYouPage() {
                   onClick={handleSubmit}
                   className="px-6 py-3 rounded-full bg-gradient-to-r from-[#1E3A8A] to-[#76E0FF] text-white font-medium shadow"
                 >
-                  Save / Submit
+                  Save
                 </button>
               </div>
 

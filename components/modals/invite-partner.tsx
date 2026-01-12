@@ -15,7 +15,7 @@ import Axios from "@/lib/ApiConfig";
 
 const InvitePartnerModal = () => {
   const dispatch = useDispatch();
-  const { caseId } = useSelector((state: RootState) => state.auth);
+  const { user } = useSelector((state: RootState) => state.auth);
   const [Loading, SetLoading] = useState(false);
   const [email, setEmail] = useState("");
 
@@ -28,7 +28,7 @@ const InvitePartnerModal = () => {
   const handleInvite = async () => {
     SetLoading(true);
     try {
-      await Axios.post(`cases/${caseId}/invite`, { email });
+      await Axios.post(`cases/${user.inviteCaseId}/invite`, { email });
     } catch (error) {
       console.log("Error sending invitation:", error);
     } finally {

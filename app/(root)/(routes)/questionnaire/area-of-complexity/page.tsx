@@ -212,7 +212,14 @@ export default function AreasOfComplexityPage() {
                 type="submit"
                 className="px-6 py-3 rounded-full bg-gradient-to-r from-[#1E3A8A] to-[#76E0FF] text-white font-medium shadow"
               >
-                Save / Continue
+                Save
+              </button>
+              
+              <button
+                type="submit"
+                className="px-6 py-3 rounded-full bg-gradient-to-r from-[#1E3A8A] to-[#76E0FF] text-white font-medium shadow"
+              >
+                Save
               </button>
             </div>
           </div>

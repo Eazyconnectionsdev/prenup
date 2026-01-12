@@ -5,6 +5,7 @@ export const DEFAULT_PROTECTED_ROUTE = "/dashboard";
 const AUTHROUTES = [
   "/login",
   "/register",
+  "/email-verification",
   "/forgot-password",
   "/reset-password"
 ]
