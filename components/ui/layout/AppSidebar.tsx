@@ -137,7 +137,7 @@ export default function AppSidebar() {
 
                 {/* Sub Menu */}
                 {route.subMenu && (
-                  <ul className="mt-2 ml-4 space-y-1">
+                  <ul className="mt-2 ml-4">
                     {route.subMenu.map((sub) => {
                       const isDisabled = !isPaymentDone;
 
@@ -150,10 +150,10 @@ export default function AppSidebar() {
                             }}
                             aria-disabled={isDisabled || sub.disbaled}
                             className={cn(
-                              "flex items-center gap-3 rounded-lg pl-2 pr-4 py-2 text-[13px] transition-all",
+                              "flex items-center gap-2 rounded-lg pl-2 pr-4 py-1.5 text-[14px] hover:underline font-light transition-all",
                               sub.isActive
-                                ? "text-primary font-normal"
-                                : "text-muted-foreground hover:text-text-color",
+                                ? "text-primary"
+                                : "text-gray-700 hover:text-text-color",
                               !isExpanded && "justify-center px-0",
                               (isDisabled || sub.disbaled) &&
                                 "opacity-50 hover:text-muted-foreground"
@@ -200,8 +200,8 @@ export default function AppSidebar() {
                     className={cn(
                       "flex items-center gap-3 rounded-xl px-4 py-3 transition-all",
                       route.isActive
-                        ? "bg-gradient-to-br from-secondary to-secondary-foreground text-foreground"
-                        : "text-muted-foreground hover:bg-gradient-to-br from-secondary to-primary-foreground hover:text-text-color",
+                        ? "bg-gradient-to-br from-secondary to-secondary-foreground text-text-color"
+                        : "text-muted-foreground hover:bg-gradient-to-br from-secondary to-primary-foreground text-text-color",
                       !isExpanded && "justify-center px-0"
                     )}
                   >
