@@ -46,7 +46,7 @@ export default function LoginPageStatic() {
       const result = await dispatch(LoginUser(payload)).unwrap();
 
       if (result && result.success) {
-        router.push("/email-verification");
+        router.push("/");
       }
     } catch (error: any) {
       console.log("Error while Signing In", error.message);
