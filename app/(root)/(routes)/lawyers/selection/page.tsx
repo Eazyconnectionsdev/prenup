@@ -17,7 +17,6 @@ export default function LawyerProfiles() {
 
     try {
       const { data } = await Axios.post(`/cases/${caseId}/select-lawyer`, { lawyerId: id });
-      console.log("lawyer connected:", data);
     } catch (error) {
       console.error("Error while connecting to lawyer", error);
       toast.error("Failed to connect to lawyer. Please try again.");
@@ -29,7 +28,6 @@ export default function LawyerProfiles() {
       try {
         const { data } = await Axios.get(`/cases/${caseId}/lawyers`);
         setLawyersDetail(data);
-        console.log("Fetched lawyers:", data);
       } catch (error: any) {
         console.error("ErrorWhile fetching lawyers", error);
         if (error && error.response.data && error.response.data.message) {
@@ -56,8 +54,8 @@ export default function LawyerProfiles() {
         <div className="mt-20">
           {/* Added vertical row space using gap-y-10 */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-y-10 gap-x-6">
-            {lawyersDetail?.lawyers?.map((lawyer: any) => {
-              const isSelected = selectedId === lawyer.id;
+            {lawyersDetail?.lawyers?.filter((lawyer : any) => lawyer.id !== lawyersDetail.partnerSelected)?.map((lawyer: any) => {
+              const isSelected = lawyersDetail?.yourSelected === lawyer.id;
 
               return (
                 <article

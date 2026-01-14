@@ -2,17 +2,10 @@
 
 import { usePathname } from "next/navigation";
 import {
-  Home,
-  CreditCard,
-  HelpCircle,
-  User,
-  LogOut,
-  ChevronLeft,
-  ChevronRight,
-  Check,
-  ListOrdered,
   UserPlus,
 } from "lucide-react";
+import { IoIosCard, IoMdHelpCircle } from "react-icons/io";
+import { FaCircleUser } from "react-icons/fa6";
 import { useDispatch, useSelector } from "react-redux";
 import { openInvitePartnerModel } from "@/store/slices/modelSlice";
 import { MouseEventHandler } from "react";
@@ -40,7 +33,7 @@ export const useRoutes = () => {
   const pathname = usePathname();
   const {
     auth: { user },
-    cases: { status },
+    cases: { status, preQuestionnaireUser1, preQuestionnaireUser2 },
   } = useSelector((state: RootState) => state);
 
   const routes: RouteType[] = [
@@ -119,7 +112,7 @@ export const useRoutes = () => {
       ],
     },
     {
-      label: "Lawyers",
+      label: "Lawyer Selection",
       href: "/lawyers/your-questionnaire",
       disbaled: status.step7?.submitted ? false : true,
       isActive: pathname.includes("/lawyers"),
@@ -128,15 +121,24 @@ export const useRoutes = () => {
           label: "Your Pre-Lawyer Questioner",
           href: "/lawyers/your-questionnaire",
           disbaled: status.step7?.submitted ? false : true,
+          isCompleted: (user._id === preQuestionnaireUser1.submittedBy || user._id === preQuestionnaireUser2.submittedBy) ,
           isActive: pathname === "/lawyers/your-questionnaire",
         },
         {
           label: "Lawyer Selection",
           href: "/lawyers/selection",
           disbaled: status.step7?.submitted ? false : true,
+          isCompleted: preQuestionnaireUser1.selectedLawyer || preQuestionnaireUser2.selectedLawyer,
           isActive: pathname === "/lawyers/selection",
         },
       ],
+    },
+    {
+      label: "Review and Sign",
+      href: "/review-and-sign",
+      disbaled: status.step7?.submitted ? false : true,
+      isActive: pathname.includes("//review-and-sign"),
+      subMenu: null
     },
   ];
 
@@ -144,14 +146,14 @@ export const useRoutes = () => {
     {
       label: "Payment",
       href: "/payment",
-      icon: CreditCard,
+      icon: IoIosCard,
       isActive: pathname === "/payment",
       subMenu: null,
     },
     {
       label: "Help",
       href: "/help",
-      icon: HelpCircle,
+      icon: IoMdHelpCircle,
       isActive: pathname.includes("/help"),
       subMenu: null,
     },
@@ -169,7 +171,7 @@ export const useRoutes = () => {
     {
       label: "Account",
       href: "/account-managment",
-      icon: User,
+      icon: FaCircleUser,
       isActive: pathname.includes("/account-managment"),
       subMenu: null,
     },

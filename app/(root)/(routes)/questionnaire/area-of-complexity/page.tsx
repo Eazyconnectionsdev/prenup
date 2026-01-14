@@ -207,19 +207,12 @@ export default function AreasOfComplexityPage() {
               </div>
             ))}
 
-            <div className="flex items-center justify-center">
+            <div className="flex items-center justify-center gap-4">
               <button
                 type="submit"
                 className="px-6 py-3 rounded-full bg-gradient-to-r from-[#1E3A8A] to-[#76E0FF] text-white font-medium shadow"
               >
-                Save
-              </button>
-              
-              <button
-                type="submit"
-                className="px-6 py-3 rounded-full bg-gradient-to-r from-[#1E3A8A] to-[#76E0FF] text-white font-medium shadow"
-              >
-                Save
+                Submit
               </button>
             </div>
           </div>
