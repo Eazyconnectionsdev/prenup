@@ -6,7 +6,9 @@ import { RootState } from "@/store/store";
 import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import { toDateInputValue } from "@/lib/utils";
+import { useParams } from "next/navigation";
 
+// ---------------- Types ----------------
 type YesNo = "yes" | "no" | "";
 
 type ChildEntry = {
@@ -37,7 +39,8 @@ const makeChild = (): ChildEntry => ({
 
 // ---------------- Component ----------------
 export default function AboutYouPage() {
-  const { user : {endUserType}, caseId } = useSelector((state: RootState) => state?.auth);
+  const params = useParams()
+  const caseId = params?.id as string;
 
   // -------- Personal --------
   const [firstName, setFirstName] = useState("");
@@ -119,7 +122,7 @@ export default function AboutYouPage() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const { data } = await Axios.get(`/cases/${caseId}/steps/${endUserType === "user1" ? "1" : "3"}`);
+        const { data } = await Axios.get(`/cases/${caseId}/steps/1`);
         const d = data?.data;
         if (!d || !mounted) return;
 
@@ -202,10 +205,10 @@ export default function AboutYouPage() {
     setSaving(true);
     try {
       if (hasExisting) {
-        await Axios.post(`/cases/${caseId}/steps/${endUserType === "user1" ? "1" : "3"}`, payload);
+        await Axios.post(`/cases/${caseId}/steps/1`, payload);
         toast.success("Updated successfully");
       } else {
-        await Axios.post(`/cases/${caseId}/steps/${endUserType === "user1" ? "1" : "3"}`, payload);
+        await Axios.post(`/cases/${caseId}/steps/1`, payload);
         toast.success("Saved successfully");
         setHasExisting(true);
       }
@@ -223,7 +226,7 @@ export default function AboutYouPage() {
   // NOTE: JSX layout + Tailwind classes intentionally unchanged
   return (
     <div className="h-full">
-      <div className="w-full max-w-5xl mx-auto pl-0 py-2 pr-26">
+      <div className="w-full max-w-5xl mx-auto pl-16 py-2 pr-26">
         <header className="mb-4">
           <h1 className="text-3xl font-normal text-text-color">About you</h1>
           <p className="mt-2 text-[15px] font-light text-text-color">

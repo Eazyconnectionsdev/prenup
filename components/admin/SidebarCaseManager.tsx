@@ -17,6 +17,9 @@ import {
   HelpCircle,
   User
 } from 'lucide-react'
+import { logOutUser } from '@/store/asyncThunk/authThunk'
+import { useDispatch } from 'react-redux'
+import { AppDispatch } from '@/store/store'
 
 interface NavItem {
   icon: React.ElementType
@@ -43,9 +46,19 @@ interface SidebarProps {
   activeItem?: string
 }
 
+
+
 export default function Sidebar({ activeItem = '/management/admin' }: SidebarProps) {
   const [isExpanded, setIsExpanded] = useState(true)
-  const toggleSidebar = () => setIsExpanded(v => !v)
+  const dispatch = useDispatch<AppDispatch>()
+
+    const handleLogOut = async () => {
+    const result = await dispatch(logOutUser());
+
+    if (logOutUser.fulfilled.match(result)) {
+      window.location.assign("/login");
+    }
+  };
 
   return (
     <aside
@@ -100,6 +113,7 @@ export default function Sidebar({ activeItem = '/management/admin' }: SidebarPro
       {/* Sign out - moved to a sticky bottom area so it's always visible without extra scrolling */}
       <div className="sticky bottom-0 bg-white border-t p-3">
         <button
+        onClick={handleLogOut}
           className={cn(
             'flex w-full items-center justify-center gap-3 rounded-full border py-2 text-sm transition-colors',
             !isExpanded && 'px-0'
