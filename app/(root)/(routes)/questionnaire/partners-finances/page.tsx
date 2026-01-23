@@ -390,7 +390,7 @@ useEffect(() => {
 
   return (
     <div className="h-full">
-      <div className="w-full max-w-5xl mx-auto pl-16 py-2 pr-26">
+      <div className="w-full max-w-5xl mx-auto pl-0 py-2 pr-26">
         <header className="mb-4">
           <h1 className="text-3xl font-normal text-text-color">
             Partner separate assets
