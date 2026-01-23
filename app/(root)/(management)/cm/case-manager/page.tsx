@@ -27,7 +27,7 @@ export default function Page() {
 
   return (
     <div className="w-full">
-      <div className="max-w-[1400px] mx-auto">
+      <div className="w-full min-w-[1000px]">
         <div className="p-4 bg-white rounded shadow-sm mb-4">
           <h1 className="text-xl font-bold">Case Manager</h1>
           <p className="text-sm text-slate-600">

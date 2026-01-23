@@ -6,7 +6,9 @@ import { RootState } from "@/store/store";
 import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import { toDateInputValue } from "@/lib/utils";
+import { useParams } from "next/navigation";
 
+// ---------------- Types ----------------
 type YesNo = "yes" | "no" | "";
 
 type ChildEntry = {
@@ -37,8 +39,8 @@ const makeChild = (): ChildEntry => ({
 
 // ---------------- Component ----------------
 export default function AboutYouPage() {
-  const { user : {endUserType}, caseId } = useSelector((state: RootState) => state?.auth);
-
+const params = useParams()
+  const caseId = params?.id as string;
   // -------- Personal --------
   const [firstName, setFirstName] = useState("");
   const [middleNames, setMiddleNames] = useState("");
@@ -63,7 +65,7 @@ export default function AboutYouPage() {
   const [confirmPersonalPossessions, setConfirmPersonalPossessions] =
     useState(false);
   const [confirmContentsDivide, setConfirmContentsDivide] = useState(false);
-  const [confirmCourtPower, setConfirmCourtPowe] = useState<string>(false);
+  const [confirmCourtPower, setConfirmCourtPower] = useState(false);
   const [confirmCostsShared, setConfirmCostsShared] = useState(false);
 
   // -------- Meta --------
@@ -119,36 +121,36 @@ export default function AboutYouPage() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const { data } = await Axios.get(`/cases/${caseId}/steps/${endUserType === "user1" ? "1" : "3"}`);
+        const { data } = await Axios.get(`/cases/${caseId}/steps/3`);
         const d = data?.data;
         if (!d || !mounted) return;
 
         setFirstName(d.firstName ?? "");
         setMiddleNames(d.middleNames ?? "");
         setLastName(d.lastName ?? "");
-        setDob(d.dateOfBirth ?? "");
+        setDob(d.dateOfBirth ?? ""); // ✅ FIXED
         setAddress(d.address ?? "");
         setDateOfMarriage(d.dateOfMarriage ?? "");
 
-        setHasChildren(boolToYesNo(d.hasChildren));
+        setHasChildren(boolToYesNo(d.hasChildren)); // ✅ FIXED
         setChildren(
           d.hasChildren && Array.isArray(d.children) ? d.children : []
         );
 
-        setEnglishFluent(boolToYesNo(d.fluentInEnglish));
+        setEnglishFluent(boolToYesNo(d.fluentInEnglish)); // ✅ FIXED
         setNationality(d.nationality ?? "");
-        setDomicileResidency(d.domicileResidencyStatus ?? "");
+        setDomicileResidency(d.domicileResidencyStatus ?? ""); // ✅ FIXED
         setOccupation(d.occupation ?? "");
         setIncomeGBP(d.incomeGBP ?? "");
 
-        setAgreementOverview(d.overviewAim ?? "");
-        setLivingSituationSummary(d.currentLivingSituation ?? "");
+        setAgreementOverview(d.overviewAim ?? ""); // ✅ FIXED
+        setLivingSituationSummary(d.currentLivingSituation ?? ""); // ✅ FIXED
 
-        setConfirmDraft(!!d.confirm_wenup_platform_used);
-        setConfirmPersonalPossessions(!!d.property_personal_possessions_remain);
-        setConfirmContentsDivide(!!d.family_home_divided_equally);
-        setConfirmCourtPower(!!d.court_can_depart_for_children);
-        setConfirmCostsShared(!!d.agree_costs_shared);
+        setConfirmDraft(!!d.confirm_wenup_platform_used); // ✅ FIXED
+        setConfirmPersonalPossessions(!!d.property_personal_possessions_remain); // ✅ FIXED
+        setConfirmContentsDivide(!!d.family_home_divided_equally); // ✅ FIXED
+        setConfirmCourtPower(!!d.court_can_depart_for_children); // ✅ FIXED
+        setConfirmCostsShared(!!d.agree_costs_shared); // ✅ FIXED
 
         setHasExisting(true);
       } catch (err) {
@@ -202,10 +204,10 @@ export default function AboutYouPage() {
     setSaving(true);
     try {
       if (hasExisting) {
-        await Axios.post(`/cases/${caseId}/steps/${endUserType === "user1" ? "1" : "3"}`, payload);
+        await Axios.post(`/cases/${caseId}/steps/3`, payload);
         toast.success("Updated successfully");
       } else {
-        await Axios.post(`/cases/${caseId}/steps/${endUserType === "user1" ? "1" : "3"}`, payload);
+        await Axios.post(`/cases/${caseId}/steps/3`, payload);
         toast.success("Saved successfully");
         setHasExisting(true);
       }
@@ -706,8 +708,8 @@ export default function AboutYouPage() {
                     with your agreement and why you want it in place.
                   </div>
                   <div className="text-xs text-slate-400 mb-2">
-                    Please avoid first-person (use third-person: e.g., &quot;Jenny
-                    owns a house&quot;).
+                    Please avoid first-person (use third-person: e.g., &apos;Jenny
+                    owns a house&apos;).
                   </div>
                   <textarea
                     value={agreementOverview}
