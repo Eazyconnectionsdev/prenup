@@ -6,7 +6,9 @@ import { RootState } from "@/store/store";
 import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import { toDateInputValue } from "@/lib/utils";
+import { useParams } from "next/navigation";
 
+// ---------------- Types ----------------
 type YesNo = "yes" | "no" | "";
 
 type ChildEntry = {
@@ -37,7 +39,8 @@ const makeChild = (): ChildEntry => ({
 
 // ---------------- Component ----------------
 export default function AboutYouPage() {
-  const { user : {endUserType}, caseId } = useSelector((state: RootState) => state?.auth);
+  const params = useParams()
+  const caseId = params?.id as string;
 
   // -------- Personal --------
   const [firstName, setFirstName] = useState("");
@@ -119,7 +122,7 @@ export default function AboutYouPage() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const { data } = await Axios.get(`/cases/${caseId}/steps/${endUserType === "user1" ? "1" : "3"}`);
+        const { data } = await Axios.get(`/cases/${caseId}/steps/1`);
         const d = data?.data;
         if (!d || !mounted) return;
 
@@ -202,10 +205,10 @@ export default function AboutYouPage() {
     setSaving(true);
     try {
       if (hasExisting) {
-        await Axios.post(`/cases/${caseId}/steps/${endUserType === "user1" ? "1" : "3"}`, payload);
+        await Axios.post(`/cases/${caseId}/steps/1`, payload);
         toast.success("Updated successfully");
       } else {
-        await Axios.post(`/cases/${caseId}/steps/${endUserType === "user1" ? "1" : "3"}`, payload);
+        await Axios.post(`/cases/${caseId}/steps/1`, payload);
         toast.success("Saved successfully");
         setHasExisting(true);
       }
