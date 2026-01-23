@@ -63,7 +63,7 @@ export default function AboutYouPage() {
   const [confirmPersonalPossessions, setConfirmPersonalPossessions] =
     useState(false);
   const [confirmContentsDivide, setConfirmContentsDivide] = useState(false);
-  const [confirmCourtPower, setConfirmCourtPowe] = useState<string>(false);
+  const [confirmCourtPower, setConfirmCourtPower] = useState(false);
   const [confirmCostsShared, setConfirmCostsShared] = useState(false);
 
   // -------- Meta --------
