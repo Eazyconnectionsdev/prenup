@@ -1,6 +1,5 @@
-import AuthBootstrap from "@/components/AuthBootstrap";
-import Sidebar from "@/components/ui/layout/Sidebar";
-import ModalProvider from "@/providers/ModalProvider";
+import Sidebar from "@/components/Layout/Sidebar";
+import TopBar from "@/components/Layout/TopBar";
 
 export default function MainLayouyt({
   children,
@@ -9,12 +8,11 @@ export default function MainLayouyt({
 }) {
   return (
     <>
-      <ModalProvider />
-      <AuthBootstrap>
-        <Sidebar>
-          <div className="h-full">{children}</div>
-        </Sidebar>
-      </AuthBootstrap>
+      <Sidebar>
+        <TopBar caseId="LP-2026-000123" />
+
+        <div className="h-full">{children}</div>
+      </Sidebar>
     </>
   );
 }
