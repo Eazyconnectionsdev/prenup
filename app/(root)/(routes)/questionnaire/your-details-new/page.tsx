@@ -28,49 +28,49 @@ import { MdLiving } from "react-icons/md";
 export default function StepOnePersonalProfile() {
 
   type Child = {
-  firstName: string;
-  familyName: string;
-  dob: string;
-};
-
-type FormValues = {
-  givenName: string;
-  middleNames: string;
-  familyName: string;
-  dob: string;
-
-  address1: string;
-  address2: string;
-  city: string;
-  postcode: string;
-  country: string;
-  sameAsOtherParty: boolean | null;
-
-  dateOfMarriage: string;
-
-  hasChildren: boolean;
-  children: Child[];
-  childCareNote: string;
-
-  comfortableEnglish: boolean | null;
-  nationality: string;
-  domicile: string;
-
-  occupation: string;
-  annualIncome: string;
-
-  objectives: string;
-  livingArrangements: string;
-
-  platformAcknowledged: boolean;
-
-  preferences: {
-    personalBelongings: boolean;
-    householdContents: boolean;
-    childrensNeeds: boolean;
-    costs: boolean;
+    firstName: string;
+    familyName: string;
+    dob: string;
   };
-};
+
+  type FormValues = {
+    givenName: string;
+    middleNames: string;
+    familyName: string;
+    dob: string;
+
+    address1: string;
+    address2: string;
+    city: string;
+    postcode: string;
+    country: string;
+    sameAsOtherParty: boolean | null;
+
+    dateOfMarriage: string;
+
+    hasChildren: boolean;
+    children: Child[];
+    childCareNote: string;
+
+    comfortableEnglish: boolean | null;
+    nationality: string;
+    domicile: string;
+
+    occupation: string;
+    annualIncome: string;
+
+    objectives: string;
+    livingArrangements: string;
+
+    platformAcknowledged: boolean;
+
+    preferences: {
+      personalBelongings: boolean;
+      householdContents: boolean;
+      childrensNeeds: boolean;
+      costs: boolean;
+    };
+  };
 
   const {
     register,
@@ -111,12 +111,12 @@ type FormValues = {
     },
   });
 
-  const { fields, append, remove } = useFieldArray<any>({
+  const { fields, append, remove } = useFieldArray<FormValues>({
     control,
     name: "children",
   });
 
-  const onSubmit = (data : any) => {
+  const onSubmit = (data: any) => {
     // do something with the form data: call API or route to next step
     console.log("Form submitted:", data);
     alert("Form submitted (check console).");
