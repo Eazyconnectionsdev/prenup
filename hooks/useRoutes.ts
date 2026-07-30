@@ -6,11 +6,8 @@ import {
 } from "lucide-react";
 import { IoIosCard, IoMdHelpCircle } from "react-icons/io";
 import { FaCircleUser } from "react-icons/fa6";
-import { useDispatch, useSelector } from "react-redux";
-import { openInvitePartnerModel } from "@/store/slices/modelSlice";
 import { MouseEventHandler } from "react";
 import { GoHomeFill } from "react-icons/go";
-import { RootState } from "@/store/store";
 
 type RouteType = {
   label: string;
@@ -29,12 +26,8 @@ type RouteType = {
 };
 
 export const useRoutes = () => {
-  const dispatch = useDispatch();
   const pathname = usePathname();
-  const {
-    auth: { user },
-    cases: { status, preQuestionnaireUser1, preQuestionnaireUser2 },
-  } = useSelector((state: RootState) => state);
+
 
   const routes: RouteType[] = [
     {
@@ -51,84 +44,56 @@ export const useRoutes = () => {
       subMenu: [
         {
           label: "Your Details",
-          href: "/questionnaire/your-details",
-          isCompleted:
-            user?.endUserType === "user1"
-              ? status?.step1?.submitted
-              : status?.step3?.submitted,
-          isActive: pathname === "/questionnaire/your-details",
+          href: "/questionnaire/your-details-new",
+          isActive: pathname === "/questionnaire/your-details-new",
         },
         {
           label: "Your Finances",
-          href: "/questionnaire/your-finances",
-          isCompleted:
-            user?.endUserType === "user1"
-              ? status?.step2?.submitted
-              : status?.step4?.submitted,
-          isActive: pathname === "/questionnaire/your-finances",
-          disbaled : !status?.step1?.submitted
+          href: "/questionnaire/your-finances-new",
+          isActive: pathname === "/questionnaire/your-finances-new",
         },
         {
           label: "Partners Details",
-          href: "/questionnaire/partners-details",
-          isCompleted:
-            user?.endUserType === "user1"
-              ? status?.step3?.submitted
-              : status?.step1?.submitted,
-          isActive: pathname === "/questionnaire/partners-details",
+          href: "/questionnaire/partners-details-new",
+          isActive: pathname === "/questionnaire/partners-details-new",
           disbaled: true,
         },
         {
           label: "Partners Finances",
-          href: "/questionnaire/partners-finances",
-          isCompleted:
-            user?.endUserType === "user1"
-              ? status?.step4?.submitted
-              : status?.step2?.submitted,
-          isActive: pathname === "/questionnaire/partners-finances",
+          href: "/questionnaire/partners-finances-new",
+          isActive: pathname === "/questionnaire/partners-finances-new",
           disbaled: true,
         },
         {
           label: "Joint Assets",
-          href: "/questionnaire/joint-assets",
-          isCompleted: status?.step5?.submitted,
-          isActive: pathname === "/questionnaire/joint-assets",
-          disbaled: user?.endUserType === "user2" ||!status?.step2?.submitted
+          href: "/questionnaire/joint-assets-new",
+          isActive: pathname === "/questionnaire/joint-assets-new",
         },
         {
           label: "Future Assets",
-          href: "/questionnaire/future-assets",
-          isCompleted: status?.step6?.submitted,
-          isActive: pathname === "/questionnaire/future-assets",
-          disbaled: user?.endUserType === "user2" || !status?.step5?.submitted
+          href: "/questionnaire/future-assets-new",
+          isActive: pathname === "/questionnaire/future-assets-new",
         },
         {
           label: "Area of Complexity",
-          href: "/questionnaire/area-of-complexity",
-          isCompleted: status?.step7?.submitted,
-          isActive: pathname === "/questionnaire/area-of-complexity",
-          disbaled: user?.endUserType === "user2" || !status?.step6?.submitted
+          href: "/questionnaire/area-of-complexity-new",
+          isActive: pathname === "/questionnaire/area-of-complexity-new",
         },
       ],
     },
     {
       label: "Lawyer Selection",
       href: "/lawyers/your-questionnaire",
-      disbaled: status.step7?.submitted ? false : true,
       isActive: pathname.includes("/lawyers"),
       subMenu: [
         {
           label: "Your Pre-Lawyer Questioner",
           href: "/lawyers/your-questionnaire",
-          disbaled: status.step7?.submitted ? false : true,
-          isCompleted: (user._id === preQuestionnaireUser1.submittedBy || user._id === preQuestionnaireUser2.submittedBy) ,
           isActive: pathname === "/lawyers/your-questionnaire",
         },
         {
           label: "Lawyer Selection",
           href: "/lawyers/selection",
-          disbaled: status.step7?.submitted ? false : true,
-          isCompleted: preQuestionnaireUser1.selectedLawyer || preQuestionnaireUser2.selectedLawyer,
           isActive: pathname === "/lawyers/selection",
         },
       ],
@@ -136,7 +101,6 @@ export const useRoutes = () => {
     {
       label: "Review and Sign",
       href: "/review-and-sign",
-      disbaled: status.step7?.submitted ? false : true,
       isActive: pathname.includes("//review-and-sign"),
       subMenu: null
     },
@@ -157,17 +121,6 @@ export const useRoutes = () => {
       isActive: pathname.includes("/help"),
       subMenu: null,
     },
-    ...((user?.invitedUser|| user?.invitedBy)
-      ? []
-      : [
-          {
-            label: "Invite Partner",
-            href: null,
-            icon: UserPlus,
-            subMenu: null,
-            onclick: () => dispatch(openInvitePartnerModel("invite-partner")),
-          },
-        ]),
     {
       label: "Account",
       href: "/account-managment",
