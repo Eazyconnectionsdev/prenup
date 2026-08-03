@@ -122,9 +122,6 @@ export default function PrenupDashboard() {
   const auth = useSelector((state : RootState) => state.auth);
   const cases = useSelector((state : RootState) => state.cases);
 
-  console.log("auth", auth);
-  console.log("cases", cases);
-
   const [completed, setCompleted] = useState<Set<StepId>>(new Set());
 
   const activeIndex = steps.findIndex((s) => !completed.has(s.id));
