@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
-import "./globals.css";
 import { cn } from "@/lib/utils";
+
+import "./globals.css";
 
 import { StoreProvider } from "@/providers/StoreProvider";
 import ToastContext from "@/providers/ToastProvider";
@@ -43,7 +44,7 @@ export default function RootLayout({
         "font-sans"
       )}
     >
-      <body className="min-h-full flex flex-col">
+      <body  cz-shortcut-listen="true" className="min-h-full flex flex-col">
         <StoreProvider>
           <ToastContext />
           {children}

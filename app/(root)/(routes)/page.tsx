@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useSelector } from "react-redux";
+import {RootState} from "@/store/store";
 
 type StepId = "invite" | "questionnaire" | "disclosure";
 
@@ -116,6 +118,13 @@ function ProgressPill({ label, value }: { label: string; value: string }) {
 }
 
 export default function PrenupDashboard() {
+
+  const auth = useSelector((state : RootState) => state.auth);
+  const cases = useSelector((state : RootState) => state.cases);
+
+  console.log("auth", auth);
+  console.log("cases", cases);
+
   const [completed, setCompleted] = useState<Set<StepId>>(new Set());
 
   const activeIndex = steps.findIndex((s) => !completed.has(s.id));
