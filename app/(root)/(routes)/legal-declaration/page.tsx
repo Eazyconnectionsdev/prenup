@@ -1,6 +1,9 @@
 "use client"
 
 import React, { useState, ChangeEvent, FormEvent } from "react";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store/store";
+import Axios from "@/lib/ApiConfig";
 
 interface DeclarationsFormData {
   agreementObjectives: string;
@@ -43,11 +46,10 @@ function ToggleCard({ id, name, title, description, checked, onChange }: ToggleC
   return (
     <label
       htmlFor={id}
-      className={`relative mb-4 flex cursor-pointer items-start gap-4 rounded-[10px] border px-5 py-5 transition ${
-        checked
-          ? "border-indigo-600 bg-slate-50"
-          : "border-slate-300 bg-slate-50 hover:border-indigo-600 hover:bg-white"
-      }`}
+      className={`relative mb-4 flex cursor-pointer items-start gap-4 rounded-[10px] border px-5 py-5 transition ${checked
+        ? "border-indigo-600 bg-slate-50"
+        : "border-slate-300 bg-slate-50 hover:border-indigo-600 hover:bg-white"
+        }`}
     >
       <input
         type="checkbox"
@@ -59,9 +61,8 @@ function ToggleCard({ id, name, title, description, checked, onChange }: ToggleC
         className="sr-only"
       />
       <span
-        className={`mt-0.5 flex h-[22px] w-[22px] flex-shrink-0 items-center justify-center rounded-[6px] border-2 transition ${
-          checked ? "border-indigo-600 bg-indigo-600" : "border-slate-300 bg-white"
-        }`}
+        className={`mt-0.5 flex h-[22px] w-[22px] flex-shrink-0 items-center justify-center rounded-[6px] border-2 transition ${checked ? "border-indigo-600 bg-indigo-600" : "border-slate-300 bg-white"
+          }`}
       >
         {checked && (
           <svg
@@ -90,6 +91,11 @@ function ToggleCard({ id, name, title, description, checked, onChange }: ToggleC
 export default function LegalDeclarationsForm() {
   const [formData, setFormData] = useState<DeclarationsFormData>(initialFormData);
   const [submitted, setSubmitted] = useState(false);
+  const caseId = useSelector(
+
+    (state: RootState) => state.auth.caseId
+
+  );
 
   const handleTextChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -101,10 +107,39 @@ export default function LegalDeclarationsForm() {
     setFormData((prev) => ({ ...prev, [name]: checked }));
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
-    window.alert("Legal declarations saved successfully. Moving to Family & Dependents module...");
+
+    try {
+      const payload = {
+        agreementObjectives: formData.agreementObjectives,
+        livingSituationFuture: formData.livingSituationFuture,
+
+        confirmPersonalEffects: formData.confirmPersonalEffects,
+        confirmHouseholdDivision: formData.confirmHouseholdDivision,
+        acknowledgeCourtChildren: formData.acknowledgeCourtChildren,
+        confirmCostSharing: formData.confirmCostSharing,
+        confirmUndueInfluence: formData.confirmUndueInfluence,
+        confirmIla: formData.confirmIla,
+        confirmPlatformDisclaimer: formData.confirmPlatformDisclaimer,
+        confirmAccuracy: formData.confirmAccuracy,
+      };
+
+      const { data } = await Axios.post(
+        `/cases/${caseId}/questionnaire/legal-declaration`,
+        payload
+      );
+
+      console.log("Success:", data);
+
+      setSubmitted(true);
+
+    } catch (error) {
+      console.error(
+        "Error saving legal declarations:",
+        error
+      );
+    }
   };
 
   const showObjectivesTip = firstPersonRegex.test(formData.agreementObjectives);
@@ -261,9 +296,9 @@ export default function LegalDeclarationsForm() {
           </form>
 
           {submitted && (
-            <p className="mt-4 text-right text-sm text-emerald-600">
-              Saved. Ready for the next module.
-            </p>
+            <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700">
+              Legal declarations saved successfully.
+            </div>
           )}
         </div>
       </div>

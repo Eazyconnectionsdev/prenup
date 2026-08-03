@@ -1,6 +1,9 @@
 "use client"
 
 import React, { useState, ChangeEvent, FormEvent } from "react";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store/store";
+import Axios from "@/lib/ApiConfig";
 
 type PriorMarriageStatus =
   | "No, never married"
@@ -69,11 +72,10 @@ function RadioCard({ id, name, value, label, checked, onChange }: RadioCardProps
   return (
     <label
       htmlFor={id}
-      className={`relative flex cursor-pointer items-center gap-3.5 rounded-[10px] border px-4 py-4 transition ${
-        checked
-          ? "border-indigo-600 bg-slate-50"
-          : "border-slate-300 bg-slate-50 hover:border-indigo-600 hover:bg-white"
-      }`}
+      className={`relative flex cursor-pointer items-center gap-3.5 rounded-[10px] border px-4 py-4 transition ${checked
+        ? "border-indigo-600 bg-slate-50"
+        : "border-slate-300 bg-slate-50 hover:border-indigo-600 hover:bg-white"
+        }`}
     >
       <input
         type="radio"
@@ -86,9 +88,8 @@ function RadioCard({ id, name, value, label, checked, onChange }: RadioCardProps
         className="sr-only"
       />
       <span
-        className={`relative h-5 w-5 flex-shrink-0 rounded-full border-2 transition ${
-          checked ? "border-indigo-600 bg-indigo-600" : "border-slate-300 bg-white"
-        }`}
+        className={`relative h-5 w-5 flex-shrink-0 rounded-full border-2 transition ${checked ? "border-indigo-600 bg-indigo-600" : "border-slate-300 bg-white"
+          }`}
       >
         {checked && (
           <span className="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white" />
@@ -105,7 +106,9 @@ export default function FamilyDependentsForm() {
   const [formData, setFormData] = useState<FamilyFormData>(initialFormData);
   const [children, setChildren] = useState<ChildRow[]>([]);
   const [submitted, setSubmitted] = useState(false);
-
+  const caseId = useSelector(
+    (state: RootState) => state.auth.caseId
+  );
   const showSeparationCheckbox = formData.priorMarriageStatus === "Yes, previously divorced";
   const showSeparationWarning = showSeparationCheckbox && formData.isLegallySeparated;
   const showChildrenMatrix = formData.hasLivingChildren === "Yes";
@@ -139,10 +142,38 @@ export default function FamilyDependentsForm() {
     );
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
-    window.alert("Family & Dependents information saved successfully. Moving to Section 3: Finances.");
+
+    try {
+      const payload = {
+        priorMarriageStatus: formData.priorMarriageStatus,
+        isLegallySeparated: formData.isLegallySeparated,
+
+        hasLivingChildren: formData.hasLivingChildren,
+        children,
+
+        futureParentalIntentions:
+          formData.futureParentalIntentions,
+
+        hasFamilyPets: formData.hasFamilyPets,
+      };
+
+      const { data } = await Axios.post(
+        `/cases/${caseId}/questionnaire/family-and-dependents`,
+        payload
+      );
+
+      console.log("Success:", data);
+
+      setSubmitted(true);
+
+    } catch (error) {
+      console.error(
+        "Error saving family & dependents:",
+        error
+      );
+    }
   };
 
   const inputClasses =
@@ -414,9 +445,9 @@ export default function FamilyDependentsForm() {
           </form>
 
           {submitted && (
-            <p className="mt-4 text-right text-sm text-emerald-600">
-              Saved. Ready for the next module.
-            </p>
+            <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700">
+               Family & Dependents information saved successfully.
+            </div>
           )}
         </div>
       </div>

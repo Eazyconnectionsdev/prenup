@@ -1,7 +1,9 @@
 "use client"
 
 import React, { useState, ReactNode } from "react";
-
+import { useSelector } from "react-redux";
+import { RootState } from "@/store/store";
+import Axios from "@/lib/ApiConfig";
 
 type YesNo = "Yes" | "No";
 
@@ -208,9 +210,8 @@ function YesNoToggle({ name, value, onChange }: YesNoToggleProps) {
         return (
           <label
             key={opt}
-            className={`relative flex cursor-pointer items-center gap-3 rounded-[10px] border px-4 py-3 transition ${
-              checked ? "border-indigo-600 bg-slate-50" : "border-slate-300 bg-slate-50 hover:border-indigo-600 hover:bg-white"
-            }`}
+            className={`relative flex cursor-pointer items-center gap-3 rounded-[10px] border px-4 py-3 transition ${checked ? "border-indigo-600 bg-slate-50" : "border-slate-300 bg-slate-50 hover:border-indigo-600 hover:bg-white"
+              }`}
           >
             <input
               type="radio"
@@ -221,9 +222,8 @@ function YesNoToggle({ name, value, onChange }: YesNoToggleProps) {
               className="sr-only"
             />
             <span
-              className={`relative h-4 w-4 flex-shrink-0 rounded-full border-2 ${
-                checked ? "border-indigo-600 bg-indigo-600" : "border-slate-300 bg-white"
-              }`}
+              className={`relative h-4 w-4 flex-shrink-0 rounded-full border-2 ${checked ? "border-indigo-600 bg-indigo-600" : "border-slate-300 bg-white"
+                }`}
             >
               {checked && (
                 <span className="absolute left-1/2 top-1/2 h-1 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white" />
@@ -416,7 +416,9 @@ export default function IndividualAssetsForm() {
   const [otherAssets, setOtherAssets] = useState<OtherAssetRow[]>([]);
 
   const [submitted, setSubmitted] = useState(false);
-
+  const caseId = useSelector(
+    (state: RootState) => state.auth.caseId
+  );
   // Generic toggle helper: when switching to "Yes" ensure at least one row exists;
   // when switching to "No" clear all rows for that section.
   function makeToggleHandler<T>(
@@ -454,10 +456,50 @@ export default function IndividualAssetsForm() {
     setRows((prev) => prev.filter((r) => r.id !== id));
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
-    window.alert("Saved. Moving to Section 3b: Income & Revenue.");
+
+    const payload = {
+      hasRealEstate,
+      realEstate,
+
+      hasSavings,
+      savings,
+
+      hasPensions,
+      pensions,
+
+      hasBusinesses,
+      businesses,
+
+      hasIP,
+      ipAssets,
+
+      hasChattels,
+      chattels,
+
+      hasOtherAssets,
+      otherAssets,
+    };
+
+    try {
+      const { data } = await Axios.post(
+        `/cases/${caseId}/questionnaire/individual-assets`,
+        payload
+      );
+
+      console.log("Success:", data);
+
+      setSubmitted(true);
+
+      // onContinue?.();
+
+    } catch (error) {
+      console.error(
+        "Error saving individual assets:",
+        error
+      );
+    }
   };
 
   return (
@@ -1007,7 +1049,9 @@ export default function IndividualAssetsForm() {
           </form>
 
           {submitted && (
-            <p className="mt-4 text-right text-sm text-emerald-600">Saved. Ready for Section 3b.</p>
+            <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700">
+              Individual assets saved successfully.
+            </div>
           )}
         </div>
       </div>

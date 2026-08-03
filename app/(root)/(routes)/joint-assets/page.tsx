@@ -18,10 +18,9 @@ import {
   updateRow,
   removeRow,
 } from "@/components/Formprimitives";
-
-/* ---------------------------------------------------------------------- */
-/* Shared-asset treatment options (no "Keep it Separate" — these are joint) */
-/* ---------------------------------------------------------------------- */
+import { useSelector } from "react-redux";
+import { RootState } from "@/store/store";
+import Axios from "@/lib/ApiConfig";
 
 const sharedTreatmentOptions: { value: Treatment; label: string }[] = [
   { value: "ShareEqually", label: "Share Equally (50/50)" },
@@ -69,11 +68,10 @@ function LivingArrangementRadio({
         return (
           <label
             key={opt.value}
-            className={`relative flex cursor-pointer items-center gap-3 rounded-[10px] border px-4 py-3 transition ${
-              checked
-                ? "border-indigo-600 bg-slate-50"
-                : "border-slate-300 bg-slate-50 hover:border-indigo-600 hover:bg-white"
-            }`}
+            className={`relative flex cursor-pointer items-center gap-3 rounded-[10px] border px-4 py-3 transition ${checked
+              ? "border-indigo-600 bg-slate-50"
+              : "border-slate-300 bg-slate-50 hover:border-indigo-600 hover:bg-white"
+              }`}
           >
             <input
               type="radio"
@@ -84,11 +82,10 @@ function LivingArrangementRadio({
               className="sr-only"
             />
             <span
-              className={`relative h-4 w-4 flex-shrink-0 rounded-full border-2 ${
-                checked
-                  ? "border-indigo-600 bg-indigo-600"
-                  : "border-slate-300 bg-white"
-              }`}
+              className={`relative h-4 w-4 flex-shrink-0 rounded-full border-2 ${checked
+                ? "border-indigo-600 bg-indigo-600"
+                : "border-slate-300 bg-white"
+                }`}
             >
               {checked && (
                 <span className="absolute left-1/2 top-1/2 h-1 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white" />
@@ -259,6 +256,10 @@ interface SharedAssetsFormProps {
 export default function SharedAssetsForm({
   onContinue,
 }: SharedAssetsFormProps = {}) {
+
+
+  const caseId = useSelector((state: RootState) => state.auth.caseId);
+  console.log(caseId)
   const [livingArrangement, setLivingArrangement] =
     useState<LivingArrangement>("");
   const [rentDuration, setRentDuration] = useState("");
@@ -323,13 +324,52 @@ export default function SharedAssetsForm({
     makeSharedOtherAssetRow,
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
-    if (onContinue) {
-      onContinue();
-    } else {
-      window.alert("Saved. Moving to Section 4b: Shared Income Sources.");
+    console.log("here in submit")
+    const payload = {
+      livingArrangement,
+      rentDuration,
+      monthlyRent,
+      thirdPartyDescription,
+      otherDescription,
+
+      hasSharedRealEstate,
+      sharedRealEstate,
+
+      hasSharedSavings,
+      sharedSavings,
+
+      hasSharedBusinesses,
+      sharedBusinesses,
+
+      hasSharedIP,
+      sharedIP,
+
+      hasSharedChattels,
+      sharedChattels,
+
+      hasSharedOtherAssets,
+      sharedOtherAssets,
+    };
+
+    try {
+      const { data } = await Axios.post(
+        `/cases/${caseId}/questionnaire/joint-assets`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      setSubmitted(true);
+
+      onContinue?.();
+    } catch (error) {
+      console.error("Error saving joint assets:", error);
     }
   };
 
@@ -1146,10 +1186,11 @@ export default function SharedAssetsForm({
           </form>
 
           {submitted && (
-            <p className="mt-4 text-right text-sm text-emerald-600">
-              Saved. Ready for Section 4b.
-            </p>
+            <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700">
+               Shared assets saved successfully.
+            </div>
           )}
+
         </div>
       </div>
     </div>
