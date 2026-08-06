@@ -217,7 +217,7 @@ export default function PrenupDashboard() {
                         ? "bg-[#DCFCE7] text-[#16A34A]"
                         : isLocked
                         ? "cursor-not-allowed bg-[#F1F1F6] text-[#B4B4C4]"
-                        : "bg-[#1E1B3C] text-white hover:bg-[#141230]"
+                        : "bg-primary text-white hover:bg-primary"
                     }`}
                   >
                     {isDone ? step.completedLabel : step.cta}

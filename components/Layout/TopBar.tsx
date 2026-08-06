@@ -4,7 +4,7 @@ import { BellIcon } from 'lucide-react'
 
 const TopBar = ({ caseId }: { caseId: string }) => {
   return (
-        <div className="flex items-center justify-end gap-4 border-b border-[#E7E7F2] bg-white px-8 py-4">
+        <div className="flex items-center justify-end gap-4 border-b border-[#E7E7F2] bg-white px-8 py-[18px]">
       <span className="text-sm font-semibold text-[#1E1B3C]">
         Case ID: <span className="font-mono font-normal text-[#5B5B75]">{caseId}</span>
       </span>
