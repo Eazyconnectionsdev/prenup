@@ -17,11 +17,9 @@ import {
   updateRow,
   removeRow,
 } from "@/components/Formprimitives";
-
-/* ---------------------------------------------------------------------- */
-/* Row types                                                                */
-/* ---------------------------------------------------------------------- */
-
+import { useSelector } from "react-redux";
+import { RootState } from "@/store/store";
+import Axios from "@/lib/ApiConfig";
 interface DebtRow extends TreatmentFields {
   id: string;
   lenderName: string;
@@ -62,14 +60,37 @@ export default function LiabilitiesForm({ onContinue }: LiabilitiesFormProps = {
 
   const handleDebtsToggle = makeToggleHandler(setHasDebts, setDebts, makeDebtRow);
   const handleMaintenanceToggle = makeToggleHandler(setHasMaintenance, setMaintenance, makeMaintenanceRow);
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const caseId = useSelector(
+    (state: RootState) => state.auth.caseId
+  );
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
-    if (onContinue) {
-      onContinue();
-    } else {
-      window.alert("Saved. Moving to the Shared Workspace.");
+
+    const payload = {
+      hasDebts,
+      debts,
+
+      hasMaintenance,
+      maintenance,
+    };
+
+    try {
+      const { data } = await Axios.post(
+        `/cases/${caseId}/questionnaire/liabilities-and-debts`,
+        payload
+      );
+
+      console.log("Success:", data);
+
+      setSubmitted(true);
+
+      onContinue?.();
+
+    } catch (error) {
+      console.error(
+        "Error saving liabilities:",
+        error
+      );
     }
   };
 
@@ -226,8 +247,11 @@ export default function LiabilitiesForm({ onContinue }: LiabilitiesFormProps = {
             </div>
           </form>
 
-          {submitted && <p className="mt-4 text-right text-sm text-emerald-600">Saved. Ready for the next module.</p>}
-        </div>
+          {submitted && (
+            <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700">
+               Personal liabilities saved successfully.
+            </div>
+          )}        </div>
       </div>
     </div>
   );

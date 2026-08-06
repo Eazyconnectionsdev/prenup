@@ -1,6 +1,10 @@
 "use client"
 
 import React, { useState, ChangeEvent, FormEvent } from "react";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store/store";
+import Axios from "@/lib/ApiConfig";
+
 
 interface FormData {
   firstName: string;
@@ -59,7 +63,9 @@ const steps = ["Personal Information", "Family & Dependents", "Finances"];
 export default function PersonalInfoForm() {
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [submitted, setSubmitted] = useState(false);
-
+  const caseId = useSelector(
+    (state: RootState) => state.auth.caseId
+  );
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
@@ -74,19 +80,44 @@ export default function PersonalInfoForm() {
   const showTimelineWarning =
     diffDays !== null && diffDays >= 0 && diffDays < 28;
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+
     if (isUnderage) {
-      window.alert(
-        "Form verification failed: Parties must be at least 18 years of age.",
+      alert(
+        "Form verification failed: Parties must be at least 18 years of age."
       );
       return;
     }
-    // Place your app router / API save logic here
-    setSubmitted(true);
-    window.alert(
-      "Personal information logged successfully. Moving to next module...",
-    );
+
+    try {
+      const payload = {
+        firstName: formData.firstName,
+        middleName: formData.middleName,
+        lastName: formData.lastName,
+        dateOfBirth: formData.dateOfBirth,
+        languageFluency: formData.languageFluency,
+        nationality: formData.nationality,
+        domicileStatus: formData.domicileStatus,
+        currentProfession: formData.currentProfession,
+        street1: formData.street1,
+        city: formData.city,
+        county: formData.county,
+        postcode: formData.postcode,
+        marriageDate: formData.marriageDate,
+      };
+
+      const { data } = await Axios.post(
+        `/cases/${caseId}/questionnaire/personal-information`,
+        payload
+      );
+
+      console.log("Success:", data);
+
+      setSubmitted(true);
+    } catch (error) {
+      console.error("Error saving personal information:", error);
+    }
   };
 
   return (
@@ -316,9 +347,9 @@ export default function PersonalInfoForm() {
           </form>
 
           {submitted && (
-            <p className="mt-4 text-right text-sm text-emerald-600">
-              Saved. Ready for the next module.
-            </p>
+            <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700">
+              Personal information saved successfully.
+            </div>
           )}
         </div>
       </div>
