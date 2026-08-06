@@ -1,10 +1,8 @@
 "use client"
-
 import React, { useState, ReactNode } from "react";
-
-/* ---------------------------------------------------------------------- */
-/* Shared types                                                            */
-/* ---------------------------------------------------------------------- */
+import { useSelector } from "react-redux";
+import { RootState } from "@/store/store";
+import Axios from "@/lib/ApiConfig";
 
 type YesNo = "Yes" | "No";
 
@@ -95,9 +93,8 @@ function YesNoToggle({ name, value, onChange }: YesNoToggleProps) {
         return (
           <label
             key={opt}
-            className={`relative flex cursor-pointer items-center gap-3 rounded-[10px] border px-4 py-3 transition ${
-              checked ? "border-indigo-600 bg-slate-50" : "border-slate-300 bg-slate-50 hover:border-indigo-600 hover:bg-white"
-            }`}
+            className={`relative flex cursor-pointer items-center gap-3 rounded-[10px] border px-4 py-3 transition ${checked ? "border-indigo-600 bg-slate-50" : "border-slate-300 bg-slate-50 hover:border-indigo-600 hover:bg-white"
+              }`}
           >
             <input
               type="radio"
@@ -108,9 +105,8 @@ function YesNoToggle({ name, value, onChange }: YesNoToggleProps) {
               className="sr-only"
             />
             <span
-              className={`relative h-4 w-4 flex-shrink-0 rounded-full border-2 ${
-                checked ? "border-indigo-600 bg-indigo-600" : "border-slate-300 bg-white"
-              }`}
+              className={`relative h-4 w-4 flex-shrink-0 rounded-full border-2 ${checked ? "border-indigo-600 bg-indigo-600" : "border-slate-300 bg-white"
+                }`}
             >
               {checked && (
                 <span className="absolute left-1/2 top-1/2 h-1 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white" />
@@ -253,6 +249,7 @@ export default function IncomeRevenueForm() {
 
   const [submitted, setSubmitted] = useState(false);
 
+  const caseId = useSelector((state: RootState) => state.auth.caseId);
   function makeToggleHandler(
     setEnabled: React.Dispatch<React.SetStateAction<YesNo>>,
     setRows: React.Dispatch<React.SetStateAction<IncomeRow[]>>
@@ -282,10 +279,37 @@ export default function IncomeRevenueForm() {
     setRows((prev) => prev.filter((r) => r.id !== id));
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
-    window.alert("Saved. Moving to Section 3c: Personal Liabilities.");
+
+    const payload = {
+      grossAnnualIncome,
+
+      salaryTreatment,
+
+      hasPrimaryBonus,
+      primaryIncomeRows,
+
+      hasAlternativeIncome,
+      altIncomeRows,
+    };
+
+    try {
+      const { data } = await Axios.post(
+        `/cases/${caseId}/questionnaire/income-and-revenue`,
+        payload
+      );
+
+      console.log("Success:", data);
+
+      setSubmitted(true);
+
+      // Move to next section if needed
+      // onContinue?.();
+
+    } catch (error) {
+      console.error("Error saving income & revenue:", error);
+    }
   };
 
   const renderIncomeSection = (
@@ -433,7 +457,11 @@ export default function IncomeRevenueForm() {
             </div>
           </form>
 
-          {submitted && <p className="mt-4 text-right text-sm text-emerald-600">Saved. Ready for Section 3c.</p>}
+          {submitted && (
+            <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700">
+              Income & Revenue saved successfully.
+            </div>
+          )}
         </div>
       </div>
     </div>
