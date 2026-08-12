@@ -27,7 +27,7 @@ export default function EmailVerification() {
       ).unwrap();
 
       if (result.success) {
-        router.push("/");
+        router.push("/onboarding");
       }
     } catch (error: any) {
       console.log("Error while email verification", error.message);

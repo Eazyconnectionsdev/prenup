@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { TimelineEvent } from '../types/partner';
+import { TimelineEvent } from '@/types/invite-partner';
 
 interface CaseTimelineProps {
   timelineEvents: TimelineEvent[];

@@ -9,6 +9,18 @@ import { getCasesDetails } from "@/store/asyncThunk/casesThunk";
 type SectionKey = "section1" | "section2" | "section3" | "section4";
 type SubgroupKey = "myFinancial" | "partnerFinancial" | "jointFinancial";
 
+interface LeafProps {
+  id: string;
+  icon: IconName;
+  label: string;
+  done?: boolean;
+  activeLeaf: string;
+  onSelect: (id: string) => void;
+  readOnly?: boolean;
+  lockReason?: string;
+  isPartner?: boolean;
+}
+
 type IconName =
   | "workspace"
   | "person"
@@ -21,6 +33,50 @@ type IconName =
   | "liabilities"
   | "joint"
   | "seal";
+
+const LEAF_TO_KEY: Record<string, string> = {
+  "personal-info": "personalInformation",
+  "legal-declaration": "legalDeclaration",
+  family: "familyAndDependents",
+  individual_assets: "individualAssets",
+  income_revenue: "incomeAndRevenue",
+  liabilities_debts: "liabilitiesAndDebts",
+  "joint-assets": "jointAssets",
+  "joint-income-revenue": "jointIncomeAndRevenue",
+  "joint-liabilities-debts": "jointLiabilitiesAndDebts",
+};
+
+const PERSONAL_LEAFS: { id: string; icon: IconName; label: string }[] = [
+  { id: "personal-info", icon: "personalInfo", label: "Personal information" },
+  { id: "legal-declaration", icon: "legal", label: "Legal declaration" },
+  { id: "family", icon: "family", label: "Family and dependents" },
+];
+
+const FINANCIAL_LEAFS: { id: string; icon: IconName; label: string }[] = [
+  { id: "individual_assets", icon: "assets", label: "Individual Assets" },
+  { id: "income_revenue", icon: "income", label: "Income and revenue" },
+  {
+    id: "liabilities_debts",
+    icon: "liabilities",
+    label: "Liabilities and debts",
+  },
+];
+
+const JOINT_ASSETS_LEAFS: { id: string; icon: IconName; label: string }[] = [
+  { id: "joint-assets", icon: "assets", label: "Joint Assets" },
+  {
+    id: "joint-income-revenue",
+    icon: "income",
+    label: "Joint Income and revenue",
+  },
+  {
+    id: "joint-liabilities-debts",
+    icon: "liabilities",
+    label: "Joint Liabilities and debts",
+  },
+];
+
+const TOTAL_LEAVES = Object.keys(LEAF_TO_KEY).length;
 
 const iconPaths: Record<IconName, ReactNode> = {
   workspace: <path d="M3 7l9-4 9 4-9 4-9-4z M3 7v10l9 4 9-4V7" />,
@@ -107,7 +163,9 @@ function Chevron({ open }: { open: boolean }) {
         fill="none"
         stroke="currentColor"
         strokeWidth={2}
-        className={`w-[13px] h-[13px] transition-transform duration-150 ${open ? "rotate-90" : "rotate-0"}`}
+        className={`w-[13px] h-[13px] transition-transform duration-150 ${
+          open ? "rotate-90" : "rotate-0"
+        }`}
       >
         <path d="M9 6l6 6-6 6" />
       </svg>
@@ -122,7 +180,7 @@ function StatusCheck({
   done?: boolean;
   readOnly?: boolean;
 }) {
-  const color = readOnly ? "#9494AA" : done ? "#16A34A" : "#D1D1DC";
+  const color = done ? "#16A34A" : readOnly ? "#9494AA" : "#D1D1DC";
   return (
     <svg
       width="16"
@@ -143,17 +201,6 @@ function StatusCheck({
   );
 }
 
-interface LeafProps {
-  id: string;
-  icon: IconName;
-  label: string;
-  done?: boolean;
-  activeLeaf: string;
-  onSelect: (id: string) => void;
-  readOnly?: boolean;
-  lockReason?: string;
-}
-
 function Leaf({
   id,
   icon,
@@ -163,8 +210,11 @@ function Leaf({
   onSelect,
   readOnly,
   lockReason,
+  isPartner,
 }: LeafProps) {
-  const isActive = !readOnly && activeLeaf === id;
+  // Route id gets a "partner-" prefix only for the partner's section leaves.
+  const routeId = isPartner ? `partner-${id}` : id;
+  const isActive = !readOnly && activeLeaf === routeId;
 
   const content = (
     <>
@@ -199,8 +249,8 @@ function Leaf({
 
   return (
     <Link
-      href={id}
-      onClick={() => onSelect(id)}
+      href={`/dashboard/${routeId}`}
+      onClick={() => onSelect(routeId)}
       className={`relative flex items-center gap-[9px] rounded-[7px] px-[9px] py-2 my-0.5 cursor-pointer hover:bg-[#F4F4FA] ${
         isActive ? "bg-[#EDE9FE]" : ""
       }`}
@@ -210,71 +260,32 @@ function Leaf({
   );
 }
 
-const PERSONAL_LEAFS: { id: string; icon: IconName; label: string }[] = [
-  { id: "personal-info", icon: "personalInfo", label: "Personal information" },
-  { id: "legal-declaration", icon: "legal", label: "Legal declaration" },
-  { id: "family", icon: "family", label: "Family and dependents" },
-];
-
-const FINANCIAL_LEAFS: { id: string; icon: IconName; label: string }[] = [
-  { id: "individual_assets", icon: "assets", label: "Individual Assets" },
-  { id: "income_revenue", icon: "income", label: "Income and revenue" },
-  {
-    id: "liabilities_debts",
-    icon: "liabilities",
-    label: "Liabilities and debts",
-  },
-];
-
-const JOINT_ASSETS_LEAFS: { id: string; icon: IconName; label: string }[] = [
-  { id: "joint-assets", icon: "assets", label: "Joint Assets" },
-  {
-    id: "joint-income-revenue",
-    icon: "income",
-    label: "Joint Income and revenue",
-  },
-  {
-    id: "joint-liabilities-debts",
-    icon: "liabilities",
-    label: "Joint Liabilities and debts",
-  },
-];
-
 export default function AgreementSidebar() {
   const dispatch = useDispatch<AppDispatch>();
+  const { status, myInformation, partnerInformation, jointInformation } =
+    useSelector((state: RootState) => state.cases);
+  const user = useSelector((state: RootState) => state.auth.user);
+
+  const [activeLeaf, setActiveLeaf] = useState("/");
   const [openSection, setOpenSection] = useState<SectionKey | null>("section1");
   const [openSubgroup, setOpenSubgroup] = useState<SubgroupKey | null>(
     "myFinancial",
   );
-  const [activeLeaf, setActiveLeaf] = useState("/");
 
-  const user = useSelector((state: RootState) => state.auth.user);
-  const { status, myInformation, partnerInformation, jointInformation } =
-    useSelector((state: RootState) => state.cases);
-
+  const isFirstUser = user?.endUserType === "user1";
   const isPaymentDone = true;
+
+  const myData = isFirstUser ? myInformation : partnerInformation;
+  const partnerData = isFirstUser ? partnerInformation : myInformation;
 
   const hasData = (obj?: Record<string, unknown>) =>
     Boolean(obj && Object.keys(obj).length > 0);
 
-  const LEAF_TO_KEY: Record<string, string> = {
-    "personal-info": "personalInformation",
-    "legal-declaration": "legalDeclaration",
-    family: "familyAndDependents",
-    individual_assets: "individualAssets",
-    income_revenue: "incomeAndRevenue",
-    liabilities_debts: "liabilitiesAndDebts",
-  };
-
   const isLeafDone = (leafId: string, info?: Record<string, any>) =>
     hasData(info?.[LEAF_TO_KEY[leafId]]);
 
-  const mineCompletedCount = Object.keys(LEAF_TO_KEY).filter((id) =>
-    isLeafDone(id, myInformation),
-  ).length;
-
-  const partnerCompletedCount = Object.keys(LEAF_TO_KEY).filter((id) =>
-    isLeafDone(id, partnerInformation),
+  const completedCount = Object.keys(LEAF_TO_KEY).filter((id) =>
+    isLeafDone(id, myData),
   ).length;
 
   const toggleSection = (key: SectionKey) =>
@@ -307,7 +318,7 @@ export default function AgreementSidebar() {
 
       <div className="px-3 pt-2.5">
         <div className="mt-1">
-          <Link href="/">
+          <Link href="/dashboard">
             <div className="flex cursor-pointer items-center gap-2.5 rounded-[9px] px-2.5 py-[11px] hover:bg-[#F4F4FA]">
               <span className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[7px] bg-[#EDE9FE] text-[#6D28D9]">
                 <Icon name="person" className="h-3.5 w-3.5" />
@@ -321,6 +332,7 @@ export default function AgreementSidebar() {
           </Link>
         </div>
 
+        {/* SECTION 1 — logged-in user's own information */}
         <div className="mt-1">
           <div
             onClick={() => toggleSection("section1")}
@@ -339,10 +351,7 @@ export default function AgreementSidebar() {
                 )}
               </div>
               <div className="mt-px text-[11px] text-[#9494AA]">
-                <div className="mt-px text-[11px] text-[#9494AA]">
-                  {mineCompletedCount} of {Object.keys(LEAF_TO_KEY).length}{" "}
-                  complete
-                </div>
+                {completedCount} of {TOTAL_LEAVES} complete
               </div>
             </span>
             <Chevron open={openSection === "section1"} />
@@ -354,7 +363,7 @@ export default function AgreementSidebar() {
                 <Leaf
                   key={leaf.id}
                   {...leaf}
-                  done={isLeafDone(leaf.id, myInformation)}
+                  done={isLeafDone(leaf.id, myData)}
                   activeLeaf={activeLeaf}
                   onSelect={setActiveLeaf}
                   readOnly={isLocked(leaf.id)}
@@ -383,7 +392,7 @@ export default function AgreementSidebar() {
                       <Leaf
                         key={leaf.id}
                         {...leaf}
-                        done={isLeafDone(leaf.id, myInformation)}
+                        done={isLeafDone(leaf.id, myData)}
                         activeLeaf={activeLeaf}
                         onSelect={setActiveLeaf}
                         readOnly={isLocked(leaf.id)}
@@ -403,7 +412,7 @@ export default function AgreementSidebar() {
 
         <div className="mx-1 my-2.5 h-px bg-[#E7E7F2]" />
 
-        {/* SECTION 2 — "partner's information", always read-only */}
+        {/* SECTION 2 — the OTHER party's information, always read-only */}
         <div className="mt-1">
           <div
             onClick={() => toggleSection("section2")}
@@ -432,11 +441,14 @@ export default function AgreementSidebar() {
                 <Leaf
                   key={leaf.id}
                   {...leaf}
-                  done={isLeafDone(leaf.id, partnerInformation)}
+                  done={isLeafDone(leaf.id, partnerData)}
                   activeLeaf={activeLeaf}
                   onSelect={setActiveLeaf}
-                  readOnly
-                  lockReason="View only — belongs to your partner"
+                  readOnly={isLocked(leaf.id)}
+                  lockReason={
+                    isLocked(leaf.id) ? "Complete payment to unlock" : undefined
+                  }
+                  isPartner
                 />
               ))}
 
@@ -459,11 +471,16 @@ export default function AgreementSidebar() {
                       <Leaf
                         key={leaf.id}
                         {...leaf}
-                        done={isLeafDone(leaf.id, partnerInformation)}
+                        done={isLeafDone(leaf.id, partnerData)}
                         activeLeaf={activeLeaf}
                         onSelect={setActiveLeaf}
-                        readOnly
-                        lockReason="View only — belongs to your partner"
+                        readOnly={isLocked(leaf.id)}
+                        lockReason={
+                          isLocked(leaf.id)
+                            ? "Complete payment to unlock"
+                            : undefined
+                        }
+                        isPartner
                       />
                     ))}
                   </div>
@@ -475,7 +492,7 @@ export default function AgreementSidebar() {
 
         <div className="mx-1 my-2.5 h-px bg-[#E7E7F2]" />
 
-        {/* SECTION 3 — Joint information (unchanged; status keys TBD from backend) */}
+        {/* SECTION 3 — Joint information */}
         <div className="mt-1">
           <div
             onClick={() => toggleSection("section3")}
@@ -519,8 +536,12 @@ export default function AgreementSidebar() {
                         done={isLeafDone(leaf.id, jointInformation)}
                         activeLeaf={activeLeaf}
                         onSelect={setActiveLeaf}
-                        readOnly={false}
-                        lockReason="View only — belongs to your partner"
+                        readOnly={isLocked(leaf.id)}
+                        lockReason={
+                          isLocked(leaf.id)
+                            ? "Complete payment to unlock"
+                            : undefined
+                        }
                       />
                     ))}
                   </div>
@@ -532,6 +553,7 @@ export default function AgreementSidebar() {
 
         <div className="mx-1 my-2.5 h-px bg-[#E7E7F2]" />
 
+        {/* SECTION 4 — Independent Legal Advice */}
         <div className="mt-1">
           <div
             onClick={() => toggleSection("section4")}

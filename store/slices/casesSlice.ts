@@ -109,6 +109,7 @@ export interface CaseDetails {
   updatedAt: string;
   myInformation?: InformationSection;
   partnerInformation?: InformationSection;
+  jointInformation?: JointInformationSection;
 }
 
 /* ---------- Slice state ---------- */
@@ -169,7 +170,7 @@ const CasesSlice = createSlice({
           state.workflowStatus = payload.workflowStatus;
           state.myInformation = payload.myInformation ?? {};
           state.partnerInformation = payload.partnerInformation ?? {};
-          state.partnerInformation = payload.partnerInformation ?? {};
+          state.jointInformation = payload.jointInformation ?? {};
         },
       )
       .addCase(getCasesDetails.rejected, (state) => {
