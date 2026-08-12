@@ -351,7 +351,7 @@ export default function CasesTable({
           >
             <button
               onClick={() =>
-                router.push(`/cm/case-manager/cases/${openMenu}/update-case/your-details`)
+                router.push(`/cm/case-manager/cases/${openMenu}/update-case/personal-information`)
               }
               className="block w-full px-3 py-2 text-left hover:bg-slate-50"
             >
