@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   TreatmentFields,
   emptyTreatment,
@@ -249,10 +249,17 @@ function makeSharedOtherAssetRow(): SharedOtherAssetRow {
 /* Main component                                                          */
 /* ---------------------------------------------------------------------- */
 
-export default function SharedAssetsForm() {
+interface SharedAssetsFormProps {
+  onContinue?: () => void;
+}
+
+export default function SharedAssetsForm({
+  onContinue,
+}: SharedAssetsFormProps = {}) {
 
 
   const caseId = useSelector((state: RootState) => state.auth.caseId);
+  console.log(caseId)
   const [livingArrangement, setLivingArrangement] =
     useState<LivingArrangement>("");
   const [rentDuration, setRentDuration] = useState("");
@@ -349,68 +356,21 @@ export default function SharedAssetsForm() {
     try {
       const { data } = await Axios.post(
         `/cases/${caseId}/questionnaire/joint-assets`,
-        payload
+        payload,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
       );
 
       setSubmitted(true);
 
+      onContinue?.();
     } catch (error) {
       console.error("Error saving joint assets:", error);
     }
   };
-
-useEffect(() => {
-  const fetchData = async () => {
-    try {
-      const {
-        data: { data },
-      } = await Axios.get(`/cases/${caseId}/section/jointInformation`);
-
-      const assets = data?.jointAssets;
-      if (!assets) return;
-
-      setLivingArrangement(assets.livingArrangement ?? "");
-      setRentDuration(assets.rentDuration ?? "");
-      setMonthlyRent(assets.monthlyRent ?? "");
-      setThirdPartyDescription(assets.thirdPartyDescription ?? "");
-      setOtherDescription(assets.otherDescription ?? "");
-
-      setHasSharedRealEstate(assets.hasSharedRealEstate ?? "No");
-      setSharedRealEstate(
-        Array.isArray(assets.sharedRealEstate) ? assets.sharedRealEstate : []
-      );
-
-      setHasSharedSavings(assets.hasSharedSavings ?? "No");
-      setSharedSavings(
-        Array.isArray(assets.sharedSavings) ? assets.sharedSavings : []
-      );
-
-      setHasSharedBusinesses(assets.hasSharedBusinesses ?? "No");
-      setSharedBusinesses(
-        Array.isArray(assets.sharedBusinesses) ? assets.sharedBusinesses : []
-      );
-
-      setHasSharedIP(assets.hasSharedIP ?? "No");
-      setSharedIP(Array.isArray(assets.sharedIP) ? assets.sharedIP : []);
-
-      setHasSharedChattels(assets.hasSharedChattels ?? "No");
-      setSharedChattels(
-        Array.isArray(assets.sharedChattels) ? assets.sharedChattels : []
-      );
-
-      setHasSharedOtherAssets(assets.hasSharedOtherAssets ?? "No");
-      setSharedOtherAssets(
-        Array.isArray(assets.sharedOtherAssets) ? assets.sharedOtherAssets : []
-      );
-    } catch (error) {
-      console.error("Error fetching joint assets:", error);
-    }
-  };
-
-  if (caseId) {
-    fetchData();
-  }
-}, [caseId]);
 
   return (
     <div className="min-h-screen bg-slate-100 px-5 py-10">
@@ -1219,7 +1179,7 @@ useEffect(() => {
                 type="submit"
                 className="mt-8 rounded-[10px] bg-indigo-600 px-10 py-3.5 font-semibold text-white shadow-[0_4px_12px_rgba(79,70,229,0.2)] transition hover:bg-indigo-700"
               >
-                Save and Continue
+                Next: Shared Income Sources
               </button>
             </div>
           </form>
