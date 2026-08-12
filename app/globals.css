@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -49,6 +50,22 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  --color-midnight: #0D1B2A;
+  --color-midnight-light: #142536;
+  --color-midnight-mid: #1B3044;
+  --color-slate: #2A3F54;
+  --color-steel: #4A6274;
+  --color-mist: #8A9BAA;
+  --color-cloud: #C8D1D9;
+  --color-pearl: #F0EDE8;
+  --color-ivory: #FAF8F5;
+  --color-snow: #FEFDFB;
+  --color-rose: #8B3A4A;
+  --color-rose-deep: #6E2D3B;
+  --color-rose-soft: #B85A6C;
+  --color-rose-mist: #F5E8EB;
+  --color-rose-glow: #D4848F;
 }
 
 :root {
@@ -158,3 +175,102 @@
   color: #FFFFFF;
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
 }
+
+/* ── LetsPrenup Theme & Typography Styles ── */
+
+.display {
+  font-family: 'Instrument Serif', Georgia, serif !important;
+  line-height: 1.05 !important;
+  letter-spacing: -0.025em !important;
+  font-weight: 400 !important;
+}
+
+.display-italic {
+  font-family: 'Instrument Serif', Georgia, serif !important;
+  font-style: italic !important;
+  line-height: 1.05 !important;
+  letter-spacing: -0.015em !important;
+  font-weight: 400 !important;
+}
+
+.label-sm {
+  font-family: var(--font-sans), -apple-system, sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.18em !important;
+  text-transform: uppercase !important;
+  display: inline-block !important;
+}
+
+/* ── Hero ── */
+.hero-gradient {
+  background: linear-gradient(165deg, #0D1B2A 0%, #142536 40%, #1B3044 70%, #0D1B2A 100%);
+}
+
+.hero-img-clip {
+  clip-path: polygon(8% 0, 100% 0, 100% 100%, 0 100%);
+}
+
+/* ── Counters ── */
+.stat-num {
+  font-family: 'Instrument Serif', Georgia, serif !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Buttons ── */
+.btn-fill {
+  transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateX(-101%);
+  transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.btn-fill:hover::after {
+  transform: translateX(0);
+}
+
+.btn-fill:hover {
+  transform: translateY(-1px);
+}
+
+/* ── Link Slide ── */
+.link-slide {
+  background-image: linear-gradient(#8B3A4A, #8B3A4A);
+  background-size: 0 1px;
+  background-position: left bottom;
+  background-repeat: no-repeat;
+  transition: background-size 0.4s ease;
+}
+
+.link-slide:hover {
+  background-size: 100% 1px;
+}
+
+/* Lenis smooth scroll */
+html.lenis, html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}

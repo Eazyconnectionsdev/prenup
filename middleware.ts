@@ -24,6 +24,7 @@ export default function middleware(req: NextRequest) {
 
   const isLoggedIn = Boolean(token);
   const isAuthRoute = AUTHROUTES.includes(nextUrl.pathname);
+  const isPublicRoute = nextUrl.pathname === "/" || isAuthRoute;
 
   let role: string | null = null;
 
@@ -36,7 +37,7 @@ export default function middleware(req: NextRequest) {
     }
   }
 
-  if (!isLoggedIn && !isAuthRoute) {
+  if (!isLoggedIn && !isPublicRoute) {
     return NextResponse.redirect(
       new URL(DEFAULT_LOGIN_REDIRECT, nextUrl)
     );
