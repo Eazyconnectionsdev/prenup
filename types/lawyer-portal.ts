@@ -22,17 +22,15 @@ export type CaseTabId =
 export type LawyerPersona = 'L1' | 'L2' | 'L3'; // L1 = Partner 1 Lawyer, L2 = Partner 2 Lawyer, L3 = Opposing Third-Party Counsel
 
 export type CaseStatus =
-  | 'FORMS_LOCKED'
+  | 'LAWYERS_ASSIGNED'
   | 'LAWYER_REVIEW'
-  | 'AWAITING_COUNTERPARTY_LAWYER_APPROVAL'
-  | 'CLIENT_APPROVAL_PENDING'
-  | 'CLIENT_PARTIALLY_APPROVED'
-  | 'RETURNED_TO_LAWYERS'
-  | 'CLIENT_APPROVED' // Ready for ILA
+  | 'CLEAN_MASTER_UPLOADED'
+  | 'AWAITING_COUNTERPARTY_APPROVAL'
+  | 'LAWYER_SIGN_OFF_PENDING'
   | 'ILA_P1_COMPLETE'
   | 'ILA_P2_COMPLETE'
-  | 'READY_FOR_SIGNING'
-  | 'CLOSED'
+  | 'COMPLETED'
+  | 'CANCELLED'
   | 'ARCHIVED';
 
 export interface AgreementVersion {

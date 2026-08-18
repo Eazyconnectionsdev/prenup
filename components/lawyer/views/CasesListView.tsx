@@ -44,8 +44,8 @@ export const CasesListView: React.FC<CasesListViewProps> = ({
   // Apply search query and status filter
   const filteredCases = useMemo(() => {
     return assignedCases.filter((c) => {
-      // Exclude completed cases from active list (shown on completed list)
-      if (c.status === 'CLOSED' || c.status === 'ARCHIVED') return false;
+      // Exclude completed/archived/cancelled cases from active list (shown on completed list)
+      if (c.status === 'COMPLETED' || c.status === 'ARCHIVED' || c.status === 'CANCELLED') return false;
 
       // Status filter
       if (statusFilter !== 'ALL' && c.status !== statusFilter) return false;
@@ -71,25 +71,25 @@ export const CasesListView: React.FC<CasesListViewProps> = ({
 
   const getStatusBadgeStyle = (status: CaseStatus) => {
     switch (status) {
-      case 'FORMS_LOCKED':
+      case 'LAWYERS_ASSIGNED':
         return 'border border-amber-300 text-amber-800 bg-amber-50';
       case 'LAWYER_REVIEW':
         return 'border border-blue-300 text-blue-800 bg-blue-50';
-      case 'AWAITING_COUNTERPARTY_LAWYER_APPROVAL':
+      case 'CLEAN_MASTER_UPLOADED':
         return 'border border-indigo-300 text-indigo-800 bg-indigo-50';
-      case 'CLIENT_APPROVAL_PENDING':
-        return 'border border-purple-300 text-purple-800 bg-purple-50';
-      case 'CLIENT_PARTIALLY_APPROVED':
+      case 'AWAITING_COUNTERPARTY_APPROVAL':
+        return 'border border-purple-300 text-purple-800 bg-purple-50 animate-pulse';
+      case 'LAWYER_SIGN_OFF_PENDING':
         return 'border border-pink-300 text-pink-800 bg-pink-50';
-      case 'RETURNED_TO_LAWYERS':
-        return 'border border-red-300 text-red-800 bg-red-50';
-      case 'CLIENT_APPROVED':
-        return 'border border-emerald-300 text-emerald-800 bg-emerald-50';
       case 'ILA_P1_COMPLETE':
       case 'ILA_P2_COMPLETE':
         return 'border border-teal-300 text-teal-800 bg-teal-50';
-      case 'READY_FOR_SIGNING':
-        return 'border border-green-300 text-green-800 bg-green-50 animate-pulse';
+      case 'COMPLETED':
+        return 'border border-green-300 text-green-800 bg-green-50';
+      case 'CANCELLED':
+        return 'border border-red-300 text-red-800 bg-red-50';
+      case 'ARCHIVED':
+        return 'border border-slate-200 text-slate-500 bg-slate-50';
       default:
         return 'border border-slate-200 text-slate-600 bg-slate-50';
     }

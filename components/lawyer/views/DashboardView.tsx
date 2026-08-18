@@ -43,32 +43,32 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   // Compute metrics based on assigned cases
   const metrics = useMemo(() => {
-    // 1. Assigned Cases: All active assignments
-    const totalAssigned = assignedCases.filter(c => c.status !== 'CLOSED' && c.status !== 'ARCHIVED').length;
+    // 1. Assigned Cases: All active assignments (not completed, cancelled or archived)
+    const totalAssigned = assignedCases.filter(c => c.status !== 'COMPLETED' && c.status !== 'ARCHIVED' && c.status !== 'CANCELLED').length;
     
-    // 2. Pending Review: FORMS_LOCKED, LAWYER_REVIEW
-    const pendingReview = assignedCases.filter(c => c.status === 'FORMS_LOCKED' || c.status === 'LAWYER_REVIEW').length;
+    // 2. Pending Review: LAWYERS_ASSIGNED, LAWYER_REVIEW
+    const pendingReview = assignedCases.filter(c => c.status === 'LAWYERS_ASSIGNED' || c.status === 'LAWYER_REVIEW').length;
     
-    // 3. Waiting For Counterparty: AWAITING_COUNTERPARTY_LAWYER_APPROVAL
-    const waitingCounterparty = assignedCases.filter(c => c.status === 'AWAITING_COUNTERPARTY_LAWYER_APPROVAL').length;
+    // 3. Clean Master Uploaded: CLEAN_MASTER_UPLOADED
+    const cleanMasterUploaded = assignedCases.filter(c => c.status === 'CLEAN_MASTER_UPLOADED').length;
     
-    // 4. Waiting For Client Approval: CLIENT_APPROVAL_PENDING
-    const waitingClient = assignedCases.filter(c => c.status === 'CLIENT_APPROVAL_PENDING').length;
+    // 4. Waiting For Counterparty Approval: AWAITING_COUNTERPARTY_APPROVAL
+    const waitingCounterparty = assignedCases.filter(c => c.status === 'AWAITING_COUNTERPARTY_APPROVAL').length;
     
-    // 5. Partially Approved: CLIENT_PARTIALLY_APPROVED
-    const partiallyApproved = assignedCases.filter(c => c.status === 'CLIENT_PARTIALLY_APPROVED').length;
+    // 5. Sign Off Pending: LAWYER_SIGN_OFF_PENDING
+    const signOffPending = assignedCases.filter(c => c.status === 'LAWYER_SIGN_OFF_PENDING').length;
     
-    // 6. Returned To Lawyers: RETURNED_TO_LAWYERS
-    const returnedLawyers = assignedCases.filter(c => c.status === 'RETURNED_TO_LAWYERS').length;
+    // 6. ILA P1 Complete: ILA_P1_COMPLETE
+    const ilaP1Complete = assignedCases.filter(c => c.status === 'ILA_P1_COMPLETE').length;
     
-    // 7. Ready For ILA: CLIENT_APPROVED
-    const readyIla = assignedCases.filter(c => c.status === 'CLIENT_APPROVED').length;
+    // 7. ILA P2 Complete: ILA_P2_COMPLETE
+    const ilaP2Complete = assignedCases.filter(c => c.status === 'ILA_P2_COMPLETE').length;
     
-    // 8. Ready For Signing: READY_FOR_SIGNING
-    const readySigning = assignedCases.filter(c => c.status === 'READY_FOR_SIGNING').length;
+    // 8. Completed Cases: COMPLETED, ARCHIVED
+    const completed = assignedCases.filter(c => c.status === 'COMPLETED' || c.status === 'ARCHIVED').length;
     
-    // 9. Completed Cases: CLOSED, ARCHIVED
-    const completed = assignedCases.filter(c => c.status === 'CLOSED' || c.status === 'ARCHIVED').length;
+    // 9. Cancelled Cases: CANCELLED
+    const cancelled = assignedCases.filter(c => c.status === 'CANCELLED').length;
     
     // 10. Expiring Certificates: Certificate expiry < 30 days
     const expiringCerts = assignedCases.filter(c => {
@@ -82,14 +82,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
     return [
       { label: 'Assigned Cases', value: totalAssigned, key: 'ALL', desc: 'All active assignments' },
-      { label: 'Pending Review', value: pendingReview, key: 'PENDING_REVIEW', desc: 'FORMS_LOCKED, LAWYER_REVIEW' },
-      { label: 'Waiting for Counterparty', value: waitingCounterparty, key: 'AWAITING_COUNTERPARTY_LAWYER_APPROVAL', desc: 'Awaiting opposing lawyer' },
-      { label: 'Waiting for Client', value: waitingClient, key: 'CLIENT_APPROVAL_PENDING', desc: 'CLIENT_APPROVAL_PENDING' },
-      { label: 'Partially Approved', value: partiallyApproved, key: 'CLIENT_PARTIALLY_APPROVED', desc: 'CLIENT_PARTIALLY_APPROVED' },
-      { label: 'Returned to Lawyers', value: returnedLawyers, key: 'RETURNED_TO_LAWYERS', desc: 'RETURNED_TO_LAWYERS' },
-      { label: 'Ready for ILA', value: readyIla, key: 'CLIENT_APPROVED', desc: 'CLIENT_APPROVED' },
-      { label: 'Ready for Signing', value: readySigning, key: 'READY_FOR_SIGNING', desc: 'READY_FOR_SIGNING' },
-      { label: 'Completed Cases', value: completed, key: 'COMPLETED', desc: 'CLOSED, ARCHIVED' },
+      { label: 'Pending Review', value: pendingReview, key: 'PENDING_REVIEW', desc: 'ASSIGNED, LAWYER_REVIEW' },
+      { label: 'Clean Master Uploaded', value: cleanMasterUploaded, key: 'CLEAN_MASTER_UPLOADED', desc: 'Clean master v3.4' },
+      { label: 'Waiting for Handshake', value: waitingCounterparty, key: 'AWAITING_COUNTERPARTY_APPROVAL', desc: 'Awaiting handshake' },
+      { label: 'Sign Off Pending', value: signOffPending, key: 'LAWYER_SIGN_OFF_PENDING', desc: 'ILA checklist & signatures' },
+      { label: 'ILA P1 Complete', value: ilaP1Complete, key: 'ILA_P1_COMPLETE', desc: 'Client 1 ILA issued' },
+      { label: 'ILA P2 Complete', value: ilaP2Complete, key: 'ILA_P2_COMPLETE', desc: 'Client 2 ILA issued' },
+      { label: 'Completed Cases', value: completed, key: 'COMPLETED', desc: 'COMPLETED, ARCHIVED' },
+      { label: 'Cancelled Cases', value: cancelled, key: 'CANCELLED', desc: 'CANCELLED matters' },
       { label: 'Expiring Certificates', value: expiringCerts, key: 'EXPIRING', desc: 'Expiry < 30 days' },
     ];
   }, [assignedCases]);
@@ -97,9 +97,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   // Filter cases visible in list based on statusFilter selection
   const filteredCasesList = useMemo(() => {
     return assignedCases.filter((c) => {
-      if (statusFilter === 'ALL') return c.status !== 'CLOSED' && c.status !== 'ARCHIVED';
-      if (statusFilter === 'PENDING_REVIEW') return c.status === 'FORMS_LOCKED' || c.status === 'LAWYER_REVIEW';
-      if (statusFilter === 'COMPLETED') return c.status === 'CLOSED' || c.status === 'ARCHIVED';
+      if (statusFilter === 'ALL') return c.status !== 'COMPLETED' && c.status !== 'ARCHIVED' && c.status !== 'CANCELLED';
+      if (statusFilter === 'PENDING_REVIEW') return c.status === 'LAWYERS_ASSIGNED' || c.status === 'LAWYER_REVIEW';
+      if (statusFilter === 'COMPLETED') return c.status === 'COMPLETED' || c.status === 'ARCHIVED';
       if (statusFilter === 'EXPIRING') {
         if (!c.certificateExpiryDate) return false;
         const expiry = new Date(c.certificateExpiryDate);
@@ -114,27 +114,25 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   const getStatusBadgeStyle = (status: CaseStatus) => {
     switch (status) {
-      case 'FORMS_LOCKED':
+      case 'LAWYERS_ASSIGNED':
         return 'border border-amber-300 text-amber-800 bg-amber-50';
       case 'LAWYER_REVIEW':
         return 'border border-blue-300 text-blue-800 bg-blue-50';
-      case 'AWAITING_COUNTERPARTY_LAWYER_APPROVAL':
+      case 'CLEAN_MASTER_UPLOADED':
         return 'border border-indigo-300 text-indigo-800 bg-indigo-50';
-      case 'CLIENT_APPROVAL_PENDING':
-        return 'border border-purple-300 text-purple-800 bg-purple-50';
-      case 'CLIENT_PARTIALLY_APPROVED':
+      case 'AWAITING_COUNTERPARTY_APPROVAL':
+        return 'border border-purple-300 text-purple-800 bg-purple-50 animate-pulse';
+      case 'LAWYER_SIGN_OFF_PENDING':
         return 'border border-pink-300 text-pink-800 bg-pink-50';
-      case 'RETURNED_TO_LAWYERS':
-        return 'border border-red-300 text-red-800 bg-red-50';
-      case 'CLIENT_APPROVED':
-        return 'border border-emerald-300 text-emerald-800 bg-emerald-50';
       case 'ILA_P1_COMPLETE':
       case 'ILA_P2_COMPLETE':
         return 'border border-teal-300 text-teal-800 bg-teal-50';
-      case 'READY_FOR_SIGNING':
-        return 'border border-green-300 text-green-800 bg-green-50 animate-pulse';
-      case 'CLOSED':
+      case 'COMPLETED':
         return 'border border-slate-300 text-slate-700 bg-slate-100';
+      case 'CANCELLED':
+        return 'border border-red-300 text-red-800 bg-red-50';
+      case 'ARCHIVED':
+        return 'border border-slate-200 text-slate-500 bg-slate-50';
       default:
         return 'border border-slate-200 text-slate-600 bg-slate-50';
     }

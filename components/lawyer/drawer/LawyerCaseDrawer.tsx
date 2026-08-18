@@ -119,29 +119,185 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
     setTimeout(() => setRbacError(null), 4000);
   };
 
+  const renderAgreementActions = () => {
+    return (
+      <div className="flex flex-col gap-6">
+        {/* Flow progression */}
+        <div className="bg-white border border-slate-300 rounded-xl p-4 shadow-xs">
+          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider font-sans">
+            Version Flow Engine Transition Pipeline
+          </span>
+          
+          <div className="flex flex-col gap-2.5 mt-3 text-[10px] font-mono">
+            <div className="flex items-center flex-wrap gap-2.5 leading-none">
+              <span className={`px-2 py-0.5 rounded ${caseObj.status === 'LAWYERS_ASSIGNED' || caseObj.status === 'LAWYER_REVIEW' ? 'bg-[#0d1527] text-white' : 'bg-slate-200 text-slate-500'}`}>v3.0-v3.3 drafts</span>
+              <span className="text-slate-400">&gt;</span>
+              <span className={`px-2 py-0.5 rounded ${caseObj.status === 'CLEAN_MASTER_UPLOADED' ? 'bg-[#0d1527] text-white animate-pulse' : 'bg-slate-200 text-slate-500'}`}>v3.4 Clean Master</span>
+              <span className="text-slate-400">&gt;</span>
+              <span className={`px-2 py-0.5 rounded ${caseObj.status === 'AWAITING_COUNTERPARTY_APPROVAL' ? 'bg-[#0d1527] text-white animate-pulse' : 'bg-slate-200 text-slate-500'}`}>Handshake</span>
+              <span className="text-slate-400">&gt;</span>
+              <span className={`px-2 py-0.5 rounded ${caseObj.status === 'LAWYER_SIGN_OFF_PENDING' ? 'bg-[#0d1527] text-white' : 'bg-slate-200 text-slate-500'}`}>Sign-Off Pending</span>
+              <span className="text-slate-400">&gt;</span>
+              <span className={`px-2 py-0.5 rounded ${caseObj.status === 'ILA_P1_COMPLETE' || caseObj.status === 'ILA_P2_COMPLETE' ? 'bg-[#0d1527] text-white' : 'bg-slate-200 text-slate-500'}`}>ILA Issued</span>
+              <span className="text-slate-400">&gt;</span>
+              <span className={`px-2 py-0.5 rounded ${caseObj.status === 'COMPLETED' ? 'bg-green-700 text-white font-bold' : 'bg-slate-200 text-slate-500'}`}>Completed</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Upload clean master & update version actions */}
+        <div className="bg-white border border-slate-300 rounded-xl p-5 shadow-xs flex flex-col gap-4">
+          <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider font-sans border-b border-slate-100 pb-2">
+            Agreement Actions Available
+          </h3>
+
+          <div className="flex flex-wrap gap-3">
+            {/* Upload new version */}
+            {(caseObj.status === 'LAWYER_REVIEW' || caseObj.status === 'LAWYERS_ASSIGNED') && (
+              <form onSubmit={handleUploadVersionClick} className="w-full flex flex-col gap-3 p-3.5 bg-slate-50 border border-slate-200 rounded-xl">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Upload New draft Version</span>
+                
+                <div className="flex gap-3">
+                  <input
+                    type="text"
+                    required
+                    value={newVersionNum}
+                    onChange={(e) => setNewVersionNum(e.target.value)}
+                    placeholder="e.g. v3.4"
+                    className="bg-white border border-slate-200 text-xs px-3 py-1.5 rounded-lg font-sans outline-none focus:border-slate-400 w-[120px]"
+                  />
+                  <input
+                    type="text"
+                    required
+                    value={newVersionDesc}
+                    onChange={(e) => setNewVersionDesc(e.target.value)}
+                    placeholder="Description of amendments..."
+                    className="bg-white border border-slate-200 text-xs px-3 py-1.5 rounded-lg font-sans outline-none focus:border-slate-400 flex-1"
+                  />
+                  <button
+                    type="submit"
+                    className="bg-[#0d1527] text-white text-xs font-bold px-4 py-1.5 rounded-lg hover:bg-[#1b2947] transition-all cursor-pointer flex items-center gap-1"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Upload Draft</span>
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Clean Master action */}
+            {(caseObj.status === 'LAWYER_REVIEW' || caseObj.status === 'LAWYERS_ASSIGNED') && (
+              <div className="w-full flex items-center justify-between p-3.5 bg-emerald-50/50 border border-emerald-200 rounded-xl">
+                <div>
+                  <p className="text-xs font-bold text-emerald-900">Declare Agreement Draft Complete</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5">Upload Clean Master to submit for opposing counsel sign-off</p>
+                </div>
+                <button
+                  onClick={() => onUploadCleanMaster(caseObj.id)}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-lg border border-emerald-500 transition-all flex items-center gap-1 cursor-pointer"
+                >
+                  <FileCode className="w-3.5 h-3.5" />
+                  <span>Upload Clean Master (v3.4)</span>
+                </button>
+              </div>
+            )}
+
+            {/* Approve opposing Clean Master */}
+            {caseObj.status === 'CLEAN_MASTER_UPLOADED' && (
+              <div className="w-full flex items-center justify-between p-3.5 bg-indigo-50 border border-indigo-200 rounded-xl">
+                <div>
+                  <p className="text-xs font-bold text-indigo-900">Opposing Clean Master Uploaded</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5">Verify and approve clean master to prompt counterparty handshake</p>
+                </div>
+                <button
+                  onClick={() => onApproveCleanMaster(caseObj.id)}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded-lg border border-indigo-500 transition-all flex items-center gap-1 cursor-pointer"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Approve Clean Master</span>
+                </button>
+              </div>
+            )}
+
+            {/* Counterparty Handshake */}
+            {caseObj.status === 'AWAITING_COUNTERPARTY_APPROVAL' && (
+              <div className="w-full flex items-center justify-between p-3.5 bg-purple-50 border border-purple-200 rounded-xl">
+                <div>
+                  <p className="text-xs font-bold text-purple-900">Clean Master Handshake Required</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5">Both lawyers must execute the handshake to freeze legal text</p>
+                </div>
+                <button
+                  onClick={() => onApproveCleanMaster(caseObj.id)}
+                  className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold px-4 py-2 rounded-lg border border-purple-500 transition-all flex items-center gap-1 cursor-pointer"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Execute Handshake</span>
+                </button>
+              </div>
+            )}
+
+            {/* Issue ILA Certificates */}
+            {(caseObj.status === 'LAWYER_SIGN_OFF_PENDING' || caseObj.status === 'ILA_P1_COMPLETE' || caseObj.status === 'ILA_P2_COMPLETE') && (
+              <div className="w-full flex flex-col gap-3 p-3.5 bg-teal-50 border border-teal-200 rounded-xl">
+                <div>
+                  <p className="text-xs font-bold text-teal-900">Independent Legal Advice (ILA) Certificates</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5">Certificates must be issued by corresponding attorneys (Constraint #9 check)</p>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      if (activePersona === 'L2') {
+                        triggerRbacProhibited("L2 Attorney cannot issue ILA Certificate for Client 1");
+                      } else {
+                        onIssueIla(caseObj.id, 'p1');
+                      }
+                    }}
+                    className="bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold px-4 py-2 rounded-lg border border-teal-500 transition-all cursor-pointer"
+                  >
+                    Issue Client 1 ILA ({caseObj.p1Name})
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (activePersona === 'L1') {
+                        triggerRbacProhibited("L1 Attorney cannot issue ILA Certificate for Client 2");
+                      } else {
+                        onIssueIla(caseObj.id, 'p2');
+                      }
+                    }}
+                    className="bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold px-4 py-2 rounded-lg border border-teal-500 transition-all cursor-pointer"
+                  >
+                    Issue Client 2 ILA ({caseObj.p2Name})
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const getStatusBadgeStyle = (status: CaseStatus) => {
     switch (status) {
-      case 'FORMS_LOCKED':
+      case 'LAWYERS_ASSIGNED':
         return 'border border-amber-300 text-amber-800 bg-amber-50';
       case 'LAWYER_REVIEW':
         return 'border border-blue-300 text-blue-800 bg-blue-50';
-      case 'AWAITING_COUNTERPARTY_LAWYER_APPROVAL':
+      case 'CLEAN_MASTER_UPLOADED':
         return 'border border-indigo-300 text-indigo-800 bg-indigo-50';
-      case 'CLIENT_APPROVAL_PENDING':
-        return 'border border-purple-300 text-purple-800 bg-purple-50';
-      case 'CLIENT_PARTIALLY_APPROVED':
+      case 'AWAITING_COUNTERPARTY_APPROVAL':
+        return 'border border-purple-300 text-purple-800 bg-purple-50 animate-pulse';
+      case 'LAWYER_SIGN_OFF_PENDING':
         return 'border border-pink-300 text-pink-800 bg-pink-50';
-      case 'RETURNED_TO_LAWYERS':
-        return 'border border-red-300 text-red-800 bg-red-50';
-      case 'CLIENT_APPROVED':
-        return 'border border-emerald-300 text-emerald-800 bg-emerald-50';
       case 'ILA_P1_COMPLETE':
       case 'ILA_P2_COMPLETE':
         return 'border border-teal-300 text-teal-800 bg-teal-50';
-      case 'READY_FOR_SIGNING':
-        return 'border border-green-300 text-green-800 bg-green-50 animate-pulse';
-      case 'CLOSED':
-        return 'border border-slate-300 text-slate-700 bg-slate-100';
+      case 'COMPLETED':
+        return 'border border-green-300 text-green-800 bg-green-50';
+      case 'CANCELLED':
+        return 'border border-red-300 text-red-800 bg-red-50';
+      case 'ARCHIVED':
+        return 'border border-slate-200 text-slate-500 bg-slate-50';
       default:
         return 'border border-slate-200 text-slate-600 bg-slate-50';
     }
@@ -287,7 +443,7 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
               </div>
 
               {/* Execution Actions (If ready) */}
-              {(caseObj.status === 'READY_FOR_SIGNING' || caseObj.status === 'CLOSED') && (
+              {(caseObj.status === 'COMPLETED' || caseObj.status === 'ARCHIVED') && (
                 <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-5 flex flex-col gap-3 shadow-xs">
                   <h3 className="text-xs font-bold text-emerald-800 uppercase tracking-wider font-sans flex items-center gap-1.5">
                     <ShieldCheck className="w-4 h-4 text-emerald-600" />
@@ -301,10 +457,13 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
                     className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg border border-emerald-500 transition-all flex items-center gap-2 self-start cursor-pointer shadow-xs"
                   >
                     <Download className="w-3.5 h-3.5" />
-                    <span>Download final Execution Pack (LP-2026-001_FINAL_PACK.pdf)</span>
+                    <span>Download final Execution Pack ({caseObj.id}_FINAL_PACK.pdf)</span>
                   </button>
                 </div>
               )}
+
+              {/* Add interactive actions directly on the Overview tab */}
+              {caseObj.status !== 'COMPLETED' && caseObj.status !== 'ARCHIVED' && caseObj.status !== 'CANCELLED' && renderAgreementActions()}
             </div>
           )}
 
@@ -434,229 +593,7 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
           {/* T3: Agreement Versions Tab */}
           {activeTab === 'versions' && (
             <div className="flex flex-col gap-6">
-              {/* Flow progression */}
-              <div className="bg-white border border-slate-300 rounded-xl p-4 shadow-xs">
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider font-sans">
-                  Version Flow Engine Transition Pipeline
-                </span>
-                
-                <div className="flex flex-col gap-2.5 mt-3 text-[10px] font-mono">
-                  <div className="flex items-center flex-wrap gap-2.5 leading-none">
-                    <span className={`px-2 py-0.5 rounded ${caseObj.status === 'LAWYER_REVIEW' ? 'bg-[#0d1527] text-white' : 'bg-slate-200 text-slate-500'}`}>v1.0-v1.4 drafts</span>
-                    <span className="text-slate-400">&gt;</span>
-                    <span className={`px-2 py-0.5 rounded ${caseObj.status === 'AWAITING_COUNTERPARTY_LAWYER_APPROVAL' ? 'bg-[#0d1527] text-white animate-pulse' : 'bg-slate-200 text-slate-500'}`}>v1.5 Clean Master</span>
-                    <span className="text-slate-400">&gt;</span>
-                    <span className={`px-2 py-0.5 rounded ${caseObj.status === 'CLIENT_APPROVAL_PENDING' ? 'bg-[#0d1527] text-white' : 'bg-slate-200 text-slate-500'}`}>Client Approval</span>
-                    <span className="text-slate-400">&gt;</span>
-                    <span className={`px-2 py-0.5 rounded ${caseObj.status === 'CLIENT_APPROVED' || caseObj.status === 'ILA_P1_COMPLETE' || caseObj.status === 'ILA_P2_COMPLETE' ? 'bg-[#0d1527] text-white' : 'bg-slate-200 text-slate-500'}`}>ILA Signatures</span>
-                    <span className="text-slate-400">&gt;</span>
-                    <span className={`px-2 py-0.5 rounded ${caseObj.status === 'READY_FOR_SIGNING' ? 'bg-[#0d1527] text-white' : 'bg-slate-200 text-slate-500'}`}>Ready for Signing</span>
-                    <span className="text-slate-400">&gt;</span>
-                    <span className={`px-2 py-0.5 rounded ${caseObj.status === 'CLOSED' ? 'bg-green-700 text-white font-bold' : 'bg-slate-200 text-slate-500'}`}>Closed</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Upload clean master & update version actions */}
-              <div className="bg-white border border-slate-300 rounded-xl p-5 shadow-xs flex flex-col gap-4">
-                <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider font-sans border-b border-slate-100 pb-2">
-                  Agreement Actions Available
-                </h3>
-
-                <div className="flex flex-wrap gap-3">
-                  {/* Upload new version */}
-                  {caseObj.status === 'LAWYER_REVIEW' && (
-                    <form onSubmit={handleUploadVersionClick} className="w-full flex flex-col gap-3 p-3.5 bg-slate-50 border border-slate-200 rounded-xl">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Upload New draft Version</span>
-                      
-                      <div className="flex gap-3">
-                        <input
-                          type="text"
-                          required
-                          value={newVersionNum}
-                          onChange={(e) => setNewVersionNum(e.target.value)}
-                          placeholder="e.g. v1.5"
-                          className="bg-white border border-slate-200 text-xs px-3 py-1.5 rounded-lg font-sans outline-none focus:border-slate-400 w-[120px]"
-                        />
-                        <input
-                          type="text"
-                          required
-                          value={newVersionDesc}
-                          onChange={(e) => setNewVersionDesc(e.target.value)}
-                          placeholder="Description of amendments..."
-                          className="bg-white border border-slate-200 text-xs px-3 py-1.5 rounded-lg font-sans outline-none focus:border-slate-400 flex-1"
-                        />
-                        <button
-                          type="submit"
-                          className="bg-[#0d1527] text-white text-xs font-bold px-4 py-1.5 rounded-lg hover:bg-[#1b2947] transition-all cursor-pointer flex items-center gap-1"
-                        >
-                          <Upload className="w-3.5 h-3.5" />
-                          <span>Upload Draft</span>
-                        </button>
-                      </div>
-                    </form>
-                  )}
-
-                  {/* Clean Master action */}
-                  {caseObj.status === 'LAWYER_REVIEW' && (
-                    <div className="w-full flex items-center justify-between p-3.5 bg-emerald-50/50 border border-emerald-200 rounded-xl">
-                      <div>
-                        <p className="text-xs font-bold text-emerald-900">Declare Agreement Draft Complete</p>
-                        <p className="text-[10px] text-slate-500 mt-0.5">Upload Clean Master to submit for opposing counsel sign-off</p>
-                      </div>
-                      <button
-                        onClick={() => onUploadCleanMaster(caseObj.id)}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-lg border border-emerald-500 transition-all flex items-center gap-1 cursor-pointer"
-                      >
-                        <FileCode className="w-3.5 h-3.5" />
-                        <span>Upload Clean Master (v1.5)</span>
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Approve opposing Clean Master */}
-                  {caseObj.status === 'AWAITING_COUNTERPARTY_LAWYER_APPROVAL' && (
-                    <div className="w-full flex items-center justify-between p-3.5 bg-indigo-50 border border-indigo-200 rounded-xl">
-                      <div>
-                        <p className="text-xs font-bold text-indigo-900">Opposing Clean Master Sign-Off Required</p>
-                        <p className="text-[10px] text-slate-500 mt-0.5">Verify and approve clean master for Client execution routing</p>
-                      </div>
-                      <button
-                        onClick={() => onApproveCleanMaster(caseObj.id)}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded-lg border border-indigo-500 transition-all flex items-center gap-1 cursor-pointer"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Approve Clean Master</span>
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Client approvals buttons */}
-                  {caseObj.status === 'CLIENT_APPROVAL_PENDING' && (
-                    <div className="w-full flex flex-col gap-3.5 p-3.5 bg-purple-50 border border-purple-200 rounded-xl">
-                      <div>
-                        <p className="text-xs font-bold text-purple-900">Client Approvals Pending</p>
-                        <p className="text-[10px] text-slate-500 mt-0.5">Submit approvals on behalf of client for mock walkthrough simulations</p>
-                      </div>
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => {
-                            if (activePersona === 'L2') {
-                              triggerRbacProhibited("Partner 2 Lawyer cannot sign-off for Partner 1's client");
-                            } else {
-                              onClientApprove(caseObj.id, 'p1');
-                            }
-                          }}
-                          className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold px-4 py-2 rounded-lg border border-purple-500 transition-all cursor-pointer"
-                        >
-                          Approve Client 1 ({caseObj.p1Name})
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (activePersona === 'L1') {
-                              triggerRbacProhibited("Partner 1 Lawyer cannot sign-off for Partner 2's client");
-                            } else {
-                              onClientApprove(caseObj.id, 'p2');
-                            }
-                          }}
-                          className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold px-4 py-2 rounded-lg border border-purple-500 transition-all cursor-pointer"
-                        >
-                          Approve Client 2 ({caseObj.p2Name})
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Client Partially Approved */}
-                  {caseObj.status === 'CLIENT_PARTIALLY_APPROVED' && (
-                    <div className="w-full flex flex-col gap-3.5 p-3.5 bg-pink-50 border border-pink-200 rounded-xl">
-                      <div>
-                        <p className="text-xs font-bold text-pink-900">Client Partially Approved</p>
-                        <p className="text-[10px] text-slate-500 mt-0.5">One client has signed off. The remaining client approval is required.</p>
-                      </div>
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => {
-                            if (activePersona === 'L2') {
-                              triggerRbacProhibited("Partner 2 Lawyer cannot sign-off for Partner 1's client");
-                            } else {
-                              onClientApprove(caseObj.id, 'p1');
-                            }
-                          }}
-                          className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold px-4 py-2 rounded-lg border border-purple-500 transition-all cursor-pointer"
-                        >
-                          Approve Client 1 ({caseObj.p1Name})
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (activePersona === 'L1') {
-                              triggerRbacProhibited("Partner 1 Lawyer cannot sign-off for Partner 2's client");
-                            } else {
-                              onClientApprove(caseObj.id, 'p2');
-                            }
-                          }}
-                          className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold px-4 py-2 rounded-lg border border-purple-500 transition-all cursor-pointer"
-                        >
-                          Approve Client 2 ({caseObj.p2Name})
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Issue ILA Certificates */}
-                  {(caseObj.status === 'CLIENT_APPROVED' || caseObj.status === 'ILA_P1_COMPLETE' || caseObj.status === 'ILA_P2_COMPLETE') && (
-                    <div className="w-full flex flex-col gap-3 p-3.5 bg-teal-50 border border-teal-200 rounded-xl">
-                      <div>
-                        <p className="text-xs font-bold text-teal-900">Independent Legal Advice (ILA) Certificates</p>
-                        <p className="text-[10px] text-slate-500 mt-0.5">Certificates must be issued by corresponding attorneys (Constraint #9 check)</p>
-                      </div>
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => {
-                            if (activePersona === 'L2') {
-                              triggerRbacProhibited("L2 Attorney cannot issue ILA Certificate for Client 1");
-                            } else {
-                              onIssueIla(caseObj.id, 'p1');
-                            }
-                          }}
-                          className="bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold px-4 py-2 rounded-lg border border-teal-500 transition-all cursor-pointer"
-                        >
-                          Issue Client 1 ILA ({caseObj.p1Name})
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (activePersona === 'L1') {
-                              triggerRbacProhibited("L1 Attorney cannot issue ILA Certificate for Client 2");
-                            } else {
-                              onIssueIla(caseObj.id, 'p2');
-                            }
-                          }}
-                          className="bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold px-4 py-2 rounded-lg border border-teal-500 transition-all cursor-pointer"
-                        >
-                          Issue Client 2 ILA ({caseObj.p2Name})
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Sign final agreement */}
-                  {caseObj.status === 'READY_FOR_SIGNING' && (
-                    <div className="w-full flex items-center justify-between p-3.5 bg-green-50 border border-green-200 rounded-xl">
-                      <div>
-                        <p className="text-xs font-bold text-green-900">Sign Final Agreement</p>
-                        <p className="text-[10px] text-slate-500 mt-0.5">Complete witness sign-offs and finalize agreement (CLOSED state)</p>
-                      </div>
-                      <button
-                        onClick={() => onSignAgreement(caseObj.id)}
-                        className="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-4 py-2 rounded-lg border border-green-500 transition-all flex items-center gap-1 cursor-pointer"
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                        <span>Sign &amp; Finalize Case</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
+              {renderAgreementActions()}
 
               {/* Version list */}
               <div className="bg-white border border-slate-300 rounded-xl overflow-hidden shadow-xs">

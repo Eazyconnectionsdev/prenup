@@ -120,22 +120,21 @@ const MOCK_INITIAL_CASES: LawyerCase[] = [
     p2Firm: 'Torys LLP',
     p1Lawyer: 'Robert Miller, Esq.',
     p2Lawyer: 'Mark Sterling, Esq.',
-    currentVersion: 'v1.4',
-    publishedVersion: 'v1.2',
+    currentVersion: 'v3.3',
+    publishedVersion: 'v3.1',
     lastActivity: '2026-08-16',
     daysInStatus: 3,
     p1Forms: P1_FORM_MOCK,
     p2Forms: P2_FORM_MOCK,
     versions: [
-      { version: 'v1.0', uploadedBy: 'System', uploadedDate: '2026-08-01 10:00 AM', published: 'YES', description: 'Initial questionnaire generation', s3Path: 's3://prenup-bucket/cases/LP-001/v1.0.pdf', fileSize: '1.2 MB' },
-      { version: 'v1.1', uploadedBy: 'Robert Miller, Esq.', uploadedDate: '2026-08-03 02:30 PM', published: 'NO', description: 'Initial amendments on property treatment', s3Path: 's3://prenup-bucket/cases/LP-001/v1.1.pdf', fileSize: '1.3 MB' },
-      { version: 'v1.2', uploadedBy: 'Mark Sterling, Esq.', uploadedDate: '2026-08-06 11:15 AM', published: 'YES', description: 'Added bank account schedules', s3Path: 's3://prenup-bucket/cases/LP-001/v1.2.pdf', fileSize: '1.3 MB' },
-      { version: 'v1.3', uploadedBy: 'Robert Miller, Esq.', uploadedDate: '2026-08-10 04:00 PM', published: 'NO', description: 'Amended spousal support waivers', s3Path: 's3://prenup-bucket/cases/LP-001/v1.3.pdf', fileSize: '1.4 MB' },
-      { version: 'v1.4', uploadedBy: 'Mark Sterling, Esq.', uploadedDate: '2026-08-15 09:45 AM', published: 'NO', description: 'Clean master pre-review changes', s3Path: 's3://prenup-bucket/cases/LP-001/v1.4.pdf', fileSize: '1.4 MB' },
+      { version: 'v3.0', uploadedBy: 'System', uploadedDate: '2026-08-01 10:00 AM', published: 'YES', description: 'Initial questionnaire generation', s3Path: 's3://prenup-bucket/cases/LP-001/v3.0.pdf', fileSize: '1.2 MB' },
+      { version: 'v3.1', uploadedBy: 'Robert Miller, Esq.', uploadedDate: '2026-08-03 02:30 PM', published: 'YES', description: 'Initial amendments on property treatment', s3Path: 's3://prenup-bucket/cases/LP-001/v3.1.pdf', fileSize: '1.3 MB' },
+      { version: 'v3.2', uploadedBy: 'Mark Sterling, Esq.', uploadedDate: '2026-08-06 11:15 AM', published: 'NO', description: 'Added bank account schedules', s3Path: 's3://prenup-bucket/cases/LP-001/v3.2.pdf', fileSize: '1.3 MB' },
+      { version: 'v3.3', uploadedBy: 'Robert Miller, Esq.', uploadedDate: '2026-08-10 04:00 PM', published: 'NO', description: 'Amended spousal support waivers', s3Path: 's3://prenup-bucket/cases/LP-001/v3.3.pdf', fileSize: '1.4 MB' },
     ],
     notes: [
-      { version: 'v1.1', notes: 'Robert: Arthur requests keeping the 40% corporate equity separate from matrimonial claims.', createdBy: 'Robert Miller, Esq.', createdDate: '2026-08-03 02:40 PM', visibleTo: 'L1' },
-      { version: 'v1.2', notes: 'Mark: Sophia wants reciprocal waiver of bank balances outside joint account listings.', createdBy: 'Mark Sterling, Esq.', createdDate: '2026-08-06 11:30 AM', visibleTo: 'L2' },
+      { version: 'v3.1', notes: 'Robert: Arthur requests keeping the 40% corporate equity separate from matrimonial claims.', createdBy: 'Robert Miller, Esq.', createdDate: '2026-08-03 02:40 PM', visibleTo: 'L1' },
+      { version: 'v3.2', notes: 'Mark: Sophia wants reciprocal waiver of bank balances outside joint account listings.', createdBy: 'Mark Sterling, Esq.', createdDate: '2026-08-06 11:30 AM', visibleTo: 'L2' },
     ],
     appendices: {
       A: [
@@ -153,21 +152,21 @@ const MOCK_INITIAL_CASES: LawyerCase[] = [
   {
     id: 'LP-2026-002',
     service: 'Express Tier',
-    status: 'CLIENT_APPROVAL_PENDING',
+    status: 'AWAITING_COUNTERPARTY_APPROVAL',
     p1Name: 'David Miller',
     p2Name: 'Sarah Conner',
     p1Firm: 'Blake Cassels LLP',
     p2Firm: 'Torys LLP',
     p1Lawyer: 'Robert Miller, Esq.',
     p2Lawyer: 'Mark Sterling, Esq.',
-    currentVersion: 'v1.5',
-    publishedVersion: 'v1.5',
+    currentVersion: 'v3.4 CLEAN MASTER',
+    publishedVersion: 'v3.3',
     lastActivity: '2026-08-10',
     daysInStatus: 8,
     p1Forms: P1_FORM_MOCK,
     p2Forms: P2_FORM_MOCK,
     versions: [
-      { version: 'v1.5', uploadedBy: 'Mark Sterling, Esq.', uploadedDate: '2026-08-10 10:00 AM', published: 'YES', description: 'Clean master version uploaded', s3Path: 's3://prenup-bucket/cases/LP-002/v1.5.pdf', fileSize: '1.4 MB' }
+      { version: 'v3.4 CLEAN MASTER', uploadedBy: 'Mark Sterling, Esq.', uploadedDate: '2026-08-10 10:00 AM', published: 'Pending', description: 'Clean master version uploaded', s3Path: 's3://prenup-bucket/cases/LP-002/clean_master.pdf', fileSize: '1.4 MB' }
     ],
     notes: [],
     appendices: { A: [], B: [], C: [] },
@@ -176,21 +175,21 @@ const MOCK_INITIAL_CASES: LawyerCase[] = [
   {
     id: 'LP-2026-003',
     service: 'Standard Digital',
-    status: 'CLOSED',
+    status: 'COMPLETED',
     p1Name: 'Bruce Wayne',
     p2Name: 'Selina Kyle',
     p1Firm: 'Blake Cassels LLP',
     p2Firm: 'Torys LLP',
     p1Lawyer: 'Robert Miller, Esq.',
     p2Lawyer: 'Mark Sterling, Esq.',
-    currentVersion: 'v2.0',
-    publishedVersion: 'v2.0',
+    currentVersion: 'v3.4',
+    publishedVersion: 'v3.4',
     lastActivity: '2026-07-28',
     daysInStatus: 25,
     p1Forms: P1_FORM_MOCK,
     p2Forms: P2_FORM_MOCK,
     versions: [
-      { version: 'v2.0', uploadedBy: 'System', uploadedDate: '2026-07-28 04:00 PM', published: 'YES', description: 'Executed Clean Pack', s3Path: 's3://prenup-bucket/cases/LP-003/v2.0.pdf', fileSize: '2.1 MB' }
+      { version: 'v3.4', uploadedBy: 'System', uploadedDate: '2026-07-28 04:00 PM', published: 'YES', description: 'Executed Clean Pack', s3Path: 's3://prenup-bucket/cases/LP-003/v3.4.pdf', fileSize: '2.1 MB' }
     ],
     notes: [],
     appendices: { A: [], B: [], C: [] },
@@ -199,21 +198,21 @@ const MOCK_INITIAL_CASES: LawyerCase[] = [
   {
     id: 'LP-2026-004',
     service: 'Bespoke Prenup',
-    status: 'READY_FOR_SIGNING',
+    status: 'LAWYER_SIGN_OFF_PENDING',
     p1Name: 'Clark Kent',
     p2Name: 'Lois Lane',
     p1Firm: 'Osler Hoskin LLP',
     p2Firm: 'Torys LLP',
     p1Lawyer: 'Clara Conner, Esq.',
     p2Lawyer: 'Mark Sterling, Esq.',
-    currentVersion: 'v1.5',
-    publishedVersion: 'v1.5',
+    currentVersion: 'v3.4 CLEAN MASTER',
+    publishedVersion: 'v3.4',
     lastActivity: '2026-08-14',
     daysInStatus: 4,
     p1Forms: P1_FORM_MOCK,
     p2Forms: P2_FORM_MOCK,
     versions: [
-      { version: 'v1.5', uploadedBy: 'Mark Sterling, Esq.', uploadedDate: '2026-08-14 02:00 PM', published: 'YES', description: 'Clean master version uploaded', s3Path: 's3://prenup-bucket/cases/LP-004/v1.5.pdf', fileSize: '1.4 MB' }
+      { version: 'v3.4 CLEAN MASTER', uploadedBy: 'Mark Sterling, Esq.', uploadedDate: '2026-08-14 02:00 PM', published: 'YES', description: 'Clean master version uploaded', s3Path: 's3://prenup-bucket/cases/LP-004/clean_master.pdf', fileSize: '1.4 MB' }
     ],
     notes: [],
     appendices: { A: [], B: [], C: [] },
@@ -222,23 +221,22 @@ const MOCK_INITIAL_CASES: LawyerCase[] = [
   {
     id: 'LP-2026-005',
     service: 'Premier Bespoke',
-    status: 'LAWYER_REVIEW',
+    status: 'LAWYERS_ASSIGNED',
     p1Name: 'Arthur Curry',
     p2Name: 'Mera Ocean',
     p1Firm: 'Osler Hoskin LLP',
     p2Firm: 'Blake Cassels LLP',
     p1Lawyer: 'Clara Conner, Esq.',
     p2Lawyer: 'Robert Miller, Esq.',
-    currentVersion: 'v1.1',
-    publishedVersion: 'v1.0',
+    currentVersion: 'v3.0',
+    publishedVersion: 'v3.0',
     lastActivity: '2026-08-18',
     daysInStatus: 1,
-    certificateExpiryDate: '2026-09-05', // 18 Days from now (Expiring Cert < 30 days)
+    certificateExpiryDate: '2026-09-05',
     p1Forms: P1_FORM_MOCK,
     p2Forms: P2_FORM_MOCK,
     versions: [
-      { version: 'v1.0', uploadedBy: 'System', uploadedDate: '2026-08-18 09:00 AM', published: 'YES', description: 'System questionnaire generation', s3Path: 's3://prenup-bucket/cases/LP-005/v1.0.pdf', fileSize: '1.2 MB' },
-      { version: 'v1.1', uploadedBy: 'Robert Miller, Esq.', uploadedDate: '2026-08-18 11:30 AM', published: 'NO', description: 'Amended offshore property clauses', s3Path: 's3://prenup-bucket/cases/LP-005/v1.1.pdf', fileSize: '1.3 MB' }
+      { version: 'v3.0', uploadedBy: 'System', uploadedDate: '2026-08-18 09:00 AM', published: 'YES', description: 'System questionnaire generation', s3Path: 's3://prenup-bucket/cases/LP-005/v3.0.pdf', fileSize: '1.2 MB' },
     ],
     notes: [],
     appendices: { A: [], B: [], C: [] },
@@ -272,7 +270,7 @@ export const LawyerPortalDashboard: React.FC = () => {
   // Counts for sidebar navigation list badges
   const assignedCount = useMemo(() => {
     return cases.filter((c) => {
-      const isCompleted = c.status === 'CLOSED' || c.status === 'ARCHIVED';
+      const isCompleted = c.status === 'COMPLETED' || c.status === 'ARCHIVED' || c.status === 'CANCELLED';
       if (isCompleted) return false;
       if (activePersona === 'L1') return c.p1Lawyer === activeLawyer;
       if (activePersona === 'L2') return c.p2Lawyer === activeLawyer;
@@ -282,7 +280,7 @@ export const LawyerPortalDashboard: React.FC = () => {
 
   const completedCount = useMemo(() => {
     return cases.filter((c) => {
-      const isCompleted = c.status === 'CLOSED' || c.status === 'ARCHIVED';
+      const isCompleted = c.status === 'COMPLETED' || c.status === 'ARCHIVED' || c.status === 'CANCELLED';
       if (!isCompleted) return false;
       if (activePersona === 'L1') return c.p1Lawyer === activeLawyer;
       if (activePersona === 'L2') return c.p2Lawyer === activeLawyer;
@@ -333,19 +331,19 @@ export const LawyerPortalDashboard: React.FC = () => {
     setCases((prevCases) =>
       prevCases.map((c) => {
         if (c.id !== caseId) return c;
-        const cleanVerNum = 'v1.5 CLEAN MASTER';
+        const cleanVerNum = 'v3.4 CLEAN MASTER';
         const cleanVer: AgreementVersion = {
           version: cleanVerNum,
           uploadedBy: activeLawyer,
           uploadedDate: new Date().toLocaleString(),
           published: 'Pending',
           description: 'Clean master document finalized for Client sign-offs',
-          s3Path: `s3://prenup-bucket/cases/${caseId}/clean_master.pdf`,
+          s3Path: `s3://prenup-bucket/cases/${caseId}/clean_master_v3.4.pdf`,
           fileSize: '1.6 MB'
         };
         return {
           ...c,
-          status: 'AWAITING_COUNTERPARTY_LAWYER_APPROVAL' as const,
+          status: 'CLEAN_MASTER_UPLOADED' as const,
           currentVersion: cleanVerNum,
           lastActivity: new Date().toISOString().split('T')[0],
           versions: [...c.versions, cleanVer]
@@ -358,17 +356,23 @@ export const LawyerPortalDashboard: React.FC = () => {
     setCases((prevCases) =>
       prevCases.map((c) => {
         if (c.id !== caseId) return c;
-        // Update versions published status of Clean Master to YES
-        const updatedVersions = c.versions.map((v) => {
-          if (v.version.includes('CLEAN MASTER')) {
-            return { ...v, published: 'YES' as const };
-          }
-          return v;
-        });
+        let nextStatus: CaseStatus = 'AWAITING_COUNTERPARTY_APPROVAL';
+        let updatedVersions = c.versions;
+        if (c.status === 'AWAITING_COUNTERPARTY_APPROVAL') {
+          nextStatus = 'LAWYER_SIGN_OFF_PENDING';
+          updatedVersions = c.versions.map((v) => {
+            if (v.version.includes('CLEAN MASTER')) {
+              return { ...v, published: 'YES' as const };
+            }
+            return v;
+          });
+        } else if (c.status === 'CLEAN_MASTER_UPLOADED') {
+          nextStatus = 'AWAITING_COUNTERPARTY_APPROVAL';
+        }
         return {
           ...c,
-          status: 'CLIENT_APPROVAL_PENDING' as const,
-          publishedVersion: 'v1.5',
+          status: nextStatus,
+          publishedVersion: nextStatus === 'LAWYER_SIGN_OFF_PENDING' ? 'v3.4' : c.publishedVersion,
           lastActivity: new Date().toISOString().split('T')[0],
           versions: updatedVersions
         };
@@ -380,15 +384,8 @@ export const LawyerPortalDashboard: React.FC = () => {
     setCases((prevCases) =>
       prevCases.map((c) => {
         if (c.id !== caseId) return c;
-        let nextStatus: CaseStatus = c.status;
-        if (c.status === 'CLIENT_APPROVAL_PENDING') {
-          nextStatus = 'CLIENT_PARTIALLY_APPROVED';
-        } else if (c.status === 'CLIENT_PARTIALLY_APPROVED') {
-          nextStatus = 'CLIENT_APPROVED'; // Both approved -> Ready for ILA
-        }
         return {
           ...c,
-          status: nextStatus,
           lastActivity: new Date().toISOString().split('T')[0],
         };
       })
@@ -413,10 +410,10 @@ export const LawyerPortalDashboard: React.FC = () => {
 
         if (party === 'p1') {
           p1Cert = certObj;
-          nextStatus = c.ilaP2Cert ? 'READY_FOR_SIGNING' : 'ILA_P1_COMPLETE';
+          nextStatus = c.ilaP2Cert ? 'COMPLETED' : 'ILA_P1_COMPLETE';
         } else {
           p2Cert = certObj;
-          nextStatus = c.ilaP1Cert ? 'READY_FOR_SIGNING' : 'ILA_P2_COMPLETE';
+          nextStatus = c.ilaP1Cert ? 'COMPLETED' : 'ILA_P2_COMPLETE';
         }
 
         return {
@@ -436,7 +433,7 @@ export const LawyerPortalDashboard: React.FC = () => {
         if (c.id !== caseId) return c;
         return {
           ...c,
-          status: 'CLOSED' as const,
+          status: 'COMPLETED' as const,
           lastActivity: new Date().toISOString().split('T')[0],
         };
       })
@@ -505,7 +502,6 @@ export const LawyerPortalDashboard: React.FC = () => {
           currentView={currentView}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          onOpenScorecard={() => setIsScorecardOpen(true)}
           activePersona={activePersona}
           onPersonaChange={handlePersonaChange}
           onOpenProfile={() => setCurrentView('profile')}

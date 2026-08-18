@@ -8,7 +8,6 @@ interface TopBarProps {
   currentView: NavView;
   searchQuery: string;
   onSearchChange: (query: string) => void;
-  onOpenScorecard: () => void;
   activePersona: LawyerPersona;
   onPersonaChange: (persona: LawyerPersona) => void;
   onOpenProfile: () => void;
@@ -30,7 +29,6 @@ export const LawyerTopBar: React.FC<TopBarProps> = ({
   currentView,
   searchQuery,
   onSearchChange,
-  onOpenScorecard,
   activePersona,
   onPersonaChange,
   onOpenProfile,
@@ -49,6 +47,8 @@ export const LawyerTopBar: React.FC<TopBarProps> = ({
 
   const lawyer = getPersonaDetails(activePersona);
 
+  const showSearch = currentView !== 'dashboard' && currentView !== 'profile' && currentView !== 'settings';
+
   return (
     <header className="h-[76px] bg-[#f7f4ee] flex items-center justify-between px-8 pt-4 pb-2 border-b border-slate-200">
       {/* Title */}
@@ -61,19 +61,21 @@ export const LawyerTopBar: React.FC<TopBarProps> = ({
         </span>
       </div>
 
-      {/* Top Actions: Search + Persona Toggler + Scorecard + Interactive User Account Details */}
+      {/* Top Actions: Search (Except on Dashboard) + Persona Toggler + Interactive User Account Details */}
       <div className="flex items-center gap-4">
-        {/* Search */}
-        <div className="relative w-[240px]">
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search cases, clients, versions..."
-            className="w-full bg-white border border-slate-200 rounded-full pl-9 pr-4 py-2 text-xs font-sans text-slate-800 placeholder-slate-400 outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200/50 shadow-xs transition-all"
-          />
-        </div>
+        {/* Search box - hidden on dashboard, profile, and settings */}
+        {showSearch && (
+          <div className="relative w-[240px]">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder="Search cases, clients, versions..."
+              className="w-full bg-white border border-slate-200 rounded-full pl-9 pr-4 py-2 text-xs font-sans text-slate-800 placeholder-slate-400 outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200/50 shadow-xs transition-all"
+            />
+          </div>
+        )}
 
         {/* Persona Switcher Toggler (Dynamic RBAC Test) */}
         <div className="flex items-center bg-slate-200/80 border border-slate-300 rounded-full p-0.5 gap-1 shadow-inner">
@@ -100,14 +102,6 @@ export const LawyerTopBar: React.FC<TopBarProps> = ({
             );
           })}
         </div>
-
-        {/* Scorecard Button */}
-        <button
-          onClick={onOpenScorecard}
-          className="bg-white border border-slate-300 rounded-full px-4 py-2 text-xs font-bold font-sans text-slate-800 shadow-xs hover:bg-slate-50 hover:border-slate-400 transition-all cursor-pointer"
-        >
-          Compliance Scorecard
-        </button>
 
         {/* User profile details */}
         <div

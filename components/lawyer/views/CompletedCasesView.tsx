@@ -29,7 +29,7 @@ export const CompletedCasesView: React.FC<CompletedCasesViewProps> = ({
   // Filter completed cases assigned to this lawyer
   const completedCases = useMemo(() => {
     return cases.filter((c) => {
-      const isCompleted = c.status === 'CLOSED' || c.status === 'ARCHIVED';
+      const isCompleted = c.status === 'COMPLETED' || c.status === 'ARCHIVED';
       if (!isCompleted) return false;
 
       if (activePersona === 'L1') {
@@ -117,7 +117,7 @@ export const CompletedCasesView: React.FC<CompletedCasesViewProps> = ({
             ) : (
               <tr>
                 <td colSpan={7} className="p-8 text-center text-slate-400 text-xs font-sans italic">
-                  No completed matters found. Completed cases show CLOSED or ARCHIVED states.
+                  No completed matters found. Completed cases show COMPLETED or ARCHIVED states.
                 </td>
               </tr>
             )}
