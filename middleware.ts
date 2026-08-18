@@ -24,7 +24,10 @@ export default function middleware(req: NextRequest) {
 
   const isLoggedIn = Boolean(token);
   const isAuthRoute = AUTHROUTES.includes(nextUrl.pathname);
-  const isPublicRoute = nextUrl.pathname === "/" || isAuthRoute;
+  const isPublicRoute =
+    nextUrl.pathname === "/" ||
+    isAuthRoute ||
+    nextUrl.pathname.startsWith("/lawyer");
 
   let role: string | null = null;
 
