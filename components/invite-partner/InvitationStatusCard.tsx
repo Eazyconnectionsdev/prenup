@@ -103,7 +103,7 @@ export const InvitationStatusCard: React.FC<InvitationStatusCardProps> = ({
           </div>
           <h3 className="text-base font-extrabold text-white">No Invitation Sent Yet</h3>
           <p className="text-xs font-semibold text-[#CBD5E1] leading-relaxed">
-            Fill out your partner's details on the left and click <strong>Send Invitation</strong> to unlock your shared workspace.
+            Fill out your partner&apos;s details on the left and click <strong>Send Invitation</strong> to unlock your shared workspace.
           </p>
         </div>
       )}
