@@ -110,6 +110,7 @@ const P2_FORM_MOCK = {
 };
 
 const MOCK_INITIAL_CASES: LawyerCase[] = [
+  // 3 REVIEW_PENDING (Review Pending)
   {
     id: 'LP-2026-001',
     service: 'Premier Bespoke',
@@ -120,55 +121,36 @@ const MOCK_INITIAL_CASES: LawyerCase[] = [
     p2Firm: 'Torys LLP',
     p1Lawyer: 'Robert Miller, Esq.',
     p2Lawyer: 'Mark Sterling, Esq.',
-    currentVersion: 'v1.4',
-    publishedVersion: 'v1.2',
-    lastActivity: '2026-08-16',
+    currentVersion: 'v1.0',
+    publishedVersion: 'v1.0',
+    lastActivity: '2026-08-20',
     daysInStatus: 3,
     p1Forms: P1_FORM_MOCK,
     p2Forms: P2_FORM_MOCK,
     versions: [
       { version: 'v1.0', uploadedBy: 'System', uploadedDate: '2026-08-01 10:00 AM', published: 'YES', description: 'Initial questionnaire generation', s3Path: 's3://prenup-bucket/cases/LP-001/v1.0.pdf', fileSize: '1.2 MB' },
-      { version: 'v1.1', uploadedBy: 'Robert Miller, Esq.', uploadedDate: '2026-08-03 02:30 PM', published: 'NO', description: 'Initial amendments on property treatment', s3Path: 's3://prenup-bucket/cases/LP-001/v1.1.pdf', fileSize: '1.3 MB' },
-      { version: 'v1.2', uploadedBy: 'Mark Sterling, Esq.', uploadedDate: '2026-08-06 11:15 AM', published: 'YES', description: 'Added bank account schedules', s3Path: 's3://prenup-bucket/cases/LP-001/v1.2.pdf', fileSize: '1.3 MB' },
-      { version: 'v1.3', uploadedBy: 'Robert Miller, Esq.', uploadedDate: '2026-08-10 04:00 PM', published: 'NO', description: 'Amended spousal support waivers', s3Path: 's3://prenup-bucket/cases/LP-001/v1.3.pdf', fileSize: '1.4 MB' },
-      { version: 'v1.4', uploadedBy: 'Mark Sterling, Esq.', uploadedDate: '2026-08-15 09:45 AM', published: 'NO', description: 'Clean master pre-review changes', s3Path: 's3://prenup-bucket/cases/LP-001/v1.4.pdf', fileSize: '1.4 MB' },
     ],
-    notes: [
-      { version: 'v1.1', notes: 'Robert: Arthur requests keeping the 40% corporate equity separate from matrimonial claims.', createdBy: 'Robert Miller, Esq.', createdDate: '2026-08-03 02:40 PM', visibleTo: 'L1' },
-      { version: 'v1.2', notes: 'Mark: Sophia wants reciprocal waiver of bank balances outside joint account listings.', createdBy: 'Mark Sterling, Esq.', createdDate: '2026-08-06 11:30 AM', visibleTo: 'L2' },
-    ],
-    appendices: {
-      A: [
-        { id: 'app-a-1', title: 'Arthur Vance Condo Registry Deed', description: 'Title deed for Toronto condominium holding', fileName: 'deed_condo_arthur.pdf', uploadedBy: 'Robert Miller, Esq.', createdDate: '2026-08-03 03:00 PM', s3Path: 's3://prenup-bucket/cases/LP-001/deed_condo_arthur.pdf' }
-      ],
-      B: [
-        { id: 'app-b-1', title: 'Sophia Lin BMO Savings statements', description: 'Savings statements showing $180k balance', fileName: 'bmo_savings_sophia.pdf', uploadedBy: 'Mark Sterling, Esq.', createdDate: '2026-08-06 11:45 AM', s3Path: 's3://prenup-bucket/cases/LP-001/bmo_savings_sophia.pdf' }
-      ],
-      C: []
-    },
-    emails: [
-      { id: 'email-1', sender: 'system@letsprenup.com', recipient: 'robert.miller@blakes.com', subject: 'New Case Assignment: LP-2026-001', body: 'You have been assigned as L1 counsel for Arthur Vance. Please review questionnaire forms.', sentAt: '2026-08-01 10:05 AM' }
-    ]
+    notes: [],
+    appendices: { A: [], B: [], C: [] },
+    emails: []
   },
   {
     id: 'LP-2026-002',
-    service: 'Express Tier',
-    status: 'CLIENT_APPROVAL_PENDING',
-    p1Name: 'David Miller',
-    p2Name: 'Sarah Conner',
+    service: 'Bespoke Prenup',
+    status: 'LAWYER_REVIEW',
+    p1Name: 'Oliver Queen',
+    p2Name: 'Felicity Smoak',
     p1Firm: 'Blake Cassels LLP',
     p2Firm: 'Torys LLP',
     p1Lawyer: 'Robert Miller, Esq.',
     p2Lawyer: 'Mark Sterling, Esq.',
-    currentVersion: 'v1.5',
-    publishedVersion: 'v1.5',
-    lastActivity: '2026-08-10',
-    daysInStatus: 8,
+    currentVersion: 'v1.1',
+    publishedVersion: 'v1.0',
+    lastActivity: '2026-08-18',
+    daysInStatus: 2,
     p1Forms: P1_FORM_MOCK,
     p2Forms: P2_FORM_MOCK,
-    versions: [
-      { version: 'v1.5', uploadedBy: 'Mark Sterling, Esq.', uploadedDate: '2026-08-10 10:00 AM', published: 'YES', description: 'Clean master version uploaded', s3Path: 's3://prenup-bucket/cases/LP-002/v1.5.pdf', fileSize: '1.4 MB' }
-    ],
+    versions: [],
     notes: [],
     appendices: { A: [], B: [], C: [] },
     emails: []
@@ -176,35 +158,79 @@ const MOCK_INITIAL_CASES: LawyerCase[] = [
   {
     id: 'LP-2026-003',
     service: 'Standard Digital',
-    status: 'CLOSED',
-    p1Name: 'Bruce Wayne',
-    p2Name: 'Selina Kyle',
+    status: 'LAWYER_REVIEW',
+    p1Name: 'Barry Allen',
+    p2Name: 'Iris West',
     p1Firm: 'Blake Cassels LLP',
     p2Firm: 'Torys LLP',
     p1Lawyer: 'Robert Miller, Esq.',
     p2Lawyer: 'Mark Sterling, Esq.',
-    currentVersion: 'v2.0',
-    publishedVersion: 'v2.0',
-    lastActivity: '2026-07-28',
-    daysInStatus: 25,
+    currentVersion: 'v1.0',
+    publishedVersion: 'v1.0',
+    lastActivity: '2026-08-20',
+    daysInStatus: 1,
     p1Forms: P1_FORM_MOCK,
     p2Forms: P2_FORM_MOCK,
-    versions: [
-      { version: 'v2.0', uploadedBy: 'System', uploadedDate: '2026-07-28 04:00 PM', published: 'YES', description: 'Executed Clean Pack', s3Path: 's3://prenup-bucket/cases/LP-003/v2.0.pdf', fileSize: '2.1 MB' }
-    ],
+    versions: [],
+    notes: [],
+    appendices: { A: [], B: [], C: [] },
+    emails: []
+  },
+
+  // 2 AWAITING_COUNTERPARTY_LAWYER_APPROVAL (Clean Master Upload Pending)
+  {
+    id: 'LP-2026-004',
+    service: 'Express Tier',
+    status: 'AWAITING_COUNTERPARTY_LAWYER_APPROVAL',
+    p1Name: 'Peter Parker',
+    p2Name: 'Mary Jane',
+    p1Firm: 'Blake Cassels LLP',
+    p2Firm: 'Torys LLP',
+    p1Lawyer: 'Robert Miller, Esq.',
+    p2Lawyer: 'Mark Sterling, Esq.',
+    currentVersion: 'v1.2',
+    publishedVersion: 'v1.1',
+    lastActivity: '2026-08-15',
+    daysInStatus: 4,
+    p1Forms: P1_FORM_MOCK,
+    p2Forms: P2_FORM_MOCK,
+    versions: [],
     notes: [],
     appendices: { A: [], B: [], C: [] },
     emails: []
   },
   {
-    id: 'LP-2026-004',
+    id: 'LP-2026-005',
     service: 'Bespoke Prenup',
+    status: 'AWAITING_COUNTERPARTY_LAWYER_APPROVAL',
+    p1Name: 'Tony Stark',
+    p2Name: 'Pepper Potts',
+    p1Firm: 'Blake Cassels LLP',
+    p2Firm: 'Torys LLP',
+    p1Lawyer: 'Robert Miller, Esq.',
+    p2Lawyer: 'Mark Sterling, Esq.',
+    currentVersion: 'v1.3',
+    publishedVersion: 'v1.1',
+    lastActivity: '2026-08-14',
+    daysInStatus: 5,
+    p1Forms: P1_FORM_MOCK,
+    p2Forms: P2_FORM_MOCK,
+    versions: [],
+    notes: [],
+    appendices: { A: [], B: [], C: [] },
+    emails: []
+  },
+
+  // 2 READY_FOR_SIGNING (Sign-Off & ILA Pending)
+  {
+    id: 'LP-2026-006',
+    service: 'Premier Bespoke',
     status: 'READY_FOR_SIGNING',
     p1Name: 'Clark Kent',
     p2Name: 'Lois Lane',
-    p1Firm: 'Osler Hoskin LLP',
+    p1Firm: 'Blake Cassels LLP',
     p2Firm: 'Torys LLP',
-    p1Lawyer: 'Clara Conner, Esq.',
+    p1Lawyer: 'Robert Miller, Esq.',
     p2Lawyer: 'Mark Sterling, Esq.',
     currentVersion: 'v1.5',
     publishedVersion: 'v1.5',
@@ -212,34 +238,305 @@ const MOCK_INITIAL_CASES: LawyerCase[] = [
     daysInStatus: 4,
     p1Forms: P1_FORM_MOCK,
     p2Forms: P2_FORM_MOCK,
-    versions: [
-      { version: 'v1.5', uploadedBy: 'Mark Sterling, Esq.', uploadedDate: '2026-08-14 02:00 PM', published: 'YES', description: 'Clean master version uploaded', s3Path: 's3://prenup-bucket/cases/LP-004/v1.5.pdf', fileSize: '1.4 MB' }
-    ],
+    versions: [],
     notes: [],
     appendices: { A: [], B: [], C: [] },
     emails: []
   },
   {
-    id: 'LP-2026-005',
-    service: 'Premier Bespoke',
-    status: 'LAWYER_REVIEW',
-    p1Name: 'Arthur Curry',
-    p2Name: 'Mera Ocean',
-    p1Firm: 'Osler Hoskin LLP',
-    p2Firm: 'Blake Cassels LLP',
-    p1Lawyer: 'Clara Conner, Esq.',
-    p2Lawyer: 'Robert Miller, Esq.',
-    currentVersion: 'v1.1',
-    publishedVersion: 'v1.0',
-    lastActivity: '2026-08-18',
+    id: 'LP-2026-007',
+    service: 'Standard Digital',
+    status: 'READY_FOR_SIGNING',
+    p1Name: 'Hal Jordan',
+    p2Name: 'Carol Ferris',
+    p1Firm: 'Blake Cassels LLP',
+    p2Firm: 'Torys LLP',
+    p1Lawyer: 'Robert Miller, Esq.',
+    p2Lawyer: 'Mark Sterling, Esq.',
+    currentVersion: 'v1.2',
+    publishedVersion: 'v1.2',
+    lastActivity: '2026-08-19',
     daysInStatus: 1,
-    certificateExpiryDate: '2026-09-05', // 18 Days from now (Expiring Cert < 30 days)
     p1Forms: P1_FORM_MOCK,
     p2Forms: P2_FORM_MOCK,
-    versions: [
-      { version: 'v1.0', uploadedBy: 'System', uploadedDate: '2026-08-18 09:00 AM', published: 'YES', description: 'System questionnaire generation', s3Path: 's3://prenup-bucket/cases/LP-005/v1.0.pdf', fileSize: '1.2 MB' },
-      { version: 'v1.1', uploadedBy: 'Robert Miller, Esq.', uploadedDate: '2026-08-18 11:30 AM', published: 'NO', description: 'Amended offshore property clauses', s3Path: 's3://prenup-bucket/cases/LP-005/v1.1.pdf', fileSize: '1.3 MB' }
-    ],
+    versions: [],
+    notes: [],
+    appendices: { A: [], B: [], C: [] },
+    emails: []
+  },
+
+  // 7 FORMS_LOCKED (Onboarding Pending)
+  {
+    id: 'LP-2026-008',
+    service: 'Express Tier',
+    status: 'FORMS_LOCKED',
+    p1Name: 'Bruce Wayne',
+    p2Name: 'Selina Kyle',
+    p1Firm: 'Blake Cassels LLP',
+    p2Firm: 'Torys LLP',
+    p1Lawyer: 'Robert Miller, Esq.',
+    p2Lawyer: 'Mark Sterling, Esq.',
+    currentVersion: 'v1.0',
+    publishedVersion: 'v1.0',
+    lastActivity: '2026-08-20',
+    daysInStatus: 2,
+    p1Forms: P1_FORM_MOCK,
+    p2Forms: P2_FORM_MOCK,
+    versions: [],
+    notes: [],
+    appendices: { A: [], B: [], C: [] },
+    emails: []
+  },
+  {
+    id: 'LP-2026-009',
+    service: 'Express Tier',
+    status: 'FORMS_LOCKED',
+    p1Name: 'Reed Richards',
+    p2Name: 'Sue Storm',
+    p1Firm: 'Blake Cassels LLP',
+    p2Firm: 'Torys LLP',
+    p1Lawyer: 'Robert Miller, Esq.',
+    p2Lawyer: 'Mark Sterling, Esq.',
+    currentVersion: 'v1.0',
+    publishedVersion: 'v1.0',
+    lastActivity: '2026-08-20',
+    daysInStatus: 2,
+    p1Forms: P1_FORM_MOCK,
+    p2Forms: P2_FORM_MOCK,
+    versions: [],
+    notes: [],
+    appendices: { A: [], B: [], C: [] },
+    emails: []
+  },
+  {
+    id: 'LP-2026-010',
+    service: 'Express Tier',
+    status: 'FORMS_LOCKED',
+    p1Name: 'Steve Rogers',
+    p2Name: 'Peggy Carter',
+    p1Firm: 'Blake Cassels LLP',
+    p2Firm: 'Torys LLP',
+    p1Lawyer: 'Robert Miller, Esq.',
+    p2Lawyer: 'Mark Sterling, Esq.',
+    currentVersion: 'v1.0',
+    publishedVersion: 'v1.0',
+    lastActivity: '2026-08-20',
+    daysInStatus: 2,
+    p1Forms: P1_FORM_MOCK,
+    p2Forms: P2_FORM_MOCK,
+    versions: [],
+    notes: [],
+    appendices: { A: [], B: [], C: [] },
+    emails: []
+  },
+  {
+    id: 'LP-2026-011',
+    service: 'Express Tier',
+    status: 'FORMS_LOCKED',
+    p1Name: 'Wally West',
+    p2Name: 'Linda Park',
+    p1Firm: 'Blake Cassels LLP',
+    p2Firm: 'Torys LLP',
+    p1Lawyer: 'Robert Miller, Esq.',
+    p2Lawyer: 'Mark Sterling, Esq.',
+    currentVersion: 'v1.0',
+    publishedVersion: 'v1.0',
+    lastActivity: '2026-08-20',
+    daysInStatus: 2,
+    p1Forms: P1_FORM_MOCK,
+    p2Forms: P2_FORM_MOCK,
+    versions: [],
+    notes: [],
+    appendices: { A: [], B: [], C: [] },
+    emails: []
+  },
+  {
+    id: 'LP-2026-012',
+    service: 'Express Tier',
+    status: 'FORMS_LOCKED',
+    p1Name: 'Arthur Curry',
+    p2Name: 'Mera Ocean',
+    p1Firm: 'Blake Cassels LLP',
+    p2Firm: 'Torys LLP',
+    p1Lawyer: 'Robert Miller, Esq.',
+    p2Lawyer: 'Mark Sterling, Esq.',
+    currentVersion: 'v1.0',
+    publishedVersion: 'v1.0',
+    lastActivity: '2026-08-20',
+    daysInStatus: 2,
+    p1Forms: P1_FORM_MOCK,
+    p2Forms: P2_FORM_MOCK,
+    versions: [],
+    notes: [],
+    appendices: { A: [], B: [], C: [] },
+    emails: []
+  },
+  {
+    id: 'LP-2026-013',
+    service: 'Express Tier',
+    status: 'FORMS_LOCKED',
+    p1Name: 'Ray Palmer',
+    p2Name: 'Jean Loring',
+    p1Firm: 'Blake Cassels LLP',
+    p2Firm: 'Torys LLP',
+    p1Lawyer: 'Robert Miller, Esq.',
+    p2Lawyer: 'Mark Sterling, Esq.',
+    currentVersion: 'v1.0',
+    publishedVersion: 'v1.0',
+    lastActivity: '2026-08-20',
+    daysInStatus: 2,
+    p1Forms: P1_FORM_MOCK,
+    p2Forms: P2_FORM_MOCK,
+    versions: [],
+    notes: [],
+    appendices: { A: [], B: [], C: [] },
+    emails: []
+  },
+  {
+    id: 'LP-2026-014',
+    service: 'Express Tier',
+    status: 'FORMS_LOCKED',
+    p1Name: 'Carter Hall',
+    p2Name: 'Shiera Sanders',
+    p1Firm: 'Blake Cassels LLP',
+    p2Firm: 'Torys LLP',
+    p1Lawyer: 'Robert Miller, Esq.',
+    p2Lawyer: 'Mark Sterling, Esq.',
+    currentVersion: 'v1.0',
+    publishedVersion: 'v1.0',
+    lastActivity: '2026-08-20',
+    daysInStatus: 2,
+    p1Forms: P1_FORM_MOCK,
+    p2Forms: P2_FORM_MOCK,
+    versions: [],
+    notes: [],
+    appendices: { A: [], B: [], C: [] },
+    emails: []
+  },
+
+  // 6 CLOSED (Completed)
+  {
+    id: 'LP-2026-015',
+    service: 'Express Tier',
+    status: 'CLOSED',
+    p1Name: 'Logan Howlett',
+    p2Name: 'Jean Grey',
+    p1Firm: 'Blake Cassels LLP',
+    p2Firm: 'Torys LLP',
+    p1Lawyer: 'Robert Miller, Esq.',
+    p2Lawyer: 'Mark Sterling, Esq.',
+    currentVersion: 'v2.0',
+    publishedVersion: 'v2.0',
+    lastActivity: '2026-08-10',
+    daysInStatus: 10,
+    p1Forms: P1_FORM_MOCK,
+    p2Forms: P2_FORM_MOCK,
+    versions: [],
+    notes: [],
+    appendices: { A: [], B: [], C: [] },
+    emails: []
+  },
+  {
+    id: 'LP-2026-016',
+    service: 'Express Tier',
+    status: 'CLOSED',
+    p1Name: 'Scott Summers',
+    p2Name: 'Emma Frost',
+    p1Firm: 'Blake Cassels LLP',
+    p2Firm: 'Torys LLP',
+    p1Lawyer: 'Robert Miller, Esq.',
+    p2Lawyer: 'Mark Sterling, Esq.',
+    currentVersion: 'v2.0',
+    publishedVersion: 'v2.0',
+    lastActivity: '2026-08-11',
+    daysInStatus: 9,
+    p1Forms: P1_FORM_MOCK,
+    p2Forms: P2_FORM_MOCK,
+    versions: [],
+    notes: [],
+    appendices: { A: [], B: [], C: [] },
+    emails: []
+  },
+  {
+    id: 'LP-2026-017',
+    service: 'Express Tier',
+    status: 'CLOSED',
+    p1Name: 'Remy LeBeau',
+    p2Name: 'Anna Marie',
+    p1Firm: 'Blake Cassels LLP',
+    p2Firm: 'Torys LLP',
+    p1Lawyer: 'Robert Miller, Esq.',
+    p2Lawyer: 'Mark Sterling, Esq.',
+    currentVersion: 'v2.0',
+    publishedVersion: 'v2.0',
+    lastActivity: '2026-08-12',
+    daysInStatus: 8,
+    p1Forms: P1_FORM_MOCK,
+    p2Forms: P2_FORM_MOCK,
+    versions: [],
+    notes: [],
+    appendices: { A: [], B: [], C: [] },
+    emails: []
+  },
+  {
+    id: 'LP-2026-018',
+    service: 'Express Tier',
+    status: 'CLOSED',
+    p1Name: 'Hank Pym',
+    p2Name: 'Janet Van Dyne',
+    p1Firm: 'Blake Cassels LLP',
+    p2Firm: 'Torys LLP',
+    p1Lawyer: 'Robert Miller, Esq.',
+    p2Lawyer: 'Mark Sterling, Esq.',
+    currentVersion: 'v2.0',
+    publishedVersion: 'v2.0',
+    lastActivity: '2026-08-13',
+    daysInStatus: 7,
+    p1Forms: P1_FORM_MOCK,
+    p2Forms: P2_FORM_MOCK,
+    versions: [],
+    notes: [],
+    appendices: { A: [], B: [], C: [] },
+    emails: []
+  },
+  {
+    id: 'LP-2026-019',
+    service: 'Express Tier',
+    status: 'CLOSED',
+    p1Name: 'Bruce Banner',
+    p2Name: 'Betty Ross',
+    p1Firm: 'Blake Cassels LLP',
+    p2Firm: 'Torys LLP',
+    p1Lawyer: 'Robert Miller, Esq.',
+    p2Lawyer: 'Mark Sterling, Esq.',
+    currentVersion: 'v2.0',
+    publishedVersion: 'v2.0',
+    lastActivity: '2026-08-14',
+    daysInStatus: 6,
+    p1Forms: P1_FORM_MOCK,
+    p2Forms: P2_FORM_MOCK,
+    versions: [],
+    notes: [],
+    appendices: { A: [], B: [], C: [] },
+    emails: []
+  },
+  {
+    id: 'LP-2026-020',
+    service: 'Express Tier',
+    status: 'CLOSED',
+    p1Name: 'Matt Murdock',
+    p2Name: 'Elektra Natchios',
+    p1Firm: 'Blake Cassels LLP',
+    p2Firm: 'Torys LLP',
+    p1Lawyer: 'Robert Miller, Esq.',
+    p2Lawyer: 'Mark Sterling, Esq.',
+    currentVersion: 'v2.0',
+    publishedVersion: 'v2.0',
+    lastActivity: '2026-08-15',
+    daysInStatus: 5,
+    p1Forms: P1_FORM_MOCK,
+    p2Forms: P2_FORM_MOCK,
+    versions: [],
     notes: [],
     appendices: { A: [], B: [], C: [] },
     emails: []
@@ -259,6 +556,12 @@ export const LawyerPortalDashboard: React.FC = () => {
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isScorecardOpen, setIsScorecardOpen] = useState(false);
+
+  const handleViewChange = (view: NavView) => {
+    setCurrentView(view);
+    setIsDrawerOpen(false);
+    setSelectedCaseId(null);
+  };
 
   // Helper info for active lawyer name based on persona
   const getLawyerName = (persona: LawyerPersona) => {
@@ -303,6 +606,11 @@ export const LawyerPortalDashboard: React.FC = () => {
   const handlePersonaChange = (persona: LawyerPersona) => {
     setActivePersona(persona);
     setStatusFilter('ALL');
+  };
+
+  const handleCardClick = (filter: string) => {
+    setStatusFilter(filter);
+    handleViewChange('assigned_cases');
   };
 
   // Callback handlers for Case drawer actions
@@ -486,118 +794,131 @@ export const LawyerPortalDashboard: React.FC = () => {
       })
     );
   };
+  const isCaseOpen = isDrawerOpen && !!selectedCaseObj;
 
   return (
-    <div className="min-h-screen bg-[#f7f4ee] text-slate-800 flex font-sans">
+    <div className="min-h-screen bg-[#f1f5f9] text-slate-800 flex font-sans">
       {/* Left Sidebar */}
       <LawyerSidebar
         currentView={currentView}
-        onViewChange={setCurrentView}
+        onViewChange={handleViewChange}
         assignedCount={assignedCount}
         completedCount={completedCount}
         activePersona={activePersona}
-        onOpenProfile={() => setCurrentView('profile')}
+        onOpenProfile={() => handleViewChange('profile')}
       />
 
       {/* Main Area */}
       <div className="ml-[250px] flex-1 flex flex-col min-w-0">
-        <LawyerTopBar
-          currentView={currentView}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          onOpenScorecard={() => setIsScorecardOpen(true)}
-          activePersona={activePersona}
-          onPersonaChange={handlePersonaChange}
-          onOpenProfile={() => setCurrentView('profile')}
-        />
+        {!isCaseOpen && (
+          <LawyerTopBar
+            currentView={currentView}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            onOpenScorecard={() => setIsScorecardOpen(true)}
+            activePersona={activePersona}
+            onPersonaChange={handlePersonaChange}
+            onOpenProfile={() => handleViewChange('profile')}
+          />
+        )}
 
         {/* Content View Routing */}
-        <main className="p-8 flex-1">
-          {currentView === 'dashboard' && (
-            <DashboardView
-              cases={cases}
+        <main className={isCaseOpen ? "flex-1 flex flex-col min-w-0" : "p-8 flex-1"}>
+          {isDrawerOpen && selectedCaseObj ? (
+            <LawyerCaseDrawer
+              isOpen={isDrawerOpen}
+              onClose={() => {
+                setIsDrawerOpen(false);
+                setSelectedCaseId(null);
+              }}
+              caseObj={selectedCaseObj}
               activePersona={activePersona}
-              onSelectCase={handleOpenDrawer}
-              statusFilter={statusFilter}
-              onFilterChange={setStatusFilter}
+              onUploadVersion={handleUploadVersion}
+              onUploadCleanMaster={handleUploadCleanMaster}
+              onApproveCleanMaster={handleApproveCleanMaster}
+              onClientApprove={handleClientApprove}
+              onIssueIla={handleIssueIla}
+              onSignAgreement={handleSignAgreement}
+              onSaveNote={handleSaveNote}
+              onUploadAppendix={handleUploadAppendix}
+              isInline={true}
             />
-          )}
+          ) : (
+            <>
+              {currentView === 'dashboard' && (
+                <DashboardView
+                  cases={cases}
+                  activePersona={activePersona}
+                  onSelectCase={handleOpenDrawer}
+                  statusFilter={statusFilter}
+                  onFilterChange={setStatusFilter}
+                  onCardClick={handleCardClick}
+                />
+              )}
 
-          {currentView === 'assigned_cases' && (
-            <CasesListView
-              cases={cases}
-              activePersona={activePersona}
-              onSelectCase={handleOpenDrawer}
-              searchQuery={searchQuery}
-            />
-          )}
+              {currentView === 'assigned_cases' && (
+                <CasesListView
+                  cases={cases}
+                  activePersona={activePersona}
+                  onSelectCase={handleOpenDrawer}
+                  searchQuery={searchQuery}
+                  statusFilter={statusFilter}
+                  onFilterChange={setStatusFilter}
+                />
+              )}
 
-          {currentView === 'completed' && (
-            <CompletedCasesView
-              cases={cases}
-              activePersona={activePersona}
-              onSelectCase={handleOpenDrawer}
-              searchQuery={searchQuery}
-            />
-          )}
+              {currentView === 'completed' && (
+                <CompletedCasesView
+                  cases={cases}
+                  activePersona={activePersona}
+                  onSelectCase={handleOpenDrawer}
+                  searchQuery={searchQuery}
+                />
+              )}
 
-          {currentView === 'profile' && (
-            <ProfileView activePersona={activePersona} />
-          )}
+              {currentView === 'profile' && (
+                <ProfileView activePersona={activePersona} />
+              )}
 
-          {currentView === 'settings' && (
-            <SettingsView />
-          )}
+              {currentView === 'settings' && (
+                <SettingsView />
+              )}
 
-          {currentView === 'versions' && (
-            <AgreementVersionsView
-              cases={cases}
-              activePersona={activePersona}
-              onSelectCase={handleOpenDrawer}
-            />
-          )}
+              {currentView === 'versions' && (
+                <AgreementVersionsView
+                  cases={cases}
+                  activePersona={activePersona}
+                  onSelectCase={handleOpenDrawer}
+                />
+              )}
 
-          {currentView === 'notes' && (
-            <SummaryNotesView
-              cases={cases}
-              activePersona={activePersona}
-              onSelectCase={handleOpenDrawer}
-            />
-          )}
+              {currentView === 'notes' && (
+                <SummaryNotesView
+                  cases={cases}
+                  activePersona={activePersona}
+                  onSelectCase={handleOpenDrawer}
+                />
+              )}
 
-          {currentView === 'appendices' && (
-            <AppendicesView
-              cases={cases}
-              activePersona={activePersona}
-              onSelectCase={handleOpenDrawer}
-            />
-          )}
+              {currentView === 'appendices' && (
+                <AppendicesView
+                  cases={cases}
+                  activePersona={activePersona}
+                  onSelectCase={handleOpenDrawer}
+                />
+              )}
 
-          {currentView === 'ila' && (
-            <IlaCertificatesView
-              cases={cases}
-              activePersona={activePersona}
-              onSelectCase={handleOpenDrawer}
-            />
+              {currentView === 'ila' && (
+                <IlaCertificatesView
+                  cases={cases}
+                  activePersona={activePersona}
+                  onSelectCase={handleOpenDrawer}
+                />
+              )}
+            </>
           )}
         </main>
       </div>
-
-      {/* Detail Slide Drawer */}
-      <LawyerCaseDrawer
-        isOpen={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
-        caseObj={selectedCaseObj}
-        activePersona={activePersona}
-        onUploadVersion={handleUploadVersion}
-        onUploadCleanMaster={handleUploadCleanMaster}
-        onApproveCleanMaster={handleApproveCleanMaster}
-        onClientApprove={handleClientApprove}
-        onIssueIla={handleIssueIla}
-        onSignAgreement={handleSignAgreement}
-        onSaveNote={handleSaveNote}
-        onUploadAppendix={handleUploadAppendix}
-      />
 
       {/* Scorecard Modal */}
       <ScorecardModal

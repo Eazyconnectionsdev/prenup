@@ -101,7 +101,7 @@ export const CompletedCasesView: React.FC<CompletedCasesViewProps> = ({
                     </td>
                     <td className="p-4">
                       <span className="border border-slate-300 text-slate-700 bg-slate-100 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full">
-                        {c.status}
+                        {c.status === 'CLOSED' || c.status === 'ARCHIVED' ? 'COMPLETED' : c.status}
                       </span>
                     </td>
                     <td className="p-4">{c.lastActivity}</td>

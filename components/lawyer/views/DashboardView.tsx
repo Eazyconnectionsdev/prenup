@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { LawyerCase, LawyerPersona, CaseStatus } from '../../../types/lawyer-portal';
 
 interface DashboardViewProps {
@@ -9,6 +9,7 @@ interface DashboardViewProps {
   onSelectCase: (caseId: string) => void;
   statusFilter: string;
   onFilterChange: (filter: string) => void;
+  onCardClick: (filter: string) => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -17,7 +18,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onSelectCase,
   statusFilter,
   onFilterChange,
+  onCardClick,
 }) => {
+  const [isOnboardedExpanded, setIsOnboardedExpanded] = useState(false);
   // Helper to determine active lawyer name based on persona
   const getLawyerName = (persona: LawyerPersona) => {
     if (persona === 'L1') return 'Robert Miller, Esq.';
@@ -146,127 +149,109 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   return (
     <div className="flex flex-col gap-6 max-w-[1280px]">
-      {/* Metrics Section: 10 metrics grid */}
-      <div className="flex flex-col gap-3">
-        <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider font-sans">
-          Dashboard Engine Metrics (LAWYER_PORTAL_V1.1 Specification)
+      {/* Metrics Section: 4 metrics grid matching SS */}
+      <div className="flex flex-col gap-4">
+        <h2 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider font-sans">
+          LAWYER DASHBOARD STATUS
         </h2>
         
-        {/* Row 1: Metrics 1-5 */}
-        <div className="grid grid-cols-5 gap-3.5">
-          {metrics.slice(0, 5).map((m) => {
-            const isSelected = statusFilter === m.key;
-            return (
-              <div
-                key={m.key}
-                onClick={() => onFilterChange(m.key)}
-                className={`border rounded-xl p-4 cursor-pointer hover:shadow-md transition-all flex flex-col justify-between h-[96px] group active:scale-[0.98] ${
-                  isSelected
-                    ? 'bg-[#1b2947] border-[#1b2947] text-white'
-                    : 'bg-white border-slate-300 text-slate-900 hover:border-slate-400'
-                }`}
-                title={m.desc}
-              >
-                <span className={`text-[9px] font-bold font-sans uppercase tracking-wider ${
-                  isSelected ? 'text-slate-300' : 'text-slate-400 group-hover:text-slate-600'
-                }`}>
-                  {m.label}
-                </span>
-                <div className="text-2xl font-bold font-sans tracking-tight leading-none">
-                  {m.value}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Row 2: Metrics 6-10 */}
-        <div className="grid grid-cols-5 gap-3.5">
-          {metrics.slice(5, 10).map((m) => {
-            const isSelected = statusFilter === m.key;
-            return (
-              <div
-                key={m.key}
-                onClick={() => onFilterChange(m.key)}
-                className={`border rounded-xl p-4 cursor-pointer hover:shadow-md transition-all flex flex-col justify-between h-[96px] group active:scale-[0.98] ${
-                  isSelected
-                    ? 'bg-[#1b2947] border-[#1b2947] text-white'
-                    : 'bg-white border-slate-300 text-slate-900 hover:border-slate-400'
-                }`}
-                title={m.desc}
-              >
-                <span className={`text-[9px] font-bold font-sans uppercase tracking-wider ${
-                  isSelected ? 'text-slate-300' : 'text-slate-400 group-hover:text-slate-600'
-                }`}>
-                  {m.label}
-                </span>
-                <div className="text-2xl font-bold font-sans tracking-tight leading-none">
-                  {m.value}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Cases queue section */}
-      <div className="mt-2">
-        <div className="text-[11px] font-bold font-sans uppercase tracking-wider text-slate-500 mb-3 flex items-center justify-between">
-          <span>Active Assignments Queue ({filteredCasesList.length} Matters)</span>
-          <span className="text-[10px] text-slate-400 font-normal">
-            Currently logged in as: <strong className="text-slate-700 font-bold">{activeLawyer}</strong> ({activePersona})
-          </span>
-        </div>
-
-        {filteredCasesList.length > 0 ? (
-          <div className="grid grid-cols-2 gap-4">
-            {filteredCasesList.map((c) => {
-              // Get the lawyer's client name
-              const myClient = activePersona === 'L1' ? c.p1Name : c.p2Name;
-              return (
-                <div
-                  key={c.id}
-                  onClick={() => onSelectCase(c.id)}
-                  className="bg-white border border-slate-300 rounded-xl p-5 cursor-pointer hover:shadow-md hover:border-slate-400 active:scale-[0.99] transition-all flex flex-col gap-3.5 group shadow-2xs"
-                >
-                  {/* Header: ID + Status */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono font-bold text-slate-500 group-hover:text-slate-900 transition-colors">
-                      {c.id}
-                    </span>
-                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${getStatusBadgeStyle(c.status)}`}>
-                      {formatStatus(c.status)}
-                    </span>
-                  </div>
-
-                  {/* Client Info */}
-                  <div>
-                    <h3 className="text-sm font-semibold font-sans text-slate-900 tracking-tight">
-                      {c.p1Name} &amp; {c.p2Name}
-                    </h3>
-                    <div className="text-[10px] text-slate-500 font-sans mt-1">
-                      Your Client: <span className="font-bold text-slate-800">{myClient}</span>
-                    </div>
-                  </div>
-
-                  {/* Footer: Service and Versions */}
-                  <div className="flex items-center justify-between pt-1 border-t border-slate-100">
-                    <span className="text-[9px] uppercase font-bold text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded">
-                      {c.service}
-                    </span>
-                    <div className="flex items-center gap-1.5 font-mono text-[9px] text-slate-500">
-                      <span>L-Facing: {c.currentVersion}</span>
-                      <span className="text-slate-300">|</span>
-                      <span>C-Facing: {c.publishedVersion}</span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+        <div className="grid grid-cols-4 gap-5">
+          {/* Card 1: TOTAL CASES */}
+          <div 
+            onClick={() => onCardClick('ALL')}
+            className="bg-[#131e36] border border-[#1b2a47] rounded-xl p-6 flex flex-col justify-between h-[112px] shadow-xs cursor-pointer hover:bg-[#1b2947] hover:border-slate-500 transition-all"
+          >
+            <span className="text-[10px] font-bold font-sans uppercase tracking-wider text-slate-300">
+              TOTAL CASES
+            </span>
+            <div className="text-3xl font-bold font-sans text-white tracking-tight leading-none">
+              20
+            </div>
           </div>
-        ) : (
-          <div className="bg-white border border-slate-300 rounded-xl p-12 text-center text-slate-400 font-sans italic text-sm shadow-2xs">
-            No matters found in this queue mapping. All workflows align with AGREEMENT_DOCUMENT_ENGINE_V1.1.
+
+          {/* Card 2: ONBOARDING PENDING */}
+          <div 
+            onClick={() => onCardClick('ONBOARDING_PENDING')}
+            className="bg-white border border-slate-200 rounded-xl p-6 flex flex-col justify-between h-[112px] shadow-xs cursor-pointer hover:border-slate-300 hover:shadow-sm transition-all"
+          >
+            <span className="text-[10px] font-bold font-sans uppercase tracking-wider text-slate-400">
+              ONBOARDING PENDING
+            </span>
+            <div className="text-3xl font-bold font-sans text-slate-800 tracking-tight leading-none">
+              7
+            </div>
+          </div>
+
+          {/* Card 3: ONBOARDED */}
+          <div 
+            onClick={() => setIsOnboardedExpanded(!isOnboardedExpanded)}
+            className="bg-white border border-slate-200 rounded-xl p-6 flex flex-col justify-between h-[112px] shadow-xs cursor-pointer hover:border-slate-300 hover:shadow-sm transition-all"
+          >
+            <div className="flex items-center justify-between text-[10px] font-bold font-sans uppercase tracking-wider text-slate-400">
+              <span>ONBOARDED</span>
+              <span className="text-slate-400 text-xs">
+                {isOnboardedExpanded ? '▲' : '▼'}
+              </span>
+            </div>
+            <div className="text-3xl font-bold font-sans text-slate-800 tracking-tight leading-none">
+              7
+            </div>
+          </div>
+
+          {/* Card 4: COMPLETED */}
+          <div 
+            onClick={() => onCardClick('COMPLETED')}
+            className="bg-white border border-slate-200 rounded-xl p-6 flex flex-col justify-between h-[112px] shadow-xs cursor-pointer hover:border-slate-300 hover:shadow-sm transition-all"
+          >
+            <span className="text-[10px] font-bold font-sans uppercase tracking-wider text-slate-400">
+              COMPLETED
+            </span>
+            <div className="text-3xl font-bold font-sans text-slate-800 tracking-tight leading-none">
+              6
+            </div>
+          </div>
+        </div>
+
+        {isOnboardedExpanded && (
+          <div className="flex justify-center gap-5 mt-4 transition-all duration-300 ease-in-out">
+            {/* Sub-Card 1: Review Pending */}
+            <div 
+              onClick={() => onCardClick('REVIEW_PENDING')}
+              className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col justify-between h-[104px] flex-1 max-w-[305px] w-full shadow-2xs hover:border-slate-300 hover:shadow-sm transition-all cursor-pointer"
+            >
+              <span className="text-[10px] font-bold font-sans uppercase tracking-wider text-slate-400 leading-snug">
+                Review Pending
+              </span>
+              <div className="text-2xl font-bold font-sans text-slate-800 tracking-tight leading-none">
+                3
+              </div>
+            </div>
+
+            {/* Sub-Card 2: Clean Master Upload Pending */}
+            <div 
+              onClick={() => onCardClick('CLEAN_MASTER_UPLOAD_PENDING')}
+              className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col justify-between h-[104px] flex-1 max-w-[305px] w-full shadow-2xs hover:border-slate-300 hover:shadow-sm transition-all cursor-pointer"
+            >
+              <span className="text-[10px] font-bold font-sans uppercase tracking-wider text-slate-400 leading-snug">
+                Clean Master Upload Pending
+              </span>
+              <div className="text-2xl font-bold font-sans text-slate-800 tracking-tight leading-none">
+                2
+              </div>
+            </div>
+
+            {/* Sub-Card 3: Sign-Off & ILA Pending */}
+            <div 
+              onClick={() => onCardClick('SIGN_OFF_ILA_PENDING')}
+              className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col justify-between h-[104px] flex-1 max-w-[305px] w-full shadow-2xs hover:border-slate-300 hover:shadow-sm transition-all cursor-pointer"
+            >
+              <span className="text-[10px] font-bold font-sans uppercase tracking-wider text-slate-400 leading-snug">
+                Sign-Off & ILA Pending
+              </span>
+              <div className="text-2xl font-bold font-sans text-slate-800 tracking-tight leading-none">
+                2
+              </div>
+            </div>
           </div>
         )}
       </div>

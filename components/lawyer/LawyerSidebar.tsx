@@ -22,13 +22,8 @@ export const LawyerSidebar: React.FC<SidebarProps> = ({
 }) => {
   const menuItems: { id: NavView; label: string; count?: number }[] = [
     { id: 'dashboard', label: 'Dashboard' },
-    { id: 'assigned_cases', label: 'Assigned Cases', count: assignedCount },
-    { id: 'versions', label: 'Agreement Versions' },
-    { id: 'notes', label: 'Summary Notes' },
-    { id: 'appendices', label: 'Appendices' },
-    { id: 'ila', label: 'ILA Certificates' },
-    { id: 'completed', label: 'Completed Cases', count: completedCount },
-    { id: 'profile', label: 'Profile' },
+    { id: 'assigned_cases', label: 'Assigned Cases', count: 14 },
+    { id: 'completed', label: 'Completed Cases', count: 6 },
     { id: 'settings', label: 'Settings' },
   ];
 
@@ -38,7 +33,7 @@ export const LawyerSidebar: React.FC<SidebarProps> = ({
       case 'L1':
         return {
           name: 'Robert Miller, Esq.',
-          title: 'Senior Family Attorney',
+          title: 'State Coordinator',
           firm: 'Blake Cassels',
           initials: 'RM',
         };
@@ -124,10 +119,10 @@ export const LawyerSidebar: React.FC<SidebarProps> = ({
             {lawyer.name}
           </div>
           <div className="text-[10px] text-slate-400 font-sans truncate">
-            {lawyer.firm}
+            {lawyer.title}
           </div>
-          <div className="text-[9px] text-emerald-300/90 font-mono font-semibold uppercase mt-0.5">
-            Role: LAWYER ({activePersona})
+          <div className="text-[9px] text-emerald-400 font-mono font-bold uppercase mt-0.5">
+            ROLE : LAWYER
           </div>
         </div>
       </div>

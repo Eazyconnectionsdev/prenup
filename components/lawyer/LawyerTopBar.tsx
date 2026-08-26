@@ -50,7 +50,7 @@ export const LawyerTopBar: React.FC<TopBarProps> = ({
   const lawyer = getPersonaDetails(activePersona);
 
   return (
-    <header className="h-[76px] bg-[#f7f4ee] flex items-center justify-between px-8 pt-4 pb-2 border-b border-slate-200">
+    <header className="h-[76px] bg-white flex items-center justify-between px-8 pt-4 pb-2 border-b border-slate-200">
       {/* Title */}
       <div className="flex flex-col">
         <h1 className="text-xl font-bold font-sans text-slate-900 tracking-tight leading-tight">
@@ -61,54 +61,8 @@ export const LawyerTopBar: React.FC<TopBarProps> = ({
         </span>
       </div>
 
-      {/* Top Actions: Search + Persona Toggler + Scorecard + Interactive User Account Details */}
+      {/* Top Actions: Interactive User Account Details */}
       <div className="flex items-center gap-4">
-        {/* Search */}
-        <div className="relative w-[240px]">
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search cases, clients, versions..."
-            className="w-full bg-white border border-slate-200 rounded-full pl-9 pr-4 py-2 text-xs font-sans text-slate-800 placeholder-slate-400 outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200/50 shadow-xs transition-all"
-          />
-        </div>
-
-        {/* Persona Switcher Toggler (Dynamic RBAC Test) */}
-        <div className="flex items-center bg-slate-200/80 border border-slate-300 rounded-full p-0.5 gap-1 shadow-inner">
-          <div className="flex items-center px-2 text-[10px] font-bold text-slate-500 gap-1 font-sans uppercase">
-            <Shield className="w-3 h-3 text-slate-600" />
-            <span>Role:</span>
-          </div>
-          {(['L1', 'L2', 'L3'] as LawyerPersona[]).map((p) => {
-            const isSelected = activePersona === p;
-            const pLabel = p === 'L1' ? 'L1' : p === 'L2' ? 'L2' : 'L3';
-            return (
-              <button
-                key={p}
-                onClick={() => onPersonaChange(p)}
-                className={`px-3 py-1 rounded-full text-[10px] font-bold font-mono transition-all cursor-pointer ${
-                  isSelected
-                    ? 'bg-[#0d1527] text-white shadow-sm'
-                    : 'text-slate-600 hover:text-slate-950 hover:bg-slate-300/60'
-                }`}
-                title={`Switch environment simulation to lawyer persona ${p}`}
-              >
-                {pLabel}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Scorecard Button */}
-        <button
-          onClick={onOpenScorecard}
-          className="bg-white border border-slate-300 rounded-full px-4 py-2 text-xs font-bold font-sans text-slate-800 shadow-xs hover:bg-slate-50 hover:border-slate-400 transition-all cursor-pointer"
-        >
-          Compliance Scorecard
-        </button>
-
         {/* User profile details */}
         <div
           onClick={onOpenProfile}

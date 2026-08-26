@@ -9,6 +9,8 @@ interface CasesListViewProps {
   activePersona: LawyerPersona;
   onSelectCase: (caseId: string) => void;
   searchQuery: string;
+  statusFilter: string;
+  onFilterChange: (filter: string) => void;
 }
 
 export const CasesListView: React.FC<CasesListViewProps> = ({
@@ -16,8 +18,9 @@ export const CasesListView: React.FC<CasesListViewProps> = ({
   activePersona,
   onSelectCase,
   searchQuery,
+  statusFilter,
+  onFilterChange,
 }) => {
-  const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
   // Helper to determine active lawyer name based on persona
   const getLawyerName = (persona: LawyerPersona) => {
@@ -44,11 +47,26 @@ export const CasesListView: React.FC<CasesListViewProps> = ({
   // Apply search query and status filter
   const filteredCases = useMemo(() => {
     return assignedCases.filter((c) => {
-      // Exclude completed cases from active list (shown on completed list)
-      if (c.status === 'CLOSED' || c.status === 'ARCHIVED') return false;
+      // Exclude completed cases from active list unless COMPLETED or ALL is selected
+      const isCompleted = c.status === 'CLOSED' || c.status === 'ARCHIVED';
+      if (statusFilter !== 'COMPLETED' && statusFilter !== 'ALL' && isCompleted) return false;
 
       // Status filter
-      if (statusFilter !== 'ALL' && c.status !== statusFilter) return false;
+      if (statusFilter !== 'ALL') {
+        if (statusFilter === 'ONBOARDING_PENDING' && c.status !== 'FORMS_LOCKED') return false;
+        if (statusFilter === 'ONBOARDED' && 
+            c.status !== 'LAWYER_REVIEW' && 
+            c.status !== 'AWAITING_COUNTERPARTY_LAWYER_APPROVAL' && 
+            c.status !== 'READY_FOR_SIGNING' && 
+            c.status !== 'CLIENT_APPROVED' && 
+            c.status !== 'ILA_P1_COMPLETE' && 
+            c.status !== 'ILA_P2_COMPLETE' && 
+            c.status !== 'CLIENT_APPROVAL_PENDING') return false;
+        if (statusFilter === 'REVIEW_PENDING' && c.status !== 'LAWYER_REVIEW') return false;
+        if (statusFilter === 'CLEAN_MASTER_UPLOAD_PENDING' && c.status !== 'AWAITING_COUNTERPARTY_LAWYER_APPROVAL') return false;
+        if (statusFilter === 'SIGN_OFF_ILA_PENDING' && c.status !== 'READY_FOR_SIGNING' && c.status !== 'CLIENT_APPROVED' && c.status !== 'ILA_P1_COMPLETE' && c.status !== 'ILA_P2_COMPLETE') return false;
+        if (statusFilter === 'COMPLETED' && !isCompleted) return false;
+      }
 
       // Search query
       if (searchQuery.trim()) {
@@ -66,7 +84,7 @@ export const CasesListView: React.FC<CasesListViewProps> = ({
   }, [assignedCases, statusFilter, searchQuery]);
 
   const handleResetFilters = () => {
-    setStatusFilter('ALL');
+    onFilterChange('ALL');
   };
 
   const getStatusBadgeStyle = (status: CaseStatus) => {
@@ -96,7 +114,22 @@ export const CasesListView: React.FC<CasesListViewProps> = ({
   };
 
   const formatStatus = (status: CaseStatus) => {
-    return status.replace(/_/g, ' ');
+    switch (status) {
+      case 'FORMS_LOCKED':
+        return 'ONBOARDING PENDING';
+      case 'LAWYER_REVIEW':
+        return 'REVIEW PENDING';
+      case 'AWAITING_COUNTERPARTY_LAWYER_APPROVAL':
+        return 'CLEAN MASTER UPLOAD PENDING';
+      case 'READY_FOR_SIGNING':
+        return 'SIGN-OFF & ILA PENDING';
+      case 'CLOSED':
+        return 'COMPLETED';
+      case 'CLIENT_APPROVAL_PENDING':
+        return 'ONBOARDED';
+      default:
+        return status.replace(/_/g, ' ');
+    }
   };
 
   return (
@@ -116,18 +149,16 @@ export const CasesListView: React.FC<CasesListViewProps> = ({
             </label>
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => onFilterChange(e.target.value)}
               className="bg-slate-50 border border-slate-300 text-slate-800 px-3 py-1.5 rounded-lg text-xs font-sans outline-none focus:border-slate-400 cursor-pointer min-w-[180px]"
             >
-              <option value="ALL">All Active Statuses</option>
-              <option value="FORMS_LOCKED">Forms Locked</option>
-              <option value="LAWYER_REVIEW">Lawyer Review</option>
-              <option value="AWAITING_COUNTERPARTY_LAWYER_APPROVAL">Awaiting Counterparty</option>
-              <option value="CLIENT_APPROVAL_PENDING">Client Approval Pending</option>
-              <option value="CLIENT_PARTIALLY_APPROVED">Client Partially Approved</option>
-              <option value="RETURNED_TO_LAWYERS">Returned to Lawyers</option>
-              <option value="CLIENT_APPROVED">Ready for ILA</option>
-              <option value="READY_FOR_SIGNING">Ready For Signing</option>
+              <option value="ALL">Total Cases</option>
+              <option value="ONBOARDING_PENDING">Onboarding Pending</option>
+              <option value="ONBOARDED">Onboarded</option>
+              <option value="REVIEW_PENDING">Review Pending</option>
+              <option value="CLEAN_MASTER_UPLOAD_PENDING">Clean Master Upload Pending</option>
+              <option value="SIGN_OFF_ILA_PENDING">Sign-Off & ILA Pending</option>
+              <option value="COMPLETED">Completed</option>
             </select>
           </div>
         </div>

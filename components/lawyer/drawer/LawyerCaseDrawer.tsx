@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   X, Lock, Download, FileText, Upload, CheckCircle2, AlertTriangle, ShieldCheck,
-  Clock, Mail, MessageSquare, Plus, FileCode, Check, Eye
+  Clock, Mail, MessageSquare, Plus, FileCode, Check, Eye, Edit, Trash2
 } from 'lucide-react';
 import { LawyerCase, LawyerPersona, CaseTabId, CaseStatus, AgreementVersion, SummaryNote, Appendix } from '../../../types/lawyer-portal';
 
@@ -20,6 +20,7 @@ interface CaseDrawerProps {
   onSignAgreement: (caseId: string) => void;
   onSaveNote: (caseId: string, notes: string) => void;
   onUploadAppendix: (caseId: string, section: 'A' | 'B' | 'C', title: string, desc: string, fileName: string) => void;
+  isInline?: boolean;
 }
 
 export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
@@ -35,6 +36,7 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
   onSignAgreement,
   onSaveNote,
   onUploadAppendix,
+  isInline = false,
 }) => {
   const [activeTab, setActiveTab] = useState<CaseTabId>('overview');
   const [noteText, setNoteText] = useState('');
@@ -46,17 +48,141 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
   const [appendixTitle, setAppendixTitle] = useState('');
   const [appendixDesc, setAppendixDesc] = useState('');
   const [appendixFileName, setAppendixFileName] = useState('');
+
+  // Local state for interactive editing of Appendices
+  const [localAppendices, setLocalAppendices] = useState<{ A: Appendix[]; B: Appendix[]; C: Appendix[] }>({ A: [], B: [], C: [] });
+  const [isAddingAppendix, setIsAddingAppendix] = useState(false);
+  const [editingAppendix, setEditingAppendix] = useState<{ slot: 'A' | 'B' | 'C'; appendix: Appendix } | null>(null);
+  const [appendixFormSlot, setAppendixFormSlot] = useState<'A' | 'B' | 'C'>('A');
+  const [appendixFormTitle, setAppendixFormTitle] = useState('');
+  const [appendixFormDesc, setAppendixFormDesc] = useState('');
+  const [appendixFormFileName, setAppendixFormFileName] = useState('');
+
+  // Local state for interactive editing of ILA Certificates
+  const [localIlaP1Cert, setLocalIlaP1Cert] = useState<IlaCertDetails | undefined>(undefined);
+  const [localIlaP2Cert, setLocalIlaP2Cert] = useState<IlaCertDetails | undefined>(undefined);
+  const [isEditingIlaP1, setIsEditingIlaP1] = useState(false);
+  const [isEditingIlaP2, setIsEditingIlaP2] = useState(false);
+  const [ilaFormLawyerName, setIlaFormLawyerName] = useState('');
+  const [ilaFormFirmName, setIlaFormFirmName] = useState('');
+  const [ilaFormBarNumber, setIlaFormBarNumber] = useState('');
+  const [ilaFormIssueDate, setIlaFormIssueDate] = useState('');
   
   // Execution Pack modal state
   const [showExecutionPackModal, setShowExecutionPackModal] = useState(false);
   const [rbacError, setRbacError] = useState<string | null>(null);
 
+  // Interactive Versions Tab States
+  const [isCheckedOut, setIsCheckedOut] = useState(false);
+  const [checkedOutBy, setCheckedOutBy] = useState('');
+  const [checkedOutOn, setCheckedOutOn] = useState('');
+  const [activeVersionId, setActiveVersionId] = useState('v3.5');
+  const [amendmentInput, setAmendmentInput] = useState('');
+  const [compareFrom, setCompareFrom] = useState('v3.0');
+  const [compareTo, setCompareTo] = useState('v3.5');
+  const [isComparing, setIsComparing] = useState(false);
+  const [interactiveVersions, setInteractiveVersions] = useState<any[]>([]);
+
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && caseObj) {
       setActiveTab('overview');
       setRbacError(null);
+      
+      // Initialize mock versions database
+      setInteractiveVersions([
+        { ver: 'v3.5', title: 'Approved Clean Master draft', by: 'Robert Miller, Esq.', date: '2026-08-18 10:30 AM', badge: 'L1' },
+        { ver: 'v3.4', title: 'Revised financial disclosure schedules added', by: 'Mark Sterling, Esq.', date: '2026-08-16 03:50 PM', badge: 'L2' },
+        { ver: 'v3.3', title: 'Updated spouse waiver clauses', by: 'Robert Miller, Esq.', date: '2026-08-15 11:00 AM', badge: 'L1' },
+        { ver: 'v3.2', title: 'Adjusted real estate schedules and values', by: 'Mark Sterling, Esq.', date: '2026-08-12 11:30 AM', badge: 'L2' },
+        { ver: 'v3.1', title: 'Minor draft adjustments on property treatment', by: 'Robert Miller, Esq.', date: '2026-08-10 09:30 AM', badge: 'L1' },
+        { ver: 'v3.0', title: 'Initial questionnaire outputs generated', by: 'System Engine', date: '2026-08-08 09:15 AM', badge: 'CM' },
+      ]);
+      setActiveVersionId('v3.5');
+      setIsCheckedOut(false);
+      setIsComparing(false);
+      setAmendmentInput('');
+
+      // Populate local state from caseObj
+      setLocalAppendices({
+        A: caseObj.appendices?.A ? [...caseObj.appendices.A] : [],
+        B: caseObj.appendices?.B ? [...caseObj.appendices.B] : [],
+        C: caseObj.appendices?.C ? [...caseObj.appendices.C] : [],
+      });
+      setLocalIlaP1Cert(caseObj.ilaP1Cert);
+      setLocalIlaP2Cert(caseObj.ilaP2Cert);
+
+      // Reset editing states
+      setIsAddingAppendix(false);
+      setEditingAppendix(null);
+      setIsEditingIlaP1(false);
+      setIsEditingIlaP2(false);
     }
-  }, [isOpen, caseObj]);
+  }, [isOpen, caseObj?.id]);
+
+  const handleSaveAppendixLocal = () => {
+    if (!appendixFormTitle.trim() || !appendixFormFileName.trim()) {
+      alert('Please fill in Title and File Name.');
+      return;
+    }
+
+    if (editingAppendix) {
+      const { slot, appendix } = editingAppendix;
+      const updatedSlots = { ...localAppendices };
+      
+      // Delete from old slot
+      updatedSlots[slot] = updatedSlots[slot].filter(a => a.id !== appendix.id);
+      
+      // Add/update to selected slot
+      const updatedAppendix = {
+        ...appendix,
+        title: appendixFormTitle.trim(),
+        description: appendixFormDesc.trim(),
+        fileName: appendixFormFileName.trim(),
+      };
+      
+      updatedSlots[appendixFormSlot].push(updatedAppendix);
+      setLocalAppendices(updatedSlots);
+      setEditingAppendix(null);
+    } else {
+      const newAppendix: Appendix = {
+        id: `APP-${Date.now()}`,
+        title: appendixFormTitle.trim(),
+        description: appendixFormDesc.trim(),
+        fileName: appendixFormFileName.trim(),
+        uploadedBy: activePersona === 'L1' ? 'Robert Miller, Esq.' : 'Mark Sterling, Esq.',
+        createdDate: '2026-08-26',
+        s3Path: `s3://lets-prenup/disclosures/${appendixFormFileName.trim()}`,
+      };
+      
+      const updatedSlots = { ...localAppendices };
+      updatedSlots[appendixFormSlot].push(newAppendix);
+      setLocalAppendices(updatedSlots);
+      setIsAddingAppendix(false);
+    }
+  };
+
+  const handleSaveIlaCert = (party: 'p1' | 'p2') => {
+    if (!ilaFormLawyerName.trim() || !ilaFormFirmName.trim() || !ilaFormBarNumber.trim()) {
+      alert('Please fill in all attorney details.');
+      return;
+    }
+
+    const certDetails: IlaCertDetails = {
+      lawyerName: ilaFormLawyerName.trim(),
+      firmName: ilaFormFirmName.trim(),
+      barNumber: ilaFormBarNumber.trim(),
+      issueDate: ilaFormIssueDate.trim() || new Date().toISOString().split('T')[0],
+      signedPdfPath: `s3://lets-prenup/certificates/ILA_${party.toUpperCase()}_SIGNED.pdf`,
+    };
+
+    if (party === 'p1') {
+      setLocalIlaP1Cert(certDetails);
+      setIsEditingIlaP1(false);
+    } else {
+      setLocalIlaP2Cert(certDetails);
+      setIsEditingIlaP2(false);
+    }
+  };
 
   if (!isOpen || !caseObj) return null;
 
@@ -147,13 +273,12 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs" onClick={onClose} />
-
-      {/* Drawer Panel */}
-      <div className="relative w-[780px] h-full bg-[#f7f4ee] shadow-2xl flex flex-col z-10 border-l border-slate-300 animate-slide-in text-slate-800 font-sans">
+  const panelContent = (
+    <>
+      <div className={isInline 
+        ? "w-full bg-[#f7f4ee] flex flex-col min-h-screen text-slate-800 font-sans relative overflow-hidden"
+        : "relative w-[780px] h-full bg-[#f7f4ee] shadow-2xl flex flex-col z-10 border-l border-slate-300 animate-slide-in text-slate-800 font-sans"
+      }>
         
         {/* RBAC Error Banner */}
         {rbacError && (
@@ -193,13 +318,11 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
         <div className="bg-white border-b border-slate-200 px-4 flex items-center gap-1 overflow-x-auto shrink-0">
           {([
             { id: 'overview', label: '1. Overview' },
-            { id: 'client_details', label: '2. Client Details' },
+            { id: 'client_details', label: '2. Forms & disclosures - (read only)' },
             { id: 'versions', label: '3. Agreement Versions' },
-            { id: 'notes', label: '4. Summary Notes' },
-            { id: 'appendices', label: '5. Appendices' },
-            { id: 'ila', label: '6. ILA Certificate' },
-            { id: 'timeline', label: '7. Timeline' },
-            { id: 'emails', label: '8. Emails' },
+            { id: 'notes', label: '4. Lawyer Action' },
+            { id: 'timeline', label: '5. Timeline' },
+            { id: 'emails', label: '6. audit log' },
           ] as { id: CaseTabId; label: string }[]).map((tab) => {
             const isActive = activeTab === tab.id;
             return (
@@ -225,63 +348,63 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
           {activeTab === 'overview' && (
             <div className="flex flex-col gap-6">
               <div className="bg-white border border-slate-300 rounded-xl p-5 shadow-xs flex flex-col gap-4">
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider font-sans border-b border-slate-100 pb-2">
+                <h3 className="text-xs font-extrabold text-slate-600 uppercase tracking-wider font-sans border-b border-slate-200 pb-2">
                   Matter Metadata Indicators
                 </h3>
 
                 <div className="grid grid-cols-2 gap-4 text-xs">
                   <div className="flex flex-col gap-1">
-                    <span className="text-slate-400 font-bold uppercase text-[9px]">Case Code ID</span>
-                    <span className="font-mono font-bold text-slate-800 text-sm">{caseObj.id}</span>
+                    <span className="text-slate-500 font-extrabold uppercase text-[10px] tracking-wider">Case Code ID</span>
+                    <span className="font-mono font-extrabold text-slate-900 text-sm">{caseObj.id}</span>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="text-slate-400 font-bold uppercase text-[9px]">Service Plan</span>
-                    <span className="font-semibold text-slate-800">{caseObj.service}</span>
+                    <span className="text-slate-500 font-extrabold uppercase text-[10px] tracking-wider">Service Plan</span>
+                    <span className="font-bold text-slate-900 text-xs">{caseObj.service}</span>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="text-slate-400 font-bold uppercase text-[9px]">Primary status</span>
-                    <span className="font-semibold text-slate-800 uppercase">{caseObj.status.replace(/_/g, ' ')}</span>
+                    <span className="text-slate-500 font-extrabold uppercase text-[10px] tracking-wider">Primary status</span>
+                    <span className="font-bold text-slate-900 text-xs uppercase">{caseObj.status.replace(/_/g, ' ')}</span>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="text-slate-400 font-bold uppercase text-[9px]">Days in State</span>
-                    <span className="font-mono font-bold text-slate-800">{caseObj.daysInStatus} Days</span>
+                    <span className="text-slate-500 font-extrabold uppercase text-[10px] tracking-wider">Days in State</span>
+                    <span className="font-mono font-extrabold text-slate-900 text-xs">{caseObj.daysInStatus} Days</span>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="text-slate-400 font-bold uppercase text-[9px]">Lawyer-facing (Current Version)</span>
-                    <span className="font-mono font-bold text-slate-800">{caseObj.currentVersion}</span>
+                    <span className="text-slate-500 font-extrabold uppercase text-[10px] tracking-wider">Lawyer-facing (Current Version)</span>
+                    <span className="font-mono font-bold text-slate-900 text-xs">{caseObj.currentVersion}</span>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="text-slate-400 font-bold uppercase text-[9px]">Client-facing (Published Version)</span>
-                    <span className="font-mono font-bold text-slate-800">{caseObj.publishedVersion}</span>
+                    <span className="text-slate-500 font-extrabold uppercase text-[10px] tracking-wider">Client-facing (Published Version)</span>
+                    <span className="font-mono font-bold text-slate-900 text-xs">{caseObj.publishedVersion}</span>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="text-slate-400 font-bold uppercase text-[9px]">Last Activity Logged</span>
-                    <span className="text-slate-700">{caseObj.lastActivity}</span>
+                    <span className="text-slate-500 font-extrabold uppercase text-[10px] tracking-wider">Last Activity Logged</span>
+                    <span className="text-slate-800 font-bold text-xs">{caseObj.lastActivity}</span>
                   </div>
                 </div>
               </div>
 
               {/* Roster Information */}
               <div className="bg-white border border-slate-300 rounded-xl p-5 shadow-xs flex flex-col gap-4">
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider font-sans border-b border-slate-100 pb-2">
+                <h3 className="text-xs font-extrabold text-slate-600 uppercase tracking-wider font-sans border-b border-slate-200 pb-2">
                   Counsel and Roster directory
                 </h3>
 
                 <div className="grid grid-cols-2 gap-6 text-xs">
                   <div className="flex flex-col gap-2">
-                    <h4 className="font-bold text-emerald-700 uppercase text-[10px]">Client 1 &amp; Counsel</h4>
-                    <p className="text-slate-800 font-semibold">{caseObj.p1Name}</p>
-                    <p className="text-slate-500 font-bold text-[10px] mt-1">FIRM / LAWYER</p>
-                    <p className="text-slate-700">{caseObj.p1Firm || 'Unassigned'}</p>
-                    <p className="text-slate-600 italic">{caseObj.p1Lawyer || 'Unassigned'}</p>
+                    <h4 className="font-extrabold text-emerald-800 uppercase text-[11px] tracking-wider">Client 1 &amp; Counsel</h4>
+                    <p className="text-slate-900 font-bold text-xs">{caseObj.p1Name}</p>
+                    <p className="text-slate-600 font-extrabold text-[10px] mt-1 tracking-wide">FIRM / LAWYER</p>
+                    <p className="text-slate-800 font-semibold text-xs">{caseObj.p1Firm || 'Unassigned'}</p>
+                    <p className="text-slate-700 italic font-semibold text-xs">{caseObj.p1Lawyer || 'Unassigned'}</p>
                   </div>
                   
                   <div className="flex flex-col gap-2">
-                    <h4 className="font-bold text-emerald-700 uppercase text-[10px]">Client 2 &amp; Counsel</h4>
-                    <p className="text-slate-800 font-semibold">{caseObj.p2Name}</p>
-                    <p className="text-slate-500 font-bold text-[10px] mt-1">FIRM / LAWYER</p>
-                    <p className="text-slate-700">{caseObj.p2Firm || 'Unassigned'}</p>
-                    <p className="text-slate-600 italic">{caseObj.p2Lawyer || 'Unassigned'}</p>
+                    <h4 className="font-extrabold text-emerald-800 uppercase text-[11px] tracking-wider">Client 2 &amp; Counsel</h4>
+                    <p className="text-slate-900 font-bold text-xs">{caseObj.p2Name}</p>
+                    <p className="text-slate-600 font-extrabold text-[10px] mt-1 tracking-wide">FIRM / LAWYER</p>
+                    <p className="text-slate-800 font-semibold text-xs">{caseObj.p2Firm || 'Unassigned'}</p>
+                    <p className="text-slate-700 italic font-semibold text-xs">{caseObj.p2Lawyer || 'Unassigned'}</p>
                   </div>
                 </div>
               </div>
@@ -305,6 +428,57 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
                   </button>
                 </div>
               )}
+
+              {/* Version Flow Engine Transition Pipeline */}
+              <div className="bg-white border border-slate-300 rounded-xl p-5 shadow-xs flex flex-col gap-4">
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider font-sans border-b border-slate-100 pb-2">
+                  Version Flow Engine Transition Pipeline
+                </span>
+                <div className="flex flex-wrap gap-2 text-[10px] font-sans">
+                  <span className={`px-2.5 py-1 rounded-md border font-sans font-bold transition-all ${
+                    caseObj.status === 'FORMS_LOCKED' || caseObj.status === 'LAWYER_REVIEW'
+                      ? 'bg-slate-900 border-slate-950 text-white'
+                      : 'bg-slate-50 border-slate-200 text-slate-400'
+                  }`}>
+                    v1.0-v1.3 draft
+                  </span>
+                  <span className={`px-2.5 py-1 rounded-md border font-sans font-bold transition-all ${
+                    caseObj.status === 'AWAITING_COUNTERPARTY_LAWYER_APPROVAL'
+                      ? 'bg-slate-900 border-slate-950 text-white'
+                      : 'bg-slate-50 border-slate-200 text-slate-400'
+                  }`}>
+                    v1.4 Clean Master
+                  </span>
+                  <span className={`px-2.5 py-1 rounded-md border font-sans font-bold transition-all ${
+                    caseObj.status === 'CLIENT_APPROVAL_PENDING'
+                      ? 'bg-slate-900 border-slate-950 text-white'
+                      : 'bg-slate-50 border-slate-200 text-slate-400'
+                  }`}>
+                    Negotiation
+                  </span>
+                  <span className={`px-2.5 py-1 rounded-md border font-sans font-bold transition-all ${
+                    caseObj.status === 'READY_FOR_SIGNING'
+                      ? 'bg-slate-900 border-slate-950 text-white'
+                      : 'bg-slate-50 border-slate-200 text-slate-400'
+                  }`}>
+                    Sign-Off Pending
+                  </span>
+                  <span className={`px-2.5 py-1 rounded-md border font-sans font-bold transition-all ${
+                    caseObj.status === 'ILA_P1_COMPLETE' || caseObj.status === 'ILA_P2_COMPLETE'
+                      ? 'bg-slate-900 border-slate-950 text-white'
+                      : 'bg-slate-50 border-slate-200 text-slate-400'
+                  }`}>
+                    ILA Issued
+                  </span>
+                  <span className={`px-2.5 py-1 rounded-md border font-sans font-bold transition-all ${
+                    caseObj.status === 'CLOSED'
+                      ? 'bg-slate-900 border-slate-950 text-white'
+                      : 'bg-slate-50 border-slate-200 text-slate-400'
+                  }`}>
+                    Completed
+                  </span>
+                </div>
+              </div>
             </div>
           )}
 
@@ -433,297 +607,495 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
 
           {/* T3: Agreement Versions Tab */}
           {activeTab === 'versions' && (
-            <div className="flex flex-col gap-6">
-              {/* Flow progression */}
-              <div className="bg-white border border-slate-300 rounded-xl p-4 shadow-xs">
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider font-sans">
-                  Version Flow Engine Transition Pipeline
-                </span>
-                
-                <div className="flex flex-col gap-2.5 mt-3 text-[10px] font-mono">
-                  <div className="flex items-center flex-wrap gap-2.5 leading-none">
-                    <span className={`px-2 py-0.5 rounded ${caseObj.status === 'LAWYER_REVIEW' ? 'bg-[#0d1527] text-white' : 'bg-slate-200 text-slate-500'}`}>v1.0-v1.4 drafts</span>
-                    <span className="text-slate-400">&gt;</span>
-                    <span className={`px-2 py-0.5 rounded ${caseObj.status === 'AWAITING_COUNTERPARTY_LAWYER_APPROVAL' ? 'bg-[#0d1527] text-white animate-pulse' : 'bg-slate-200 text-slate-500'}`}>v1.5 Clean Master</span>
-                    <span className="text-slate-400">&gt;</span>
-                    <span className={`px-2 py-0.5 rounded ${caseObj.status === 'CLIENT_APPROVAL_PENDING' ? 'bg-[#0d1527] text-white' : 'bg-slate-200 text-slate-500'}`}>Client Approval</span>
-                    <span className="text-slate-400">&gt;</span>
-                    <span className={`px-2 py-0.5 rounded ${caseObj.status === 'CLIENT_APPROVED' || caseObj.status === 'ILA_P1_COMPLETE' || caseObj.status === 'ILA_P2_COMPLETE' ? 'bg-[#0d1527] text-white' : 'bg-slate-200 text-slate-500'}`}>ILA Signatures</span>
-                    <span className="text-slate-400">&gt;</span>
-                    <span className={`px-2 py-0.5 rounded ${caseObj.status === 'READY_FOR_SIGNING' ? 'bg-[#0d1527] text-white' : 'bg-slate-200 text-slate-500'}`}>Ready for Signing</span>
-                    <span className="text-slate-400">&gt;</span>
-                    <span className={`px-2 py-0.5 rounded ${caseObj.status === 'CLOSED' ? 'bg-green-700 text-white font-bold' : 'bg-slate-200 text-slate-500'}`}>Closed</span>
+            isComparing ? (
+              <div className="flex flex-col gap-4 font-sans text-slate-800 bg-[#0f172a] p-6 rounded-xl border border-slate-700 min-h-[820px] text-white animate-fade-in justify-between">
+                <div>
+                  {/* Title bar */}
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold tracking-tight">Agreement Side-by-Side Comparison</span>
+                    </div>
+                  </div>
+
+                  {/* Two sheets side-by-side */}
+                  <div className="grid grid-cols-2 gap-6 mt-4">
+                    {/* Left panel: compareFrom */}
+                    <div className="flex flex-col gap-2">
+                      <div className="bg-slate-800/80 px-4 py-2 rounded-lg border border-slate-700 text-xs font-bold flex justify-between">
+                        <span>Version {compareFrom}</span>
+                        <span className="text-slate-400">ORIGINAL BASE DRAFT</span>
+                      </div>
+                      <div className="bg-white p-8 border border-slate-300 flex flex-col gap-4 shadow-sm text-slate-850 h-[580px] rounded-lg overflow-y-auto">
+                        <h2 className="text-center font-serif text-sm font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-2">
+                          PRNUPTIAL AGREEMENT
+                        </h2>
+                        <p className="text-xs text-slate-600 leading-relaxed font-sans mt-2">
+                          This Agreement is made on this 15th day of August, 2026.
+                        </p>
+                        <p className="text-xs font-bold text-slate-800 font-sans uppercase">BETWEEN</p>
+                        <p className="text-xs text-slate-600 leading-none pl-4 font-sans">David Miller (referred to as "Party 1")</p>
+                        <p className="text-xs font-bold text-slate-800 font-sans uppercase">AND</p>
+                        <p className="text-xs text-slate-600 leading-none pl-4 font-sans">Sarah Conner (referred to as "Party 2")</p>
+
+                        <div className="flex flex-col gap-2 mt-3 font-sans text-xs">
+                          <p className="font-bold text-slate-800">1. DEFINITIONS</p>
+                          <p className="text-slate-600 leading-relaxed pl-4">
+                            1.1 "Agreement" means this Prenuptial Agreement.
+                          </p>
+                        </div>
+
+                        <div className="flex flex-col gap-2 mt-2 font-sans text-xs">
+                          <p className="font-bold text-slate-800">2. FINANCIAL DISCLOSURE</p>
+                          <p className="text-slate-600 leading-relaxed pl-4">
+                            2.1 Each party has provided full and frank disclosure of their financial circumstances.
+                          </p>
+                        </div>
+
+                        <div className="flex flex-col gap-2 mt-2 font-sans text-xs">
+                          <p className="font-bold text-slate-800">3. DIVISION OF PROPERTY</p>
+                          <p className="text-slate-600 leading-relaxed pl-4">
+                            3.1 In the event of separation, premarital assets listed in Appendix A shall remain the property of the acquiring party.
+                          </p>
+                        </div>
+
+                        <div className="flex flex-col gap-2 mt-2 font-sans text-xs">
+                          <p className="font-bold text-slate-800">4. MAINTENANCE</p>
+                          <p className="text-slate-600 leading-relaxed pl-4">
+                            4.1 Except as otherwise provided, each party waives support.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right panel: compareTo */}
+                    <div className="flex flex-col gap-2">
+                      <div className="bg-slate-800/80 px-4 py-2 rounded-lg border border-slate-700 text-xs font-bold flex justify-between">
+                        <span>Version {compareTo}</span>
+                        <span className="text-emerald-400 font-bold">REVISED WITH AMENDMENTS</span>
+                      </div>
+                      <div className="bg-white p-8 border border-slate-300 flex flex-col gap-4 shadow-sm text-slate-850 h-[580px] rounded-lg overflow-y-auto">
+                        <h2 className="text-center font-serif text-sm font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-2">
+                          PRENUPTIAL AGREEMENT
+                        </h2>
+                        <p className="text-xs text-slate-600 leading-relaxed font-sans mt-2">
+                          This Agreement is made on this 15th day of August, 2026.
+                        </p>
+                        <p className="text-xs font-bold text-slate-800 font-sans uppercase">BETWEEN</p>
+                        <p className="text-xs text-slate-600 leading-none pl-4 font-sans">David Miller (referred to as "Party 1")</p>
+                        <p className="text-xs font-bold text-slate-800 font-sans uppercase">AND</p>
+                        <p className="text-xs text-slate-600 leading-none pl-4 font-sans">Sarah Conner (referred to as "Party 2")</p>
+
+                        <div className="flex flex-col gap-2 mt-3 font-sans text-xs">
+                          <p className="font-bold text-slate-800">1. DEFINITIONS</p>
+                          <p className="text-slate-600 leading-relaxed pl-4">
+                            1.1 "Agreement" means this Prenuptial Agreement <span className="bg-emerald-100 text-emerald-950 font-medium px-1 rounded border-b border-emerald-400 font-sans">including all schedules and annexures</span>.
+                          </p>
+                        </div>
+
+                        <div className="flex flex-col gap-2 mt-2 font-sans text-xs">
+                          <p className="font-bold text-slate-800">2. FINANCIAL DISCLOSURE</p>
+                          <p className="text-slate-600 leading-relaxed pl-4">
+                            2.1 Each party has provided full and frank disclosure <span className="bg-emerald-100 text-emerald-950 font-medium px-1 rounded border-b border-emerald-400 font-sans">and verified bank statements</span> of their financial circumstances.
+                          </p>
+                        </div>
+
+                        <div className="flex flex-col gap-2 mt-2 font-sans text-xs">
+                          <p className="font-bold text-slate-800">3. DIVISION OF PROPERTY</p>
+                          <p className="text-slate-600 leading-relaxed pl-4">
+                            3.1 In the event of separation, premarital assets listed in Appendix A shall remain the sole property of the <span className="bg-emerald-100 text-emerald-950 font-medium px-1 rounded border-b border-emerald-400 font-sans">respective acquiring party</span>.
+                          </p>
+                        </div>
+
+                        <div className="flex flex-col gap-2 mt-2 font-sans text-xs">
+                          <p className="font-bold text-slate-800">4. MAINTENANCE</p>
+                          <p className="text-slate-600 leading-relaxed pl-4">
+                            4.1 Except as otherwise provided <span className="bg-emerald-100 text-emerald-950 font-medium px-1 rounded border-b border-emerald-400 font-sans">in Clause 96</span>, each party waives support.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Upload clean master & update version actions */}
-              <div className="bg-white border border-slate-300 rounded-xl p-5 shadow-xs flex flex-col gap-4">
-                <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider font-sans border-b border-slate-100 pb-2">
-                  Agreement Actions Available
-                </h3>
-
-                <div className="flex flex-wrap gap-3">
-                  {/* Upload new version */}
-                  {caseObj.status === 'LAWYER_REVIEW' && (
-                    <form onSubmit={handleUploadVersionClick} className="w-full flex flex-col gap-3 p-3.5 bg-slate-50 border border-slate-200 rounded-xl">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Upload New draft Version</span>
-                      
-                      <div className="flex gap-3">
-                        <input
-                          type="text"
-                          required
-                          value={newVersionNum}
-                          onChange={(e) => setNewVersionNum(e.target.value)}
-                          placeholder="e.g. v1.5"
-                          className="bg-white border border-slate-200 text-xs px-3 py-1.5 rounded-lg font-sans outline-none focus:border-slate-400 w-[120px]"
-                        />
-                        <input
-                          type="text"
-                          required
-                          value={newVersionDesc}
-                          onChange={(e) => setNewVersionDesc(e.target.value)}
-                          placeholder="Description of amendments..."
-                          className="bg-white border border-slate-200 text-xs px-3 py-1.5 rounded-lg font-sans outline-none focus:border-slate-400 flex-1"
-                        />
-                        <button
-                          type="submit"
-                          className="bg-[#0d1527] text-white text-xs font-bold px-4 py-1.5 rounded-lg hover:bg-[#1b2947] transition-all cursor-pointer flex items-center gap-1"
-                        >
-                          <Upload className="w-3.5 h-3.5" />
-                          <span>Upload Draft</span>
-                        </button>
-                      </div>
-                    </form>
-                  )}
-
-                  {/* Clean Master action */}
-                  {caseObj.status === 'LAWYER_REVIEW' && (
-                    <div className="w-full flex items-center justify-between p-3.5 bg-emerald-50/50 border border-emerald-200 rounded-xl">
-                      <div>
-                        <p className="text-xs font-bold text-emerald-900">Declare Agreement Draft Complete</p>
-                        <p className="text-[10px] text-slate-500 mt-0.5">Upload Clean Master to submit for opposing counsel sign-off</p>
-                      </div>
-                      <button
-                        onClick={() => onUploadCleanMaster(caseObj.id)}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-lg border border-emerald-500 transition-all flex items-center gap-1 cursor-pointer"
-                      >
-                        <FileCode className="w-3.5 h-3.5" />
-                        <span>Upload Clean Master (v1.5)</span>
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Approve opposing Clean Master */}
-                  {caseObj.status === 'AWAITING_COUNTERPARTY_LAWYER_APPROVAL' && (
-                    <div className="w-full flex items-center justify-between p-3.5 bg-indigo-50 border border-indigo-200 rounded-xl">
-                      <div>
-                        <p className="text-xs font-bold text-indigo-900">Opposing Clean Master Sign-Off Required</p>
-                        <p className="text-[10px] text-slate-500 mt-0.5">Verify and approve clean master for Client execution routing</p>
-                      </div>
-                      <button
-                        onClick={() => onApproveCleanMaster(caseObj.id)}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded-lg border border-indigo-500 transition-all flex items-center gap-1 cursor-pointer"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Approve Clean Master</span>
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Client approvals buttons */}
-                  {caseObj.status === 'CLIENT_APPROVAL_PENDING' && (
-                    <div className="w-full flex flex-col gap-3.5 p-3.5 bg-purple-50 border border-purple-200 rounded-xl">
-                      <div>
-                        <p className="text-xs font-bold text-purple-900">Client Approvals Pending</p>
-                        <p className="text-[10px] text-slate-500 mt-0.5">Submit approvals on behalf of client for mock walkthrough simulations</p>
-                      </div>
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => {
-                            if (activePersona === 'L2') {
-                              triggerRbacProhibited("Partner 2 Lawyer cannot sign-off for Partner 1's client");
-                            } else {
-                              onClientApprove(caseObj.id, 'p1');
-                            }
-                          }}
-                          className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold px-4 py-2 rounded-lg border border-purple-500 transition-all cursor-pointer"
-                        >
-                          Approve Client 1 ({caseObj.p1Name})
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (activePersona === 'L1') {
-                              triggerRbacProhibited("Partner 1 Lawyer cannot sign-off for Partner 2's client");
-                            } else {
-                              onClientApprove(caseObj.id, 'p2');
-                            }
-                          }}
-                          className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold px-4 py-2 rounded-lg border border-purple-500 transition-all cursor-pointer"
-                        >
-                          Approve Client 2 ({caseObj.p2Name})
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Client Partially Approved */}
-                  {caseObj.status === 'CLIENT_PARTIALLY_APPROVED' && (
-                    <div className="w-full flex flex-col gap-3.5 p-3.5 bg-pink-50 border border-pink-200 rounded-xl">
-                      <div>
-                        <p className="text-xs font-bold text-pink-900">Client Partially Approved</p>
-                        <p className="text-[10px] text-slate-500 mt-0.5">One client has signed off. The remaining client approval is required.</p>
-                      </div>
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => {
-                            if (activePersona === 'L2') {
-                              triggerRbacProhibited("Partner 2 Lawyer cannot sign-off for Partner 1's client");
-                            } else {
-                              onClientApprove(caseObj.id, 'p1');
-                            }
-                          }}
-                          className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold px-4 py-2 rounded-lg border border-purple-500 transition-all cursor-pointer"
-                        >
-                          Approve Client 1 ({caseObj.p1Name})
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (activePersona === 'L1') {
-                              triggerRbacProhibited("Partner 1 Lawyer cannot sign-off for Partner 2's client");
-                            } else {
-                              onClientApprove(caseObj.id, 'p2');
-                            }
-                          }}
-                          className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold px-4 py-2 rounded-lg border border-purple-500 transition-all cursor-pointer"
-                        >
-                          Approve Client 2 ({caseObj.p2Name})
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Issue ILA Certificates */}
-                  {(caseObj.status === 'CLIENT_APPROVED' || caseObj.status === 'ILA_P1_COMPLETE' || caseObj.status === 'ILA_P2_COMPLETE') && (
-                    <div className="w-full flex flex-col gap-3 p-3.5 bg-teal-50 border border-teal-200 rounded-xl">
-                      <div>
-                        <p className="text-xs font-bold text-teal-900">Independent Legal Advice (ILA) Certificates</p>
-                        <p className="text-[10px] text-slate-500 mt-0.5">Certificates must be issued by corresponding attorneys (Constraint #9 check)</p>
-                      </div>
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => {
-                            if (activePersona === 'L2') {
-                              triggerRbacProhibited("L2 Attorney cannot issue ILA Certificate for Client 1");
-                            } else {
-                              onIssueIla(caseObj.id, 'p1');
-                            }
-                          }}
-                          className="bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold px-4 py-2 rounded-lg border border-teal-500 transition-all cursor-pointer"
-                        >
-                          Issue Client 1 ILA ({caseObj.p1Name})
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (activePersona === 'L1') {
-                              triggerRbacProhibited("L1 Attorney cannot issue ILA Certificate for Client 2");
-                            } else {
-                              onIssueIla(caseObj.id, 'p2');
-                            }
-                          }}
-                          className="bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold px-4 py-2 rounded-lg border border-teal-500 transition-all cursor-pointer"
-                        >
-                          Issue Client 2 ILA ({caseObj.p2Name})
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Sign final agreement */}
-                  {caseObj.status === 'READY_FOR_SIGNING' && (
-                    <div className="w-full flex items-center justify-between p-3.5 bg-green-50 border border-green-200 rounded-xl">
-                      <div>
-                        <p className="text-xs font-bold text-green-900">Sign Final Agreement</p>
-                        <p className="text-[10px] text-slate-500 mt-0.5">Complete witness sign-offs and finalize agreement (CLOSED state)</p>
-                      </div>
-                      <button
-                        onClick={() => onSignAgreement(caseObj.id)}
-                        className="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-4 py-2 rounded-lg border border-green-500 transition-all flex items-center gap-1 cursor-pointer"
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                        <span>Sign &amp; Finalize Case</span>
-                      </button>
-                    </div>
-                  )}
+                {/* Done Comparing button footer at the bottom right */}
+                <div className="flex justify-end pt-3 border-t border-slate-800">
+                  <button 
+                    onClick={() => setIsComparing(false)}
+                    className="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-6 py-2 rounded-lg border border-slate-600 transition-all cursor-pointer shadow-md"
+                  >
+                    Done Comparing
+                  </button>
                 </div>
               </div>
-
-              {/* Version list */}
-              <div className="bg-white border border-slate-300 rounded-xl overflow-hidden shadow-xs">
-                <div className="px-5 py-3 border-b border-slate-200 bg-slate-50/50">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-sans">
-                    Agreement Versions list (Constraint #11: Immutable)
-                  </span>
+            ) : (
+              <div className="flex flex-col gap-6 font-sans text-slate-800 p-0 animate-fade-in">
+                
+                {/* Case Metadata Indicators bar */}
+                <div className="bg-white border border-slate-300 rounded-xl p-4 shadow-xs grid grid-cols-5 gap-4 text-xs font-sans">
+                  <div>
+                    <span className="text-slate-500 font-extrabold uppercase text-[10px] block mb-0.5 tracking-wider">Case ID</span>
+                    <span className="font-mono font-extrabold text-slate-950 text-sm">{caseObj.id}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 font-extrabold uppercase text-[10px] block mb-0.5 tracking-wider">Parties</span>
+                    <span className="font-bold text-slate-950 text-xs">{caseObj.p1Name} (P1) &amp; {caseObj.p2Name} (P2)</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 font-extrabold uppercase text-[10px] block mb-0.5 tracking-wider">Current Status</span>
+                    <span className="bg-[#dbeafe] text-[#1e40af] text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                      {caseObj.status.replace(/_/g, ' ')}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 font-extrabold uppercase text-[10px] block mb-0.5 tracking-wider">Current Version</span>
+                    <span className="font-mono font-extrabold text-slate-950 text-sm">{activeVersionId}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 font-extrabold uppercase text-[10px] block mb-0.5 tracking-wider">Last Updated</span>
+                    <span className="text-slate-950 font-bold text-xs">{caseObj.lastActivity}</span>
+                  </div>
                 </div>
 
-                <table className="w-full text-left text-xs font-sans">
-                  <thead>
-                    <tr className="bg-slate-100 text-slate-500 uppercase tracking-wider text-[9px] font-bold border-b border-slate-200">
-                      <th className="p-3 pl-5">Version</th>
-                      <th className="p-3">Uploaded By</th>
-                      <th className="p-3">Published</th>
-                      <th className="p-3">Upload Date</th>
-                      <th className="p-3 pr-5">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {caseObj.versions.map((v) => (
-                      <tr key={v.version} className="border-b border-slate-100 text-slate-700 hover:bg-slate-50">
-                        <td className="p-3 pl-5 font-mono font-bold text-slate-900">{v.version}</td>
-                        <td className="p-3 font-semibold">{v.uploadedBy}</td>
-                        <td className="p-3">
-                          <span className={`text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full ${
-                            v.published === 'YES'
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              : v.published === 'Pending'
-                              ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                              : 'bg-slate-100 text-slate-600 border border-slate-200'
-                          }`}>
-                            {v.published}
-                          </span>
-                        </td>
-                        <td className="p-3 font-mono">{v.uploadedDate}</td>
-                        <td className="p-3 pr-5">
-                          <button
-                            onClick={() => {
-                              if (v.published === 'YES' || v.published === 'Pending') {
-                                alert(`Previewing agreement PDF path: ${v.s3Path}`);
-                              } else {
-                                alert(`Downloading copy: ${v.s3Path}`);
-                              }
-                            }}
-                            className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 border border-slate-300 rounded font-bold text-[10px] transition-all cursor-pointer"
+                {/* Three Column Core Layout */}
+                <div className="grid grid-cols-12 gap-6">
+                  
+                  {/* Column 1: All Versions Timeline (Col Span 3) */}
+                  <div className="col-span-3 bg-white border border-slate-300 rounded-xl p-4 shadow-xs flex flex-col justify-between h-[820px] overflow-hidden">
+                    <div className="flex flex-col gap-4 overflow-y-auto">
+                      <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                        <span className="text-xs font-extrabold text-slate-800 tracking-wider uppercase">ALL VERSIONS</span>
+                        <button className="bg-slate-50 border border-slate-200 text-slate-700 px-2 py-1 rounded text-[10px] font-bold hover:bg-slate-100 transition-all cursor-pointer flex items-center gap-1">
+                          <span>Filter</span>
+                        </button>
+                      </div>
+
+                      <div className="flex flex-col gap-3">
+                        {interactiveVersions.map((item, idx) => (
+                          <div 
+                            key={idx}
+                            onClick={() => setActiveVersionId(item.ver)}
+                            className={`p-3 border rounded-xl flex flex-col gap-2 transition-all cursor-pointer ${
+                              item.ver === activeVersionId 
+                                ? 'bg-slate-50 border-slate-400 shadow-sm' 
+                                : 'bg-white border-slate-200 hover:border-slate-300'
+                            }`}
                           >
-                            {v.published === 'YES' ? 'Preview' : 'Download'}
+                            <div className="flex items-center justify-between">
+                              <span className="font-mono text-xs font-extrabold text-slate-950">
+                                {item.ver} 
+                                <span className="bg-slate-200 text-slate-800 px-1.5 py-0.5 rounded text-[9px] font-extrabold ml-2">
+                                  {item.badge}
+                                </span>
+                              </span>
+                            </div>
+                            <p className="text-xs font-bold text-slate-900 leading-snug">{item.title}</p>
+                            <p className="text-[10px] text-slate-700 font-bold">{item.by}</p>
+                            <p className="text-[10px] text-slate-600 font-semibold">{item.date}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Column 2: Center - PDF Viewer (Col Span 6) */}
+                  <div className="col-span-6 flex flex-col h-[820px] pr-1">
+                    
+                    {/* PDF Viewer */}
+                    <div className="bg-white border border-slate-300 rounded-xl overflow-hidden shadow-xs flex flex-col h-full">
+                      <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-900">Version {activeVersionId} - Latest Agreed Version (Clean Master)</span>
+                        <div className="flex items-center gap-2">
+                          <button className="bg-white border border-slate-300 text-slate-600 px-2 py-1 rounded text-[10px] font-bold hover:bg-slate-50 transition-all cursor-pointer">
+                            ↓
                           </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                          <button className="bg-white border border-slate-300 text-slate-600 px-2 py-1 rounded text-[10px] font-bold hover:bg-slate-50 transition-all cursor-pointer">
+                            ⛶
+                          </button>
+                        </div>
+                      </div>
+                      <div className="px-4 py-2 border-b border-slate-100 text-[9px] text-slate-400">
+                        Uploaded on 2026-08-18 10:30 AM
+                      </div>
+ 
+                      {/* PDF Document Frame mock */}
+                      <div className="bg-slate-100 p-6 flex justify-center h-[710px] overflow-y-auto">
+                        {(() => {
+                          const isBase = activeVersionId === 'v3.0';
+                          return (
+                            <div className="bg-white p-12 border border-slate-300 flex flex-col gap-6 shadow-sm text-slate-800 w-[550px] min-h-[900px] h-fit">
+                              <h2 className="text-center font-serif text-base font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-3">
+                                PRENUPTIAL AGREEMENT
+                              </h2>
+                              <p className="text-xs text-slate-650 leading-relaxed font-sans mt-2">
+                                This Agreement is made and entered into on this 18th day of August, 2026, by and between:
+                              </p>
+                              
+                              <div className="flex flex-col gap-2 font-sans text-xs">
+                                <p className="font-bold text-slate-800 uppercase">PARTIES:</p>
+                                <div className="pl-4 flex flex-col gap-1 text-slate-650">
+                                  <p><strong>First Spouse:</strong> {caseObj.p1Name} (referred to herein as "Party 1")</p>
+                                  <p><strong>Second Spouse:</strong> {caseObj.p2Name} (referred to herein as "Party 2")</p>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-col gap-3 font-sans text-xs border-t border-slate-100 pt-4">
+                                <p className="font-bold text-slate-850 uppercase">RECITALS:</p>
+                                <p className="text-slate-650 leading-relaxed pl-4">
+                                  <strong>A. Intended Marriage.</strong> The parties intend to enter into marriage on or about September 12, 2026, and make this Agreement in contemplation of the marriage.
+                                </p>
+                                <p className="text-slate-650 leading-relaxed pl-4">
+                                  <strong>B. Definition of Rights.</strong> The parties desire to define and fix their respective rights, duties, and obligations with respect to all property, assets, debts, and estates during the marriage and in the event of a dissolution.
+                                </p>
+                                <p className="text-slate-650 leading-relaxed pl-4">
+                                  <strong>C. Full Disclosure.</strong> Each party has provided full, frank, and complete disclosure of all assets, liabilities, and income to the other party, as set forth in schedules attached hereto.
+                                </p>
+                              </div>
+
+                              <div className="flex flex-col gap-3 mt-2 font-sans text-xs border-t border-slate-100 pt-4">
+                                <p className="font-bold text-slate-850">SECTION 1: DEFINITIONS</p>
+                                <p className="text-slate-650 leading-relaxed pl-4">
+                                  1.1 <strong>"Agreement"</strong> means this Prenuptial Agreement, including all associated schedules, disclosures, and appendices{isBase ? '.' : ' including all schedules and annexures.'}
+                                </p>
+                                <p className="text-slate-650 leading-relaxed pl-4">
+                                  1.2 <strong>"Separate Property"</strong> refers to assets, properties, interests, and business holdings owned by either party prior to the marriage as disclosed in Appendix A.
+                                </p>
+                              </div>
+
+                              <div className="flex flex-col gap-3 mt-2 font-sans text-xs border-t border-slate-100 pt-4">
+                                <p className="font-bold text-slate-850">SECTION 2: SEPARATE PROPERTY RETENTION</p>
+                                <p className="text-slate-650 leading-relaxed pl-4">
+                                  2.1 <strong>Ownership.</strong> Each party shall retain sole ownership, management, and control of their Separate Property, and may transfer, lease, or dispose of it without consent.
+                                </p>
+                                <p className="text-slate-650 leading-relaxed pl-4">
+                                  2.2 <strong>Exclusion of Appreciation.</strong> Any increase in the value, interest, rents, profits, or appreciation of a party's Separate Property during the marriage shall remain separate property.
+                                </p>
+                              </div>
+
+                              <div className="flex flex-col gap-3 mt-2 font-sans text-xs border-t border-slate-100 pt-4">
+                                <p className="font-bold text-slate-850">SECTION 3: JOINT AND COMMUNITY PROPERTY</p>
+                                <p className="text-slate-650 leading-relaxed pl-4">
+                                  3.1 <strong>Creation.</strong> Any assets acquired during the marriage that are titled jointly or purchased with joint funds shall be considered Joint Property. No community property estate shall otherwise be created.
+                                </p>
+                              </div>
+
+                              <div className="flex flex-col gap-3 mt-2 font-sans text-xs border-t border-slate-100 pt-4">
+                                <p className="font-bold text-slate-850">SECTION 4: MAINTENANCE AND SUPPORT</p>
+                                <p className="text-slate-650 leading-relaxed pl-4">
+                                  4.1 <strong>Mutual Waiver.</strong> Except as otherwise provided herein, each party hereby waives, releases, and relinquishes any and all rights to spousal support, maintenance, or alimony from the other in the event of separation or dissolution.
+                                </p>
+                              </div>
+
+                              <div className="flex flex-col gap-3 mt-2 font-sans text-xs border-t border-slate-100 pt-4 pb-8">
+                                <p className="font-bold text-slate-850">SECTION 5: NOTARIZATION & SIGNATURES</p>
+                                <div className="flex justify-between mt-6 pt-4 border-t border-dashed border-slate-200">
+                                  <div className="flex flex-col gap-1 w-[45%]">
+                                    <span className="h-10 border-b border-slate-300"></span>
+                                    <span className="font-bold text-slate-700">{caseObj.p1Name} (Party 1)</span>
+                                  </div>
+                                  <div className="flex flex-col gap-1 w-[45%]">
+                                    <span className="h-10 border-b border-slate-300"></span>
+                                    <span className="font-bold text-slate-700">{caseObj.p2Name} (Party 2)</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
+ 
+                      {/* PDF Footer details */}
+                      <div className="bg-slate-50 border-t border-slate-200 px-4 py-2.5 flex items-center justify-between text-[8px] text-slate-500 font-mono">
+                        <span>Page 1 of 24 (Version {activeVersionId}) | Size: 1.2 MB | 100% | Fit</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Column 3: Right Sidebar Controls (Col Span 3) */}
+                  <div className="col-span-3 flex flex-col gap-6 h-[820px] overflow-y-auto pr-1">
+                    
+                    {/* Check-In / Check-Out */}
+                    {isCheckedOut ? (
+                      <div className="bg-white border border-slate-300 rounded-xl p-4 shadow-xs flex flex-col gap-3">
+                        <span className="text-[10px] font-bold text-slate-900 tracking-wider uppercase">CHECK-IN / CHECK-OUT</span>
+                        <div className="text-[9px] text-slate-600 font-sans flex flex-col gap-1 border border-slate-100 rounded-lg p-2.5 bg-slate-50/50">
+                          <p><strong>Checked Out By:</strong> {checkedOutBy}</p>
+                          <p><strong>Checked Out On:</strong> {checkedOutOn}</p>
+                        </div>
+                        <button 
+                          onClick={() => setIsCheckedOut(false)}
+                          className="w-full bg-[#991b1b] hover:bg-[#7f1d1d] text-white text-xs font-bold py-2 rounded-lg border border-red-800 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs mt-2"
+                        >
+                          <Lock className="w-3.5 h-3.5" />
+                          <span>Check in Draft</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="bg-white border border-slate-300 rounded-xl p-4 shadow-xs flex flex-col gap-3">
+                        <span className="text-[10px] font-bold text-slate-900 tracking-wider uppercase">CHECK-IN / CHECK-OUT</span>
+                        <p className="text-[9px] text-slate-400 leading-normal">
+                          Document is checked in. Check out the document to lock modifications and check in new draft version.
+                        </p>
+                        <button 
+                          onClick={() => {
+                            setIsCheckedOut(true);
+                            setCheckedOutBy('Robert Miller, Esq.');
+                            setCheckedOutOn('8/23/2026, 10:45:00 PM');
+                          }}
+                          className="w-full bg-[#1e4620] hover:bg-[#163a18] text-white text-xs font-bold py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                        >
+                          <span>✓ Check Out for Revisions</span>
+                        </button>
+                        <div className="text-[8px] text-slate-400 font-mono">
+                          Downloaded version: Prenuptial_Agreement_{activeVersionId}.pdf
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Upload new version check-in */}
+                    {isCheckedOut ? (
+                      <div className="bg-white border border-slate-300 rounded-xl p-4 shadow-xs flex flex-col gap-3">
+                        <span className="text-[10px] font-bold text-slate-900 tracking-wider uppercase">UPLOAD NEW VERSION (CHECK-IN)</span>
+                        
+                        {/* Drag & drop mock */}
+                        <div className="border-2 border-dashed border-slate-200 rounded-lg p-6 flex flex-col items-center justify-center bg-slate-50 text-slate-400 gap-2 cursor-pointer hover:border-slate-300 hover:bg-slate-100/50 transition-all">
+                          <Upload className="w-5 h-5 text-slate-400" />
+                          <div className="text-[9px] font-semibold text-center">
+                            <p>Drag &amp; drop file here</p>
+                            <p className="my-0.5">or</p>
+                          </div>
+                          <span className="bg-white border border-slate-300 text-slate-700 px-3 py-1 rounded text-[8px] font-bold shadow-xs">
+                            Choose File
+                          </span>
+                        </div>
+
+                        <div className="flex flex-col gap-1.5 mt-1 text-xs font-sans">
+                          <label className="text-[9px] text-slate-500 font-bold uppercase">New Version Number</label>
+                          <input 
+                            type="text" 
+                            value={(() => {
+                              if (!interactiveVersions.length) return 'v1.0';
+                              const latest = interactiveVersions[0].ver;
+                              const num = parseFloat(latest.replace('v', ''));
+                              return `v${(num + 0.1).toFixed(1)}`;
+                            })()} 
+                            disabled
+                            className="bg-slate-100 border border-slate-200 text-xs px-2.5 py-1.5 rounded-lg font-mono outline-none text-slate-500 cursor-not-allowed" 
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-1.5 text-xs font-sans">
+                          <label className="text-[9px] text-slate-500 font-bold uppercase">Amendment Summary *</label>
+                          <textarea 
+                            rows={3}
+                            value={amendmentInput}
+                            onChange={(e) => setAmendmentInput(e.target.value)}
+                            placeholder="Describe the changes made in this version..."
+                            className="bg-white border border-slate-200 text-xs px-2.5 py-1.5 rounded-lg font-sans outline-none focus:border-slate-400 text-slate-700 leading-normal resize-none"
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2 mt-2">
+                          <button 
+                            onClick={() => {
+                              setIsCheckedOut(false);
+                              setAmendmentInput('');
+                            }}
+                            className="flex-1 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-bold py-1.5 rounded-lg transition-all cursor-pointer font-sans"
+                          >
+                            Cancel
+                          </button>
+                          <button 
+                            onClick={() => {
+                              if (!amendmentInput.trim()) {
+                                alert('Please provide an amendment summary.');
+                                return;
+                              }
+                              const nextVer = (() => {
+                                if (!interactiveVersions.length) return 'v1.0';
+                                const latest = interactiveVersions[0].ver;
+                                const num = parseFloat(latest.replace('v', ''));
+                                return `v${(num + 0.1).toFixed(1)}`;
+                              })();
+                              const newVerObj = {
+                                ver: nextVer,
+                                title: amendmentInput,
+                                by: activePersona === 'L1' ? 'Robert Miller, Esq.' : 'Mark Sterling, Esq.',
+                                date: '2026-08-20 10:30 AM',
+                                badge: activePersona
+                              };
+                              setInteractiveVersions([newVerObj, ...interactiveVersions]);
+                              setActiveVersionId(nextVer);
+                              setIsCheckedOut(false);
+                              setAmendmentInput('');
+                            }}
+                            className="flex-1 bg-[#1e3a8a] text-white hover:bg-[#172554] text-xs font-bold py-1.5 rounded-lg transition-all cursor-pointer font-sans"
+                          >
+                            Upload &amp; Create
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-white border border-slate-300 rounded-xl p-4 shadow-xs flex flex-col gap-3 opacity-60">
+                        <span className="text-[10px] font-bold text-slate-900 tracking-wider uppercase">UPLOAD NEW VERSION (CHECK-IN)</span>
+                        <p className="text-[9px] text-slate-500 leading-normal font-sans">
+                          Please click the checkout button above to enable draft version uploads.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Compare Documents */}
+                    <div className="bg-white border border-slate-300 rounded-xl p-4 shadow-xs flex flex-col gap-3">
+                      <span className="text-[10px] font-bold text-slate-900 tracking-wider uppercase">COMPARE DOCUMENTS</span>
+                      <div className="flex flex-col gap-2 mt-1">
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[8px] text-slate-400 font-bold uppercase">From Version</label>
+                          <select 
+                            value={compareFrom}
+                            onChange={(e) => setCompareFrom(e.target.value)}
+                            className="bg-white border border-slate-200 text-xs px-2 py-1.5 rounded-lg font-sans outline-none text-slate-700 cursor-pointer"
+                          >
+                            {interactiveVersions.map((v) => (
+                              <option key={v.ver} value={v.ver}>{v.ver}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[8px] text-slate-400 font-bold uppercase">To Version</label>
+                          <select 
+                            value={compareTo}
+                            onChange={(e) => setCompareTo(e.target.value)}
+                            className="bg-white border border-slate-200 text-xs px-2 py-1.5 rounded-lg font-sans outline-none text-slate-700 cursor-pointer"
+                          >
+                            {interactiveVersions.map((v) => (
+                              <option key={v.ver} value={v.ver}>{v.ver}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => setIsComparing(true)}
+                        className="bg-[#1e3a8a] text-white hover:bg-[#172554] text-xs font-bold py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer mt-2 shadow-xs"
+                      >
+                        <span>Compare Versions</span>
+                      </button>
+                    </div>
+                  </div>
+
               </div>
             </div>
-          )}
-
-          {/* T4: Summary Notes Tab */}
+        )
+      )}
+                    {/* T4: Lawyer Action (Notes, Appendices, ILA) */}
           {activeTab === 'notes' && (
             <div className="flex flex-col gap-6">
+              
+              {/* Card 1: Confidential Summary Notes */}
               <div className="bg-white border border-slate-300 rounded-xl p-5 shadow-xs flex flex-col gap-4">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider font-sans">
-                    Confidential Summary Notes (Constraint #10: L1 only sees L1, L2 only L2)
+                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                  <h3 className="text-xs font-extrabold text-slate-600 uppercase tracking-wider font-sans">
+                    CONFIDENTIAL SUMMARY NOTES (CONSTRAINT #10: L1 ONLY SEES L1, L2 ONLY SEES L2)
                   </h3>
-                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full uppercase tracking-wider font-mono">
+                  <span className="text-[10px] font-extrabold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full uppercase tracking-wider font-mono">
                     {activePersona} Workspace
                   </span>
                 </div>
@@ -743,7 +1115,7 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
                         </div>
                       ))
                   ) : (
-                    <p className="text-xs text-slate-400 font-sans italic text-center py-4">
+                    <p className="text-xs text-slate-500 font-sans italic text-center py-4">
                       No confidential notes added yet by {activeLawyer}.
                     </p>
                   )}
@@ -756,11 +1128,11 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
                       value={noteText}
                       onChange={(e) => setNoteText(e.target.value)}
                       placeholder="Add private summary notes (visible ONLY to your lawyer profile)..."
-                      className="bg-white border border-slate-300 text-xs p-3 rounded-xl font-sans outline-none focus:border-slate-400 resize-none h-[80px]"
+                      className="bg-white border border-slate-350 text-xs p-3 rounded-xl font-sans outline-none focus:border-slate-400 resize-none h-[80px]"
                     />
                     <button
                       onClick={handleSaveNoteClick}
-                      className="bg-[#0d1527] text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-[#1b2947] transition-all cursor-pointer self-end flex items-center gap-1 shadow-xs"
+                      className="bg-[#0d1527] hover:bg-[#1b2947] text-white text-xs font-bold px-4 py-2 rounded-lg transition-all cursor-pointer self-end flex items-center gap-1 shadow-xs"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>Save Private Note</span>
@@ -773,295 +1145,588 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
                   </div>
                 )}
               </div>
-            </div>
-          )}
 
-          {/* T5: Appendices Tab */}
-          {activeTab === 'appendices' && (
-            <div className="flex flex-col gap-6">
-              {/* Form to upload new appendix */}
-              {caseObj.status === 'LAWYER_REVIEW' && (
-                <form onSubmit={handleUploadAppendixClick} className="bg-white border border-slate-300 rounded-xl p-5 shadow-xs flex flex-col gap-4">
-                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider font-sans border-b border-slate-100 pb-2">
-                    Upload Disclosure Document to Appendices
-                  </h3>
-
-                  <div className="grid grid-cols-2 gap-4 text-xs">
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-slate-400 font-bold uppercase text-[9px]">Appendix Section Slot</label>
-                      <select
-                        value={appendixType}
-                        onChange={(e) => setAppendixType(e.target.value as any)}
-                        className="bg-slate-50 border border-slate-300 text-slate-800 px-3 py-1.5 rounded-lg text-xs font-sans outline-none cursor-pointer"
-                      >
-                        <option value="A">Appendix A: Property Documents</option>
-                        <option value="B">Appendix B: Bank Statements</option>
-                        <option value="C">Appendix C: Trust Documentation</option>
-                      </select>
-                    </div>
-
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-slate-400 font-bold uppercase text-[9px]">Document File Name</label>
-                      <input
-                        type="text"
-                        required
-                        value={appendixFileName}
-                        onChange={(e) => setAppendixFileName(e.target.value)}
-                        placeholder="e.g. deed_toronto_property.pdf"
-                        className="bg-white border border-slate-300 px-3 py-1.5 rounded-lg font-sans outline-none focus:border-slate-400"
-                      />
-                    </div>
-
-                    <div className="flex flex-col gap-1.5 col-span-2">
-                      <label className="text-slate-400 font-bold uppercase text-[9px]">Document Title</label>
-                      <input
-                        type="text"
-                        required
-                        value={appendixTitle}
-                        onChange={(e) => setAppendixTitle(e.target.value)}
-                        placeholder="e.g. Registered Title Deed for King St Condo"
-                        className="bg-white border border-slate-300 px-3 py-1.5 rounded-lg font-sans outline-none focus:border-slate-400"
-                      />
-                    </div>
-
-                    <div className="flex flex-col gap-1.5 col-span-2">
-                      <label className="text-slate-400 font-bold uppercase text-[9px]">Brief Description</label>
-                      <input
-                        type="text"
-                        required
-                        value={appendixDesc}
-                        onChange={(e) => setAppendixDesc(e.target.value)}
-                        placeholder="e.g. Shows full ownership split and registry timestamp..."
-                        className="bg-white border border-slate-300 px-3 py-1.5 rounded-lg font-sans outline-none focus:border-slate-400"
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="bg-[#0d1527] text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-[#1b2947] transition-all cursor-pointer self-end flex items-center gap-1.5"
-                  >
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>Upload Appendix (S3 Pipeline)</span>
-                  </button>
-                </form>
-              )}
-
-              {/* Appendices list */}
-              <div className="bg-white border border-slate-300 rounded-xl p-5 shadow-xs flex flex-col gap-5">
-                {/* Appendix A */}
-                <div className="flex flex-col gap-2.5">
-                  <h4 className="text-xs font-bold text-slate-800 uppercase font-sans border-l-4 border-emerald-500 pl-2">
-                    Appendix A: Property Documents
-                  </h4>
-                  <div className="flex flex-col gap-2">
-                    {caseObj.appendices.A.length > 0 ? (
-                      caseObj.appendices.A.map((app) => (
-                        <div key={app.id} className="border border-slate-200 rounded-lg p-3 bg-slate-50 flex items-center justify-between text-xs">
-                          <div>
-                            <p className="font-bold text-slate-800">{app.title}</p>
-                            <p className="text-slate-500 text-[10px] mt-0.5">{app.description}</p>
-                            <p className="text-[9px] text-slate-400 font-mono mt-1">{app.fileName} | Uploaded by: {app.uploadedBy} on {app.createdDate}</p>
-                          </div>
-                          <button
-                            onClick={() => alert(`Downloading appendix document from S3 path: ${app.s3Path}`)}
-                            className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 p-1.5 rounded transition-all cursor-pointer"
-                          >
-                            <Download className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-xs text-slate-400 italic">No property documents uploaded in this slot.</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Appendix B */}
-                <div className="flex flex-col gap-2.5 border-t border-slate-100 pt-4">
-                  <h4 className="text-xs font-bold text-slate-800 uppercase font-sans border-l-4 border-emerald-500 pl-2">
-                    Appendix B: Bank Statements
-                  </h4>
-                  <div className="flex flex-col gap-2">
-                    {caseObj.appendices.B.length > 0 ? (
-                      caseObj.appendices.B.map((app) => (
-                        <div key={app.id} className="border border-slate-200 rounded-lg p-3 bg-slate-50 flex items-center justify-between text-xs">
-                          <div>
-                            <p className="font-bold text-slate-800">{app.title}</p>
-                            <p className="text-slate-500 text-[10px] mt-0.5">{app.description}</p>
-                            <p className="text-[9px] text-slate-400 font-mono mt-1">{app.fileName} | Uploaded by: {app.uploadedBy} on {app.createdDate}</p>
-                          </div>
-                          <button
-                            onClick={() => alert(`Downloading appendix document from S3 path: ${app.s3Path}`)}
-                            className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 p-1.5 rounded transition-all cursor-pointer"
-                          >
-                            <Download className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-xs text-slate-400 italic">No bank statements uploaded in this slot.</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Appendix C */}
-                <div className="flex flex-col gap-2.5 border-t border-slate-100 pt-4">
-                  <h4 className="text-xs font-bold text-slate-800 uppercase font-sans border-l-4 border-emerald-500 pl-2">
-                    Appendix C: Trust Documentation
-                  </h4>
-                  <div className="flex flex-col gap-2">
-                    {caseObj.appendices.C.length > 0 ? (
-                      caseObj.appendices.C.map((app) => (
-                        <div key={app.id} className="border border-slate-200 rounded-lg p-3 bg-slate-50 flex items-center justify-between text-xs">
-                          <div>
-                            <p className="font-bold text-slate-800">{app.title}</p>
-                            <p className="text-slate-500 text-[10px] mt-0.5">{app.description}</p>
-                            <p className="text-[9px] text-slate-400 font-mono mt-1">{app.fileName} | Uploaded by: {app.uploadedBy} on {app.createdDate}</p>
-                          </div>
-                          <button
-                            onClick={() => alert(`Downloading appendix document from S3 path: ${app.s3Path}`)}
-                            className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 p-1.5 rounded transition-all cursor-pointer"
-                          >
-                            <Download className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-xs text-slate-400 italic">No trust documentation uploaded in this slot.</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* T6: ILA Certificate Tab */}
-          {activeTab === 'ila' && (
-            <div className="flex flex-col gap-6">
-              {/* Client 1 Certificate */}
+              {/* Card 2: Appendices & Disclosures */}
               <div className="bg-white border border-slate-300 rounded-xl p-5 shadow-xs flex flex-col gap-4">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider font-sans">
-                    ILA Certificate for Client 1 ({caseObj.p1Name})
+                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                  <h3 className="text-xs font-extrabold text-slate-600 uppercase tracking-wider font-sans">
+                    APPENDICES & DISCLOSURES
                   </h3>
-                  <span className="text-[9px] font-mono text-slate-400 font-bold uppercase">SECURED</span>
+                  {!isAddingAppendix && !editingAppendix && activePersona !== 'L3' && (
+                    <button
+                      onClick={() => {
+                        setAppendixFormSlot('A');
+                        setAppendixFormTitle('');
+                        setAppendixFormDesc('');
+                        setAppendixFormFileName('');
+                        setIsAddingAppendix(true);
+                        setEditingAppendix(null);
+                      }}
+                      className="bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-bold text-[10px] uppercase px-2 py-0.5 rounded transition-all cursor-pointer"
+                    >
+                      + Add Appendix
+                    </button>
+                  )}
                 </div>
 
-                {canSeeOpposingIla('p1') ? (
-                  caseObj.ilaP1Cert ? (
-                    <div className="flex flex-col gap-4 text-xs text-slate-700 bg-emerald-50/20 border border-emerald-200 p-4 rounded-xl">
-                      <div className="flex items-center gap-2 text-emerald-800 font-bold">
-                        <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                        <span>ILA Certificate Issued &amp; Verified</span>
+                {/* Add / Edit Appendix Form */}
+                {(isAddingAppendix || editingAppendix) && (
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col gap-3 mb-2 text-xs">
+                    <h4 className="font-bold text-slate-800 uppercase text-[10px] tracking-wider border-b border-slate-200 pb-1">
+                      {editingAppendix ? 'Edit Appendix details' : 'Upload Appendix Document'}
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-slate-400 font-bold uppercase text-[9px]">Appendix Section Slot</label>
+                        <select
+                          value={appendixFormSlot}
+                          onChange={(e) => setAppendixFormSlot(e.target.value as any)}
+                          className="bg-white border border-slate-300 px-2 py-1 rounded text-xs outline-none cursor-pointer"
+                        >
+                          <option value="A">Appendix A: Property Documents</option>
+                          <option value="B">Appendix B: Bank Statements</option>
+                          <option value="C">Appendix C: Trust Documentation</option>
+                        </select>
                       </div>
-                      
-                      <div className="grid grid-cols-2 gap-4 mt-2">
-                        <div>
-                          <span className="text-slate-400 text-[9px] uppercase">Issuing Attorney</span>
-                          <p className="text-slate-800 font-semibold">{caseObj.ilaP1Cert.lawyerName}</p>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 text-[9px] uppercase">Legal Firm</span>
-                          <p className="text-slate-800 font-semibold">{caseObj.ilaP1Cert.firmName}</p>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 text-[9px] uppercase">Bar Registration ID</span>
-                          <p className="text-slate-800 font-mono font-semibold">{caseObj.ilaP1Cert.barNumber}</p>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 text-[9px] uppercase">Issue Date</span>
-                          <p className="text-slate-800 font-semibold">{caseObj.ilaP1Cert.issueDate}</p>
-                        </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-slate-400 font-bold uppercase text-[9px]">Document File Name</label>
+                        <input
+                          type="text"
+                          value={appendixFormFileName}
+                          onChange={(e) => setAppendixFormFileName(e.target.value)}
+                          placeholder="e.g. deed_toronto_property.pdf"
+                          className="bg-white border border-slate-300 px-2 py-1 rounded text-xs outline-none"
+                        />
                       </div>
-
+                      <div className="flex flex-col gap-1 col-span-2">
+                        <label className="text-slate-400 font-bold uppercase text-[9px]">Document Title</label>
+                        <input
+                          type="text"
+                          value={appendixFormTitle}
+                          onChange={(e) => setAppendixFormTitle(e.target.value)}
+                          placeholder="e.g. Registered Title Deed for King St Condo"
+                          className="bg-white border border-slate-300 px-2 py-1 rounded text-xs outline-none"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1 col-span-2">
+                        <label className="text-slate-400 font-bold uppercase text-[9px]">Brief Description</label>
+                        <input
+                          type="text"
+                          value={appendixFormDesc}
+                          onChange={(e) => setAppendixFormDesc(e.target.value)}
+                          placeholder="e.g. Shows full ownership split and registry timestamp..."
+                          className="bg-white border border-slate-300 px-2 py-1 rounded text-xs outline-none"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 mt-2 justify-end">
                       <button
-                        onClick={() => alert(`Downloading Certificate PDF: ${caseObj.ilaP1Cert?.signedPdfPath}`)}
-                        className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-[10px] font-bold px-3 py-1.5 rounded transition-all mt-2 flex items-center gap-1.5 self-start cursor-pointer"
+                        onClick={() => {
+                          setIsAddingAppendix(false);
+                          setEditingAppendix(null);
+                        }}
+                        className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-[10px] font-bold px-3 py-1 rounded transition-all cursor-pointer"
                       >
-                        <Download className="w-3.5 h-3.5" />
-                        <span>Download ILA_P1.pdf</span>
+                        Cancel
                       </button>
-                    </div>
-                  ) : (
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 text-center text-slate-400 italic text-xs">
-                      No ILA Certificate issued yet for Client 1. Must be issued by Robert Miller, Esq. after client approval.
-                    </div>
-                  )
-                ) : (
-                  <div className="bg-red-50 border border-red-200 rounded-xl p-8 flex flex-col items-center justify-center gap-3 text-center">
-                    <Lock className="w-8 h-8 text-red-700" />
-                    <div className="flex flex-col gap-1">
-                      <p className="text-xs font-bold text-red-900 uppercase tracking-wide">Access Prohibited (Constraint #9)</p>
-                      <p className="text-[11px] text-red-700">
-                        As the lawyer for Client 2, you are prohibited from viewing Client 1's private ILA Certificate documents.
-                      </p>
+                      <button
+                        onClick={handleSaveAppendixLocal}
+                        className="bg-[#1e3a8a] text-white hover:bg-[#172554] text-[10px] font-bold px-3 py-1 rounded transition-all cursor-pointer"
+                      >
+                        Save Appendix
+                      </button>
                     </div>
                   </div>
                 )}
-              </div>
 
-              {/* Client 2 Certificate */}
-              <div className="bg-white border border-slate-300 rounded-xl p-5 shadow-xs flex flex-col gap-4">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider font-sans">
-                    ILA Certificate for Client 2 ({caseObj.p2Name})
-                  </h3>
-                  <span className="text-[9px] font-mono text-slate-400 font-bold uppercase">SECURED</span>
-                </div>
-
-                {canSeeOpposingIla('p2') ? (
-                  caseObj.ilaP2Cert ? (
-                    <div className="flex flex-col gap-4 text-xs text-slate-700 bg-emerald-50/20 border border-emerald-200 p-4 rounded-xl">
-                      <div className="flex items-center gap-2 text-emerald-800 font-bold">
-                        <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                        <span>ILA Certificate Issued &amp; Verified</span>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4 mt-2">
-                        <div>
-                          <span className="text-slate-400 text-[9px] uppercase">Issuing Attorney</span>
-                          <p className="text-slate-800 font-semibold">{caseObj.ilaP2Cert.lawyerName}</p>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 text-[9px] uppercase">Legal Firm</span>
-                          <p className="text-slate-800 font-semibold">{caseObj.ilaP2Cert.firmName}</p>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 text-[9px] uppercase">Bar Registration ID</span>
-                          <p className="text-slate-800 font-mono font-semibold">{caseObj.ilaP2Cert.barNumber}</p>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 text-[9px] uppercase">Issue Date</span>
-                          <p className="text-slate-800 font-semibold">{caseObj.ilaP2Cert.issueDate}</p>
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={() => alert(`Downloading Certificate PDF: ${caseObj.ilaP2Cert?.signedPdfPath}`)}
-                        className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-[10px] font-bold px-3 py-1.5 rounded transition-all mt-2 flex items-center gap-1.5 self-start cursor-pointer"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                        <span>Download ILA_P2.pdf</span>
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 text-center text-slate-400 italic text-xs">
-                      No ILA Certificate issued yet for Client 2. Must be issued by Mark Sterling, Esq. after client approval.
-                    </div>
-                  )
-                ) : (
-                  <div className="bg-red-50 border border-red-200 rounded-xl p-8 flex flex-col items-center justify-center gap-3 text-center">
-                    <Lock className="w-8 h-8 text-red-700" />
-                    <div className="flex flex-col gap-1">
-                      <p className="text-xs font-bold text-red-900 uppercase tracking-wide">Access Prohibited (Constraint #9)</p>
-                      <p className="text-[11px] text-red-700">
-                        As the lawyer for Client 1, you are prohibited from viewing Client 2's private ILA Certificate documents.
-                      </p>
+                <div className="flex flex-col gap-5">
+                  {/* Appendix A */}
+                  <div className="flex flex-col gap-2.5">
+                    <h4 className="text-xs font-bold text-slate-800 uppercase font-sans border-l-4 border-emerald-500 pl-2">
+                      APPENDIX A: PROPERTY DOCUMENTS
+                    </h4>
+                    <div className="flex flex-col gap-2">
+                      {localAppendices.A.length > 0 ? (
+                        localAppendices.A.map((app) => (
+                          <div key={app.id} className="border border-slate-200 rounded-lg p-3 bg-slate-50 flex items-center justify-between text-xs group">
+                            <div>
+                              <p className="font-bold text-slate-800">{app.title}</p>
+                              <p className="text-slate-500 text-[10px] mt-0.5">{app.description}</p>
+                              <p className="text-[9px] text-slate-400 font-mono mt-1">{app.fileName} | Uploaded by: {app.uploadedBy} on {app.createdDate}</p>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {activePersona !== 'L3' && (
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      setAppendixFormSlot('A');
+                                      setAppendixFormTitle(app.title);
+                                      setAppendixFormDesc(app.description);
+                                      setAppendixFormFileName(app.fileName);
+                                      setEditingAppendix({ slot: 'A', appendix: app });
+                                      setIsAddingAppendix(false);
+                                    }}
+                                    className="bg-white border border-slate-350 text-slate-650 hover:bg-slate-50 p-1 rounded transition-all cursor-pointer"
+                                    title="Edit Appendix"
+                                  >
+                                    <Edit className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      if (confirm('Are you sure you want to delete this appendix?')) {
+                                        setLocalAppendices({
+                                          ...localAppendices,
+                                          A: localAppendices.A.filter(a => a.id !== app.id)
+                                        });
+                                      }
+                                    }}
+                                    className="bg-white border border-slate-350 text-red-650 hover:bg-red-50 p-1 rounded transition-all cursor-pointer"
+                                    title="Delete Appendix"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </>
+                              )}
+                              <button
+                                onClick={() => alert(`Downloading appendix document from S3 path: ${app.s3Path}`)}
+                                className="bg-white border border-slate-350 text-slate-700 hover:bg-slate-50 p-1.5 rounded transition-all cursor-pointer"
+                              >
+                                <Download className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-xs text-slate-400 italic">No property documents uploaded in this slot.</p>
+                      )}
                     </div>
                   </div>
-                )}
+
+                  {/* Appendix B */}
+                  <div className="flex flex-col gap-2.5 border-t border-slate-100 pt-4">
+                    <h4 className="text-xs font-bold text-slate-800 uppercase font-sans border-l-4 border-emerald-500 pl-2">
+                      APPENDIX B: BANK STATEMENTS
+                    </h4>
+                    <div className="flex flex-col gap-2">
+                      {localAppendices.B.length > 0 ? (
+                        localAppendices.B.map((app) => (
+                          <div key={app.id} className="border border-slate-200 rounded-lg p-3 bg-slate-50 flex items-center justify-between text-xs group">
+                            <div>
+                              <p className="font-bold text-slate-800">{app.title}</p>
+                              <p className="text-slate-500 text-[10px] mt-0.5">{app.description}</p>
+                              <p className="text-[9px] text-slate-400 font-mono mt-1">{app.fileName} | Uploaded by: {app.uploadedBy} on {app.createdDate}</p>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {activePersona !== 'L3' && (
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      setAppendixFormSlot('B');
+                                      setAppendixFormTitle(app.title);
+                                      setAppendixFormDesc(app.description);
+                                      setAppendixFormFileName(app.fileName);
+                                      setEditingAppendix({ slot: 'B', appendix: app });
+                                      setIsAddingAppendix(false);
+                                    }}
+                                    className="bg-white border border-slate-350 text-slate-650 hover:bg-slate-50 p-1 rounded transition-all cursor-pointer"
+                                    title="Edit Appendix"
+                                  >
+                                    <Edit className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      if (confirm('Are you sure you want to delete this appendix?')) {
+                                        setLocalAppendices({
+                                          ...localAppendices,
+                                          B: localAppendices.B.filter(a => a.id !== app.id)
+                                        });
+                                      }
+                                    }}
+                                    className="bg-white border border-slate-350 text-red-655 hover:bg-red-50 p-1 rounded transition-all cursor-pointer"
+                                    title="Delete Appendix"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </>
+                              )}
+                              <button
+                                onClick={() => alert(`Downloading appendix document from S3 path: ${app.s3Path}`)}
+                                className="bg-white border border-slate-350 text-slate-700 hover:bg-slate-50 p-1.5 rounded transition-all cursor-pointer"
+                              >
+                                <Download className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-xs text-slate-400 italic">No bank statements uploaded in this slot.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Appendix C */}
+                  <div className="flex flex-col gap-2.5 border-t border-slate-100 pt-4">
+                    <h4 className="text-xs font-bold text-slate-800 uppercase font-sans border-l-4 border-emerald-500 pl-2">
+                      APPENDIX C: TRUST DOCUMENTATION
+                    </h4>
+                    <div className="flex flex-col gap-2">
+                      {localAppendices.C.length > 0 ? (
+                        localAppendices.C.map((app) => (
+                          <div key={app.id} className="border border-slate-200 rounded-lg p-3 bg-slate-50 flex items-center justify-between text-xs group">
+                            <div>
+                              <p className="font-bold text-slate-800">{app.title}</p>
+                              <p className="text-slate-500 text-[10px] mt-0.5">{app.description}</p>
+                              <p className="text-[9px] text-slate-400 font-mono mt-1">{app.fileName} | Uploaded by: {app.uploadedBy} on {app.createdDate}</p>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {activePersona !== 'L3' && (
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      setAppendixFormSlot('C');
+                                      setAppendixFormTitle(app.title);
+                                      setAppendixFormDesc(app.description);
+                                      setAppendixFormFileName(app.fileName);
+                                      setEditingAppendix({ slot: 'C', appendix: app });
+                                      setIsAddingAppendix(false);
+                                    }}
+                                    className="bg-white border border-slate-350 text-slate-650 hover:bg-slate-50 p-1 rounded transition-all cursor-pointer"
+                                    title="Edit Appendix"
+                                  >
+                                    <Edit className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      if (confirm('Are you sure you want to delete this appendix?')) {
+                                        setLocalAppendices({
+                                          ...localAppendices,
+                                          C: localAppendices.C.filter(a => a.id !== app.id)
+                                        });
+                                      }
+                                    }}
+                                    className="bg-white border border-slate-350 text-red-660 hover:bg-red-50 p-1 rounded transition-all cursor-pointer"
+                                    title="Delete Appendix"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </>
+                              )}
+                              <button
+                                onClick={() => alert(`Downloading appendix document from S3 path: ${app.s3Path}`)}
+                                className="bg-white border border-slate-350 text-slate-700 hover:bg-slate-50 p-1.5 rounded transition-all cursor-pointer"
+                              >
+                                <Download className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-xs text-slate-400 italic">No trust documentation uploaded in this slot.</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
+
+              {/* Card 3: ILA Certificates */}
+              <div className="bg-white border border-slate-300 rounded-xl p-5 shadow-xs flex flex-col gap-4">
+                <h3 className="text-xs font-extrabold text-slate-600 uppercase tracking-wider font-sans border-b border-slate-200 pb-2">
+                  ILA CERTIFICATES
+                </h3>
+                
+                {/* Client 1 ILA Certificate */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold text-slate-800 uppercase font-sans">
+                      CLIENT 1 ILA STATUS ({caseObj.p1Name?.toUpperCase()})
+                    </h4>
+                    {canSeeOpposingIla('p1') && (activePersona === 'L1') && !localIlaP1Cert && !isEditingIlaP1 && (
+                      <button
+                        onClick={() => {
+                          setIlaFormLawyerName('Robert Miller, Esq.');
+                          setIlaFormFirmName('Miller & Partners, LLP');
+                          setIlaFormBarNumber('BAR-2026-9921');
+                          setIlaFormIssueDate('2026-08-26');
+                          setIsEditingIlaP1(true);
+                        }}
+                        className="bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-bold text-[9px] uppercase px-2 py-0.5 rounded transition-all cursor-pointer"
+                      >
+                        + Issue Certificate
+                      </button>
+                    )}
+                  </div>
+                  
+                  {canSeeOpposingIla('p1') ? (
+                    isEditingIlaP1 ? (
+                      <div className="bg-slate-50 border border-slate-300 rounded-xl p-4 flex flex-col gap-3 mt-1 text-xs">
+                        <h5 className="font-bold text-slate-800 text-[10px] uppercase">Client 1 ILA Details</h5>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="flex flex-col gap-1">
+                            <label className="text-slate-400 font-bold text-[9px] uppercase">Issuing Attorney</label>
+                            <input
+                              type="text"
+                              value={ilaFormLawyerName}
+                              onChange={(e) => setIlaFormLawyerName(e.target.value)}
+                              className="bg-white border border-slate-350 px-2 py-1 rounded text-xs outline-none"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <label className="text-slate-400 font-bold text-[9px] uppercase">Legal Firm</label>
+                            <input
+                              type="text"
+                              value={ilaFormFirmName}
+                              onChange={(e) => setIlaFormFirmName(e.target.value)}
+                              className="bg-white border border-slate-350 px-2 py-1 rounded text-xs outline-none"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <label className="text-slate-400 font-bold text-[9px] uppercase">Bar Registration ID</label>
+                            <input
+                              type="text"
+                              value={ilaFormBarNumber}
+                              onChange={(e) => setIlaFormBarNumber(e.target.value)}
+                              className="bg-white border border-slate-350 px-2 py-1 rounded text-xs outline-none"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <label className="text-slate-400 font-bold text-[9px] uppercase">Issue Date</label>
+                            <input
+                              type="text"
+                              value={ilaFormIssueDate}
+                              onChange={(e) => setIlaFormIssueDate(e.target.value)}
+                              className="bg-white border border-slate-350 px-2 py-1 rounded text-xs outline-none"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 mt-2 justify-end">
+                          <button
+                            onClick={() => setIsEditingIlaP1(false)}
+                            className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-2.5 py-1 rounded text-[10px] font-bold cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() => handleSaveIlaCert('p1')}
+                            className="bg-[#1e3a8a] text-white hover:bg-[#172554] px-2.5 py-1 rounded text-[10px] font-bold cursor-pointer"
+                          >
+                            Save Cert
+                          </button>
+                        </div>
+                      </div>
+                    ) : localIlaP1Cert ? (
+                      <div className="flex flex-col gap-3 text-xs text-slate-700 bg-emerald-50/20 border border-emerald-200 p-4 rounded-xl mt-1 relative group">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-emerald-800 font-bold">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                            <span>ILA Certificate Issued &amp; Verified</span>
+                          </div>
+                          {activePersona === 'L1' && (
+                            <div className="flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => {
+                                  setIlaFormLawyerName(localIlaP1Cert.lawyerName);
+                                  setIlaFormFirmName(localIlaP1Cert.firmName);
+                                  setIlaFormBarNumber(localIlaP1Cert.barNumber);
+                                  setIlaFormIssueDate(localIlaP1Cert.issueDate);
+                                  setIsEditingIlaP1(true);
+                                }}
+                                className="bg-white border border-slate-200 text-slate-650 hover:bg-slate-50 p-0.5 rounded cursor-pointer"
+                                title="Edit Certificate"
+                              >
+                                <Edit className="w-3 h-3" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (confirm('Are you sure you want to delete/revoke this certificate?')) {
+                                    setLocalIlaP1Cert(undefined);
+                                  }
+                                }}
+                                className="bg-white border border-slate-200 text-red-600 hover:bg-red-50 p-0.5 rounded cursor-pointer"
+                                title="Delete Certificate"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 mt-1 text-slate-650">
+                          <div>
+                            <span className="text-slate-400 text-[9px] uppercase font-bold">Issuing Attorney</span>
+                            <p className="text-slate-800 font-semibold">{localIlaP1Cert.lawyerName}</p>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 text-[9px] uppercase font-bold">Legal Firm</span>
+                            <p className="text-slate-800 font-semibold">{localIlaP1Cert.firmName}</p>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 text-[9px] uppercase font-bold">Bar registration id</span>
+                            <p className="text-slate-800 font-mono font-semibold">{localIlaP1Cert.barNumber}</p>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 text-[9px] uppercase font-bold">Issue date</span>
+                            <p className="text-slate-800 font-semibold">{localIlaP1Cert.issueDate}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-500 font-bold italic mt-1 bg-slate-50/50 p-2.5 rounded-lg border border-slate-100">
+                        No ILA Certificate issued yet for Client 1
+                      </p>
+                    )
+                  ) : (
+                    <p className="text-xs text-red-700 mt-1 bg-red-50 border border-red-200 p-3 rounded-lg font-sans italic">
+                      Access Prohibited: Lawyer for Client 2 cannot view Client 1's private ILA documents
+                    </p>
+                  )}
+                </div>
+
+                {/* Client 2 ILA Certificate */}
+                <div className="flex flex-col gap-2 border-t border-slate-100 pt-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold text-slate-855 uppercase font-sans">
+                      CLIENT 2 ILA STATUS ({caseObj.p2Name?.toUpperCase()})
+                    </h4>
+                    {canSeeOpposingIla('p2') && (activePersona === 'L2') && !localIlaP2Cert && !isEditingIlaP2 && (
+                      <button
+                        onClick={() => {
+                          setIlaFormLawyerName('Mark Sterling, Esq.');
+                          setIlaFormFirmName('Sterling Legal Group');
+                          setIlaFormBarNumber('BAR-2026-8812');
+                          setIlaFormIssueDate('2026-08-26');
+                          setIsEditingIlaP2(true);
+                        }}
+                        className="bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-bold text-[9px] uppercase px-2 py-0.5 rounded transition-all cursor-pointer"
+                      >
+                        + Issue Certificate
+                      </button>
+                    )}
+                  </div>
+                  
+                  {canSeeOpposingIla('p2') ? (
+                    isEditingIlaP2 ? (
+                      <div className="bg-slate-50 border border-slate-300 rounded-xl p-4 flex flex-col gap-3 mt-1 text-xs">
+                        <h5 className="font-bold text-slate-800 text-[10px] uppercase">Client 2 ILA Details</h5>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="flex flex-col gap-1">
+                            <label className="text-slate-400 font-bold text-[9px] uppercase">Issuing Attorney</label>
+                            <input
+                              type="text"
+                              value={ilaFormLawyerName}
+                              onChange={(e) => setIlaFormLawyerName(e.target.value)}
+                              className="bg-white border border-slate-350 px-2 py-1 rounded text-xs outline-none"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <label className="text-slate-400 font-bold text-[9px] uppercase">Legal Firm</label>
+                            <input
+                              type="text"
+                              value={ilaFormFirmName}
+                              onChange={(e) => setIlaFormFirmName(e.target.value)}
+                              className="bg-white border border-slate-350 px-2 py-1 rounded text-xs outline-none"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <label className="text-slate-400 font-bold text-[9px] uppercase">Bar Registration ID</label>
+                            <input
+                              type="text"
+                              value={ilaFormBarNumber}
+                              onChange={(e) => setIlaFormBarNumber(e.target.value)}
+                              className="bg-white border border-slate-350 px-2 py-1 rounded text-xs outline-none"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <label className="text-slate-400 font-bold text-[9px] uppercase">Issue Date</label>
+                            <input
+                              type="text"
+                              value={ilaFormIssueDate}
+                              onChange={(e) => setIlaFormIssueDate(e.target.value)}
+                              className="bg-white border border-slate-350 px-2 py-1 rounded text-xs outline-none"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 mt-2 justify-end">
+                          <button
+                            onClick={() => setIsEditingIlaP2(false)}
+                            className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-2.5 py-1 rounded text-[10px] font-bold cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() => handleSaveIlaCert('p2')}
+                            className="bg-[#1e3a8a] text-white hover:bg-[#172554] px-2.5 py-1 rounded text-[10px] font-bold cursor-pointer"
+                          >
+                            Save Cert
+                          </button>
+                        </div>
+                      </div>
+                    ) : localIlaP2Cert ? (
+                      <div className="flex flex-col gap-3 text-xs text-slate-700 bg-emerald-50/20 border border-emerald-200 p-4 rounded-xl mt-1 relative group">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-emerald-800 font-bold">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                            <span>ILA Certificate Issued &amp; Verified</span>
+                          </div>
+                          {activePersona === 'L2' && (
+                            <div className="flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => {
+                                  setIlaFormLawyerName(localIlaP2Cert.lawyerName);
+                                  setIlaFormFirmName(localIlaP2Cert.firmName);
+                                  setIlaFormBarNumber(localIlaP2Cert.barNumber);
+                                  setIlaFormIssueDate(localIlaP2Cert.issueDate);
+                                  setIsEditingIlaP2(true);
+                                }}
+                                className="bg-white border border-slate-200 text-slate-650 hover:bg-slate-50 p-0.5 rounded cursor-pointer"
+                                title="Edit Certificate"
+                              >
+                                <Edit className="w-3 h-3" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (confirm('Are you sure you want to delete/revoke this certificate?')) {
+                                    setLocalIlaP2Cert(undefined);
+                                  }
+                                }}
+                                className="bg-white border border-slate-200 text-red-600 hover:bg-red-50 p-0.5 rounded cursor-pointer"
+                                title="Delete Certificate"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 mt-1 text-slate-650">
+                          <div>
+                            <span className="text-slate-400 text-[9px] uppercase font-bold">Issuing Attorney</span>
+                            <p className="text-slate-800 font-semibold">{localIlaP2Cert.lawyerName}</p>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 text-[9px] uppercase font-bold">Legal Firm</span>
+                            <p className="text-slate-800 font-semibold">{localIlaP2Cert.firmName}</p>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 text-[9px] uppercase font-bold">Bar registration id</span>
+                            <p className="text-slate-800 font-mono font-semibold">{localIlaP2Cert.barNumber}</p>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 text-[9px] uppercase font-bold">Issue date</span>
+                            <p className="text-slate-800 font-semibold">{localIlaP2Cert.issueDate}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-500 font-bold italic mt-1 bg-slate-50/50 p-2.5 rounded-lg border border-slate-100">
+                        No ILA Certificate issued yet for Client 2
+                      </p>
+                    )
+                  ) : (
+                    <p className="text-xs text-red-750 mt-1 bg-red-50 border border-red-200 p-3 rounded-lg font-sans italic font-bold">
+                      Access Prohibited: Lawyer for Client 1 cannot view Client 2's private ILA documents
+                    </p>
+                  )}
+                </div>
+              </div>
+
             </div>
           )}
 
@@ -1205,6 +1870,18 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
           </div>
         </div>
       )}
+    </>
+  );
+
+  if (isInline) {
+    return panelContent;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs" onClick={onClose} />
+      {panelContent}
     </div>
   );
 };
