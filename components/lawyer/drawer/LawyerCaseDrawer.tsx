@@ -5,7 +5,7 @@ import {
   X, Lock, Download, FileText, Upload, CheckCircle2, AlertTriangle, ShieldCheck,
   Clock, Mail, MessageSquare, Plus, FileCode, Check, Eye, Edit, Trash2
 } from 'lucide-react';
-import { LawyerCase, LawyerPersona, CaseTabId, CaseStatus, AgreementVersion, SummaryNote, Appendix } from '../../../types/lawyer-portal';
+import { LawyerCase, LawyerPersona, CaseTabId, CaseStatus, AgreementVersion, SummaryNote, Appendix, IlaCertDetails } from '../../../types/lawyer-portal';
 
 interface CaseDrawerProps {
   isOpen: boolean;
