@@ -133,8 +133,8 @@ export const useUpdateCaseRoutes = () => {
     href: `${basePath}/${step.slug}`,
     isActive: pathname === `${basePath}/${step.slug}`,
     isCompleted:
-      status?.[step.section as keyof typeof status]?.[
-        step.field as keyof (typeof status)[keyof typeof status]
-      ]?.submitted ?? false,
+      (status as Record<string, Record<string, { submitted?: boolean }>>)?.[
+        step.section
+      ]?.[step.field]?.submitted ?? false,
   }));
 };
