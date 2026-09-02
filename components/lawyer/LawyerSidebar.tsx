@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { NavView, LawyerPersona } from '../../types/lawyer-portal';
+import { LogOut } from 'lucide-react';
 
 interface SidebarProps {
   currentView: NavView;
@@ -9,7 +10,9 @@ interface SidebarProps {
   assignedCount: number;
   completedCount: number;
   activePersona: LawyerPersona;
+  onPersonaChange?: (persona: LawyerPersona) => void;
   onOpenProfile: () => void;
+  onLogout?: () => void;
 }
 
 export const LawyerSidebar: React.FC<SidebarProps> = ({
@@ -18,12 +21,14 @@ export const LawyerSidebar: React.FC<SidebarProps> = ({
   assignedCount,
   completedCount,
   activePersona,
+  onPersonaChange,
   onOpenProfile,
+  onLogout,
 }) => {
   const menuItems: { id: NavView; label: string; count?: number }[] = [
     { id: 'dashboard', label: 'Dashboard' },
-    { id: 'assigned_cases', label: 'Assigned Cases', count: 14 },
-    { id: 'completed', label: 'Completed Cases', count: 6 },
+    { id: 'assigned_cases', label: 'Assigned Cases', count: assignedCount },
+    { id: 'completed', label: 'Completed Cases', count: completedCount },
     { id: 'settings', label: 'Settings' },
   ];
 
@@ -83,11 +88,10 @@ export const LawyerSidebar: React.FC<SidebarProps> = ({
               <button
                 key={item.id}
                 onClick={() => onViewChange(item.id)}
-                className={`flex items-center justify-between px-4 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all text-left w-full cursor-pointer ${
-                  isActive
+                className={`flex items-center justify-between px-4 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all text-left w-full cursor-pointer ${isActive
                     ? 'bg-[#1b2947] text-white shadow-xs border border-slate-700/50'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-[#131e36]'
-                }`}
+                  }`}
               >
                 <span>{item.label}</span>
                 {item.count !== undefined && (
@@ -101,30 +105,43 @@ export const LawyerSidebar: React.FC<SidebarProps> = ({
         </nav>
       </div>
 
-      {/* Footer Profile Box */}
-      <div
-        onClick={onOpenProfile}
-        className="pt-4 border-t border-slate-800/80 flex items-center gap-3 cursor-pointer hover:bg-slate-800/50 p-2 rounded-xl transition-all"
-        title="View Profile Details"
-      >
-        <div className="relative">
-          <div className="w-9 h-9 rounded-full bg-emerald-950 border border-emerald-400/50 text-emerald-200 font-bold text-xs flex items-center justify-center shadow-xs font-sans">
-            {lawyer.initials}
+      {/* Footer Profile Box & Log Out Button */}
+      <div className="pt-4 border-t border-slate-800/80 flex flex-col gap-3">
+        <div
+          onClick={onOpenProfile}
+          className="flex items-center gap-3 cursor-pointer hover:bg-slate-800/50 p-2 rounded-xl transition-all"
+          title="View Profile Details"
+        >
+          <div className="relative">
+            <div className="w-9 h-9 rounded-full bg-emerald-950 border border-emerald-400/50 text-emerald-200 font-bold text-xs flex items-center justify-center shadow-xs font-sans">
+              {lawyer.initials}
+            </div>
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-[#0d1527] absolute bottom-0 right-0" />
           </div>
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-[#0d1527] absolute bottom-0 right-0" />
+
+          <div className="flex flex-col min-w-0">
+            <div className="text-xs font-bold text-white truncate font-sans">
+              {lawyer.name}
+            </div>
+            <div className="text-[10px] text-slate-400 font-sans truncate">
+              {lawyer.title}
+            </div>
+            <div className="text-[9px] text-emerald-400 font-mono font-bold uppercase mt-0.5">
+              ROLE : LAWYER ({activePersona})
+            </div>
+          </div>
         </div>
 
-        <div className="flex flex-col min-w-0">
-          <div className="text-xs font-bold text-white truncate font-sans">
-            {lawyer.name}
-          </div>
-          <div className="text-[10px] text-slate-400 font-sans truncate">
-            {lawyer.title}
-          </div>
-          <div className="text-[9px] text-emerald-400 font-mono font-bold uppercase mt-0.5">
-            ROLE : LAWYER
-          </div>
-        </div>
+        {/* Log Out Button */}
+        {onLogout && (
+          <button
+            onClick={onLogout}
+            className="w-full flex items-center justify-center gap-2 bg-[#131e36] hover:bg-red-950/40 text-slate-300 hover:text-red-400 border border-slate-800 hover:border-red-900/50 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Log Out Account</span>
+          </button>
+        )}
       </div>
     </aside>
   );

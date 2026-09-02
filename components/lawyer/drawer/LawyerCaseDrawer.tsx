@@ -5,7 +5,7 @@ import {
   X, Lock, Download, FileText, Upload, CheckCircle2, AlertTriangle, ShieldCheck,
   Clock, Mail, MessageSquare, Plus, FileCode, Check, Eye, Edit, Trash2
 } from 'lucide-react';
-import { LawyerCase, LawyerPersona, CaseTabId, CaseStatus, AgreementVersion, SummaryNote, Appendix, IlaCertDetails } from '../../../types/lawyer-portal';
+import { LawyerCase, LawyerPersona, CaseTabId, CaseStatus, AgreementVersion, SummaryNote, Appendix, IlaCertDetails, LawyerActionsWorkflowState } from '../../../types/lawyer-portal';
 
 interface CaseDrawerProps {
   isOpen: boolean;
@@ -20,6 +20,7 @@ interface CaseDrawerProps {
   onSignAgreement: (caseId: string) => void;
   onSaveNote: (caseId: string, notes: string) => void;
   onUploadAppendix: (caseId: string, section: 'A' | 'B' | 'C', title: string, desc: string, fileName: string) => void;
+  onUpdateWorkflowState?: (caseId: string, workflowStateUpdate: Partial<LawyerActionsWorkflowState>) => void;
   isInline?: boolean;
 }
 
@@ -36,13 +37,14 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
   onSignAgreement,
   onSaveNote,
   onUploadAppendix,
+  onUpdateWorkflowState,
   isInline = false,
 }) => {
   const [activeTab, setActiveTab] = useState<CaseTabId>('overview');
   const [noteText, setNoteText] = useState('');
   const [newVersionNum, setNewVersionNum] = useState('');
   const [newVersionDesc, setNewVersionDesc] = useState('');
-  
+
   // Appendix uploads state
   const [appendixType, setAppendixType] = useState<'A' | 'B' | 'C'>('A');
   const [appendixTitle, setAppendixTitle] = useState('');
@@ -67,7 +69,7 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
   const [ilaFormFirmName, setIlaFormFirmName] = useState('');
   const [ilaFormBarNumber, setIlaFormBarNumber] = useState('');
   const [ilaFormIssueDate, setIlaFormIssueDate] = useState('');
-  
+
   // Execution Pack modal state
   const [showExecutionPackModal, setShowExecutionPackModal] = useState(false);
   const [rbacError, setRbacError] = useState<string | null>(null);
@@ -83,11 +85,92 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
   const [isComparing, setIsComparing] = useState(false);
   const [interactiveVersions, setInteractiveVersions] = useState<any[]>([]);
 
+  // 2-Stage Lawyer Actions Approval Cycle States
+  const [clientConfirmationP1, setClientConfirmationP1] = useState<{ fileName: string; fileUrl: string; submittedAt: string } | null>(null);
+  const [clientConfirmationP2, setClientConfirmationP2] = useState<{ fileName: string; fileUrl: string; submittedAt: string } | null>(null);
+  const [p1FileText, setP1FileText] = useState('');
+  const [p2FileText, setP2FileText] = useState('');
+
+  const [lawyerSignoffP1, setLawyerSignoffP1] = useState<{ status: 'COMPLETE' | 'PENDING'; ilaFile?: string; signedAt?: string } | null>(null);
+  const [lawyerSignoffP2, setLawyerSignoffP2] = useState<{ status: 'COMPLETE' | 'PENDING'; ilaFile?: string; signedAt?: string } | null>(null);
+  const [resetNotice, setResetNotice] = useState<string | null>(null);
+
+  // Complete Sign-off & ILA Modal States
+  const [isIlaModalOpen, setIsIlaModalOpen] = useState(false);
+  const [ilaMeetingDate, setIlaMeetingDate] = useState('2026-08-19');
+  const [ilaMeetingPlatform, setIlaMeetingPlatform] = useState('Zoom');
+  const [ilaSraNumber, setIlaSraNumber] = useState('SRA123456');
+  const [ilaFileText, setIlaFileText] = useState('');
+  const [checklist, setChecklist] = useState({
+    attendedAlone: true,
+    enteredFreely: true,
+    understandsAgreement: true,
+    disclosureDiscussed: true,
+    adviceProvided: true,
+    questionsAnswered: true,
+    confirmProvidedAdvice: false,
+  });
+
+  const resetApprovalCycle = (versionName: string) => {
+    setClientConfirmationP1(null);
+    setClientConfirmationP2(null);
+    setLawyerSignoffP1(null);
+    setLawyerSignoffP2(null);
+    setResetNotice(`Legal document updated to ${versionName}. Approval cycle reset back to Stage 1.`);
+  };
+
   useEffect(() => {
     if (isOpen && caseObj) {
-      setActiveTab('overview');
+      const isSignoffPending =
+        caseObj.status === 'READY_FOR_SIGNING' ||
+        caseObj.status === 'CLIENT_APPROVED' ||
+        caseObj.status === 'ILA_P1_COMPLETE' ||
+        caseObj.status === 'ILA_P2_COMPLETE';
+      const isCompleted = caseObj.status === 'CLOSED' || caseObj.status === 'ARCHIVED';
+
+      const wf = caseObj.workflowState || {};
+
+      if (isSignoffPending || isCompleted) {
+        setActiveTab('notes');
+        // Stage 1 Client Confirmations
+        const p1Conf = wf.clientConfirmationP1 ?? {
+          fileName: `${caseObj.p1Name.split(' ')[0]}_Client_Confirmation_Email.pdf`,
+          fileUrl: '#',
+          submittedAt: '19 Aug 2026, 14:35'
+        };
+        const p2Conf = wf.clientConfirmationP2 ?? {
+          fileName: `${caseObj.p2Name.split(' ')[0]}_Client_Confirmation_Email.pdf`,
+          fileUrl: '#',
+          submittedAt: '19 Aug 2026, 15:05'
+        };
+        setClientConfirmationP1(p1Conf);
+        setClientConfirmationP2(p2Conf);
+
+        // Stage 2 Lawyer Sign-offs
+        const p1Signoff = wf.lawyerSignoffP1 ?? (isCompleted ? {
+          status: 'COMPLETE' as const,
+          ilaFile: 'ILA_P1.pdf',
+          signedAt: '19 Aug 2026, 15:30'
+        } : null);
+
+        const p2Signoff = wf.lawyerSignoffP2 ?? (isCompleted ? {
+          status: 'COMPLETE' as const,
+          ilaFile: 'ILA_P2.pdf',
+          signedAt: '19 Aug 2026, 15:45'
+        } : null);
+
+        setLawyerSignoffP1(p1Signoff);
+        setLawyerSignoffP2(p2Signoff);
+      } else {
+        setActiveTab('overview');
+        setClientConfirmationP1(wf.clientConfirmationP1 ?? null);
+        setClientConfirmationP2(wf.clientConfirmationP2 ?? null);
+        setLawyerSignoffP1(wf.lawyerSignoffP1 ?? null);
+        setLawyerSignoffP2(wf.lawyerSignoffP2 ?? null);
+      }
+
       setRbacError(null);
-      
+
       // Initialize mock versions database
       setInteractiveVersions([
         { ver: 'v3.5', title: 'Approved Clean Master draft', by: 'Robert Miller, Esq.', date: '2026-08-18 10:30 AM', badge: 'L1' },
@@ -101,6 +184,7 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
       setIsCheckedOut(false);
       setIsComparing(false);
       setAmendmentInput('');
+      setResetNotice(null);
 
       // Populate local state from caseObj
       setLocalAppendices({
@@ -128,10 +212,10 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
     if (editingAppendix) {
       const { slot, appendix } = editingAppendix;
       const updatedSlots = { ...localAppendices };
-      
+
       // Delete from old slot
       updatedSlots[slot] = updatedSlots[slot].filter(a => a.id !== appendix.id);
-      
+
       // Add/update to selected slot
       const updatedAppendix = {
         ...appendix,
@@ -139,7 +223,7 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
         description: appendixFormDesc.trim(),
         fileName: appendixFormFileName.trim(),
       };
-      
+
       updatedSlots[appendixFormSlot].push(updatedAppendix);
       setLocalAppendices(updatedSlots);
       setEditingAppendix(null);
@@ -153,7 +237,7 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
         createdDate: '2026-08-26',
         s3Path: `s3://lets-prenup/disclosures/${appendixFormFileName.trim()}`,
       };
-      
+
       const updatedSlots = { ...localAppendices };
       updatedSlots[appendixFormSlot].push(newAppendix);
       setLocalAppendices(updatedSlots);
@@ -275,11 +359,11 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
 
   const panelContent = (
     <>
-      <div className={isInline 
+      <div className={isInline
         ? "w-full bg-[#f7f4ee] flex flex-col min-h-screen text-slate-800 font-sans relative overflow-hidden"
         : "relative w-[780px] h-full bg-[#f7f4ee] shadow-2xl flex flex-col z-10 border-l border-slate-300 animate-slide-in text-slate-800 font-sans"
       }>
-        
+
         {/* RBAC Error Banner */}
         {rbacError && (
           <div className="absolute top-4 left-4 right-4 bg-red-900 text-red-100 border border-red-700 p-3 rounded-lg flex items-center gap-2.5 z-50 shadow-lg animate-bounce">
@@ -329,11 +413,10 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`py-3.5 px-3 border-b-2 text-xs font-bold tracking-wide transition-all whitespace-nowrap cursor-pointer ${
-                  isActive
+                className={`py-3.5 px-3 border-b-2 text-xs font-bold tracking-wide transition-all whitespace-nowrap cursor-pointer ${isActive
                     ? 'border-[#0d1527] text-[#0d1527]'
                     : 'border-transparent text-slate-400 hover:text-slate-600'
-                }`}
+                  }`}
               >
                 {tab.label}
               </button>
@@ -343,7 +426,7 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
 
         {/* Drawer Body (Scrollable contents) */}
         <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
-          
+
           {/* T1: Overview Tab */}
           {activeTab === 'overview' && (
             <div className="flex flex-col gap-6">
@@ -398,7 +481,7 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
                     <p className="text-slate-800 font-semibold text-xs">{caseObj.p1Firm || 'Unassigned'}</p>
                     <p className="text-slate-700 italic font-semibold text-xs">{caseObj.p1Lawyer || 'Unassigned'}</p>
                   </div>
-                  
+
                   <div className="flex flex-col gap-2">
                     <h4 className="font-extrabold text-emerald-800 uppercase text-[11px] tracking-wider">Client 2 &amp; Counsel</h4>
                     <p className="text-slate-900 font-bold text-xs">{caseObj.p2Name}</p>
@@ -435,46 +518,40 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
                   Version Flow Engine Transition Pipeline
                 </span>
                 <div className="flex flex-wrap gap-2 text-[10px] font-sans">
-                  <span className={`px-2.5 py-1 rounded-md border font-sans font-bold transition-all ${
-                    caseObj.status === 'FORMS_LOCKED' || caseObj.status === 'LAWYER_REVIEW'
+                  <span className={`px-2.5 py-1 rounded-md border font-sans font-bold transition-all ${caseObj.status === 'FORMS_LOCKED' || caseObj.status === 'LAWYER_REVIEW'
                       ? 'bg-slate-900 border-slate-950 text-white'
                       : 'bg-slate-50 border-slate-200 text-slate-400'
-                  }`}>
+                    }`}>
                     v1.0-v1.3 draft
                   </span>
-                  <span className={`px-2.5 py-1 rounded-md border font-sans font-bold transition-all ${
-                    caseObj.status === 'AWAITING_COUNTERPARTY_LAWYER_APPROVAL'
+                  <span className={`px-2.5 py-1 rounded-md border font-sans font-bold transition-all ${caseObj.status === 'AWAITING_COUNTERPARTY_LAWYER_APPROVAL'
                       ? 'bg-slate-900 border-slate-950 text-white'
                       : 'bg-slate-50 border-slate-200 text-slate-400'
-                  }`}>
+                    }`}>
                     v1.4 Clean Master
                   </span>
-                  <span className={`px-2.5 py-1 rounded-md border font-sans font-bold transition-all ${
-                    caseObj.status === 'CLIENT_APPROVAL_PENDING'
+                  <span className={`px-2.5 py-1 rounded-md border font-sans font-bold transition-all ${caseObj.status === 'CLIENT_APPROVAL_PENDING'
                       ? 'bg-slate-900 border-slate-950 text-white'
                       : 'bg-slate-50 border-slate-200 text-slate-400'
-                  }`}>
+                    }`}>
                     Negotiation
                   </span>
-                  <span className={`px-2.5 py-1 rounded-md border font-sans font-bold transition-all ${
-                    caseObj.status === 'READY_FOR_SIGNING'
+                  <span className={`px-2.5 py-1 rounded-md border font-sans font-bold transition-all ${caseObj.status === 'READY_FOR_SIGNING'
                       ? 'bg-slate-900 border-slate-950 text-white'
                       : 'bg-slate-50 border-slate-200 text-slate-400'
-                  }`}>
+                    }`}>
                     Sign-Off Pending
                   </span>
-                  <span className={`px-2.5 py-1 rounded-md border font-sans font-bold transition-all ${
-                    caseObj.status === 'ILA_P1_COMPLETE' || caseObj.status === 'ILA_P2_COMPLETE'
+                  <span className={`px-2.5 py-1 rounded-md border font-sans font-bold transition-all ${caseObj.status === 'ILA_P1_COMPLETE' || caseObj.status === 'ILA_P2_COMPLETE'
                       ? 'bg-slate-900 border-slate-950 text-white'
                       : 'bg-slate-50 border-slate-200 text-slate-400'
-                  }`}>
+                    }`}>
                     ILA Issued
                   </span>
-                  <span className={`px-2.5 py-1 rounded-md border font-sans font-bold transition-all ${
-                    caseObj.status === 'CLOSED'
+                  <span className={`px-2.5 py-1 rounded-md border font-sans font-bold transition-all ${caseObj.status === 'CLOSED'
                       ? 'bg-slate-900 border-slate-950 text-white'
                       : 'bg-slate-50 border-slate-200 text-slate-400'
-                  }`}>
+                    }`}>
                     Completed
                   </span>
                 </div>
@@ -719,7 +796,7 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
 
                 {/* Done Comparing button footer at the bottom right */}
                 <div className="flex justify-end pt-3 border-t border-slate-800">
-                  <button 
+                  <button
                     onClick={() => setIsComparing(false)}
                     className="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-6 py-2 rounded-lg border border-slate-600 transition-all cursor-pointer shadow-md"
                   >
@@ -729,7 +806,7 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
               </div>
             ) : (
               <div className="flex flex-col gap-6 font-sans text-slate-800 p-0 animate-fade-in">
-                
+
                 {/* Case Metadata Indicators bar */}
                 <div className="bg-white border border-slate-300 rounded-xl p-4 shadow-xs grid grid-cols-5 gap-4 text-xs font-sans">
                   <div>
@@ -758,7 +835,7 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
 
                 {/* Three Column Core Layout */}
                 <div className="grid grid-cols-12 gap-6">
-                  
+
                   {/* Column 1: All Versions Timeline (Col Span 3) */}
                   <div className="col-span-3 bg-white border border-slate-300 rounded-xl p-4 shadow-xs flex flex-col justify-between h-[820px] overflow-hidden">
                     <div className="flex flex-col gap-4 overflow-y-auto">
@@ -771,18 +848,17 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
 
                       <div className="flex flex-col gap-3">
                         {interactiveVersions.map((item, idx) => (
-                          <div 
+                          <div
                             key={idx}
                             onClick={() => setActiveVersionId(item.ver)}
-                            className={`p-3 border rounded-xl flex flex-col gap-2 transition-all cursor-pointer ${
-                              item.ver === activeVersionId 
-                                ? 'bg-slate-50 border-slate-400 shadow-sm' 
+                            className={`p-3 border rounded-xl flex flex-col gap-2 transition-all cursor-pointer ${item.ver === activeVersionId
+                                ? 'bg-slate-50 border-slate-400 shadow-sm'
                                 : 'bg-white border-slate-200 hover:border-slate-300'
-                            }`}
+                              }`}
                           >
                             <div className="flex items-center justify-between">
                               <span className="font-mono text-xs font-extrabold text-slate-950">
-                                {item.ver} 
+                                {item.ver}
                                 <span className="bg-slate-200 text-slate-800 px-1.5 py-0.5 rounded text-[9px] font-extrabold ml-2">
                                   {item.badge}
                                 </span>
@@ -799,7 +875,7 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
 
                   {/* Column 2: Center - PDF Viewer (Col Span 6) */}
                   <div className="col-span-6 flex flex-col h-[820px] pr-1">
-                    
+
                     {/* PDF Viewer */}
                     <div className="bg-white border border-slate-300 rounded-xl overflow-hidden shadow-xs flex flex-col h-full">
                       <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex items-center justify-between">
@@ -816,7 +892,7 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
                       <div className="px-4 py-2 border-b border-slate-100 text-[9px] text-slate-400">
                         Uploaded on 2026-08-18 10:30 AM
                       </div>
- 
+
                       {/* PDF Document Frame mock */}
                       <div className="bg-slate-100 p-6 flex justify-center h-[710px] overflow-y-auto">
                         {(() => {
@@ -829,7 +905,7 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
                               <p className="text-xs text-slate-650 leading-relaxed font-sans mt-2">
                                 This Agreement is made and entered into on this 18th day of August, 2026, by and between:
                               </p>
-                              
+
                               <div className="flex flex-col gap-2 font-sans text-xs">
                                 <p className="font-bold text-slate-800 uppercase">PARTIES:</p>
                                 <div className="pl-4 flex flex-col gap-1 text-slate-650">
@@ -902,7 +978,7 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
                           );
                         })()}
                       </div>
- 
+
                       {/* PDF Footer details */}
                       <div className="bg-slate-50 border-t border-slate-200 px-4 py-2.5 flex items-center justify-between text-[8px] text-slate-500 font-mono">
                         <span>Page 1 of 24 (Version {activeVersionId}) | Size: 1.2 MB | 100% | Fit</span>
@@ -912,7 +988,7 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
 
                   {/* Column 3: Right Sidebar Controls (Col Span 3) */}
                   <div className="col-span-3 flex flex-col gap-6 h-[820px] overflow-y-auto pr-1">
-                    
+
                     {/* Check-In / Check-Out */}
                     {isCheckedOut ? (
                       <div className="bg-white border border-slate-300 rounded-xl p-4 shadow-xs flex flex-col gap-3">
@@ -921,7 +997,7 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
                           <p><strong>Checked Out By:</strong> {checkedOutBy}</p>
                           <p><strong>Checked Out On:</strong> {checkedOutOn}</p>
                         </div>
-                        <button 
+                        <button
                           onClick={() => setIsCheckedOut(false)}
                           className="w-full bg-[#991b1b] hover:bg-[#7f1d1d] text-white text-xs font-bold py-2 rounded-lg border border-red-800 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs mt-2"
                         >
@@ -935,7 +1011,7 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
                         <p className="text-[9px] text-slate-400 leading-normal">
                           Document is checked in. Check out the document to lock modifications and check in new draft version.
                         </p>
-                        <button 
+                        <button
                           onClick={() => {
                             setIsCheckedOut(true);
                             setCheckedOutBy('Robert Miller, Esq.');
@@ -955,7 +1031,7 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
                     {isCheckedOut ? (
                       <div className="bg-white border border-slate-300 rounded-xl p-4 shadow-xs flex flex-col gap-3">
                         <span className="text-[10px] font-bold text-slate-900 tracking-wider uppercase">UPLOAD NEW VERSION (CHECK-IN)</span>
-                        
+
                         {/* Drag & drop mock */}
                         <div className="border-2 border-dashed border-slate-200 rounded-lg p-6 flex flex-col items-center justify-center bg-slate-50 text-slate-400 gap-2 cursor-pointer hover:border-slate-300 hover:bg-slate-100/50 transition-all">
                           <Upload className="w-5 h-5 text-slate-400" />
@@ -970,22 +1046,22 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
 
                         <div className="flex flex-col gap-1.5 mt-1 text-xs font-sans">
                           <label className="text-[9px] text-slate-500 font-bold uppercase">New Version Number</label>
-                          <input 
-                            type="text" 
+                          <input
+                            type="text"
                             value={(() => {
                               if (!interactiveVersions.length) return 'v1.0';
                               const latest = interactiveVersions[0].ver;
                               const num = parseFloat(latest.replace('v', ''));
                               return `v${(num + 0.1).toFixed(1)}`;
-                            })()} 
+                            })()}
                             disabled
-                            className="bg-slate-100 border border-slate-200 text-xs px-2.5 py-1.5 rounded-lg font-mono outline-none text-slate-500 cursor-not-allowed" 
+                            className="bg-slate-100 border border-slate-200 text-xs px-2.5 py-1.5 rounded-lg font-mono outline-none text-slate-500 cursor-not-allowed"
                           />
                         </div>
 
                         <div className="flex flex-col gap-1.5 text-xs font-sans">
                           <label className="text-[9px] text-slate-500 font-bold uppercase">Amendment Summary *</label>
-                          <textarea 
+                          <textarea
                             rows={3}
                             value={amendmentInput}
                             onChange={(e) => setAmendmentInput(e.target.value)}
@@ -995,7 +1071,7 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
                         </div>
 
                         <div className="flex items-center gap-2 mt-2">
-                          <button 
+                          <button
                             onClick={() => {
                               setIsCheckedOut(false);
                               setAmendmentInput('');
@@ -1004,7 +1080,7 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
                           >
                             Cancel
                           </button>
-                          <button 
+                          <button
                             onClick={() => {
                               if (!amendmentInput.trim()) {
                                 alert('Please provide an amendment summary.');
@@ -1027,6 +1103,7 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
                               setActiveVersionId(nextVer);
                               setIsCheckedOut(false);
                               setAmendmentInput('');
+                              resetApprovalCycle(nextVer);
                             }}
                             className="flex-1 bg-[#1e3a8a] text-white hover:bg-[#172554] text-xs font-bold py-1.5 rounded-lg transition-all cursor-pointer font-sans"
                           >
@@ -1049,7 +1126,7 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
                       <div className="flex flex-col gap-2 mt-1">
                         <div className="flex flex-col gap-1">
                           <label className="text-[8px] text-slate-400 font-bold uppercase">From Version</label>
-                          <select 
+                          <select
                             value={compareFrom}
                             onChange={(e) => setCompareFrom(e.target.value)}
                             className="bg-white border border-slate-200 text-xs px-2 py-1.5 rounded-lg font-sans outline-none text-slate-700 cursor-pointer"
@@ -1061,7 +1138,7 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
                         </div>
                         <div className="flex flex-col gap-1">
                           <label className="text-[8px] text-slate-400 font-bold uppercase">To Version</label>
-                          <select 
+                          <select
                             value={compareTo}
                             onChange={(e) => setCompareTo(e.target.value)}
                             className="bg-white border border-slate-200 text-xs px-2 py-1.5 rounded-lg font-sans outline-none text-slate-700 cursor-pointer"
@@ -1072,7 +1149,7 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
                           </select>
                         </div>
                       </div>
-                      <button 
+                      <button
                         onClick={() => setIsComparing(true)}
                         className="bg-[#1e3a8a] text-white hover:bg-[#172554] text-xs font-bold py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer mt-2 shadow-xs"
                       >
@@ -1081,14 +1158,480 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
                     </div>
                   </div>
 
+                </div>
               </div>
-            </div>
-        )
-      )}
-                    {/* T4: Lawyer Action (Notes, Appendices, ILA) */}
+            )
+          )}
+          {/* T4: Lawyer Action (2-Stage Approval Cycle, Notes, Appendices, ILA) */}
           {activeTab === 'notes' && (
-            <div className="flex flex-col gap-6">
-              
+            <div className="flex flex-col gap-6 font-sans">
+
+              {/* Notification Banner when Version Reset occurs */}
+              {resetNotice && (
+                <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 flex items-center justify-between text-amber-900 text-xs shadow-xs">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span className="font-semibold">{resetNotice}</span>
+                  </div>
+                  <button onClick={() => setResetNotice(null)} className="text-amber-700 hover:text-amber-950 text-xs font-bold cursor-pointer">
+                    Dismiss
+                  </button>
+                </div>
+              )}
+
+              {/* LAWYER ACTIONS CONTAINER MOCKUP */}
+              <div className="bg-[#f8fafc] border border-slate-300 rounded-2xl p-6 shadow-sm flex flex-col gap-6">
+
+                {/* Header */}
+                <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+                  <div>
+                    <h2 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                      <span>LAWYER ACTIONS — current Clean Master</span>
+                    </h2>
+                    <div className="flex items-center gap-4 text-xs text-slate-500 mt-1 font-mono">
+                      <span>Case: <strong>{caseObj.id}</strong></span>
+                      <span>|</span>
+                      <span>Status: <strong className="text-emerald-700">CLEAN MASTER</strong></span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-500">Active Profile:</span>
+                    <span className="bg-[#0d1527] text-white text-xs font-mono font-bold px-3 py-1 rounded-lg">
+                      {activePersona === 'L1' ? 'P1 LAWYER (Cruella)' : activePersona === 'L2' ? 'P2 LAWYER (Zuckerberg)' : 'Neutral (L3)'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* SECTION 1: CURRENT CLEAN MASTER */}
+                <div className="bg-white border border-slate-250 rounded-xl p-5 shadow-xs flex flex-col gap-3">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-sans">
+                    CURRENT CLEAN MASTER
+                  </span>
+                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 flex items-center justify-between">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-sm font-extrabold text-slate-900">{activeVersionId}</span>
+                        <span className="text-slate-400">•</span>
+                        <span className="text-xs font-bold text-emerald-700 bg-emerald-100/80 px-2.5 py-0.5 rounded-md">Clean Master</span>
+                      </div>
+                      <p className="text-xs text-slate-600">
+                        Uploaded by: <strong className="text-slate-800">P1 Lawyer</strong>
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Uploaded: 19 Aug 2026, 14:32
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setActiveTab('versions')}
+                        className="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold px-4 py-2 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>View Document</span>
+                      </button>
+                      <button
+                        onClick={() => alert(`Downloading ${activeVersionId} Clean Master PDF...`)}
+                        className="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold px-4 py-2 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Download</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* SECTION 1: STAGE 1 — CLIENT CONFIRMATION */}
+                <div className="bg-white border border-slate-250 rounded-xl p-5 shadow-xs flex flex-col gap-5">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-full bg-[#1e3a8a] text-white font-bold text-xs flex items-center justify-center">1</span>
+                      <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider font-sans">
+                        STAGE 1 — CLIENT CONFIRMATION
+                      </h3>
+                    </div>
+                    <span className="text-[10px] font-bold text-slate-500 font-mono">
+                      {clientConfirmationP1 && clientConfirmationP2 ? '✓ BOTH CONFIRMATIONS RECEIVED' : 'STEP 1 IN PROGRESS'}
+                    </span>
+                  </div>
+
+                  {/* Two Columns: P1 vs P2 */}
+                  <div className="grid grid-cols-2 gap-6">
+
+                    {/* P1 Column - Your Client */}
+                    <div className={`border rounded-xl p-4 flex flex-col gap-3 transition-all ${clientConfirmationP1 ? 'bg-emerald-50/40 border-emerald-300' : 'bg-slate-50/50 border-slate-300'
+                      }`}>
+                      <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                        <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                          P1 – YOUR CLIENT ({caseObj.p1Name})
+                        </h4>
+                        {activePersona === 'L1' && (
+                          <span className="text-[9px] font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded">YOU (L1)</span>
+                        )}
+                      </div>
+
+                      {clientConfirmationP1 ? (
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center gap-2 text-emerald-800 font-bold text-xs">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                            <span>Confirmation Received</span>
+                          </div>
+                          <p className="text-[11px] text-slate-600 font-mono">{clientConfirmationP1.submittedAt}</p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <button
+                              onClick={() => alert(`Opening attached confirmation email: ${clientConfirmationP1.fileName}`)}
+                              className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-bold px-3 py-1.5 rounded-lg transition-all cursor-pointer shadow-2xs flex items-center gap-1.5"
+                            >
+                              <FileText className="w-3.5 h-3.5 text-slate-500" />
+                              <span>View Email ({clientConfirmationP1.fileName})</span>
+                            </button>
+                            {activePersona === 'L1' && (
+                              <button
+                                onClick={() => setClientConfirmationP1(null)}
+                                className="text-red-600 hover:text-red-800 text-[10px] font-bold underline cursor-pointer"
+                              >
+                                Re-upload
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-3">
+                          <p className="text-xs text-slate-600">
+                            Attach your client's confirmation email or document (PDF / PNG / DOC):
+                          </p>
+                          {activePersona === 'L1' ? (
+                            <div className="flex flex-col gap-2">
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="text"
+                                  value={p1FileText}
+                                  onChange={(e) => setP1FileText(e.target.value)}
+                                  placeholder="e.g. P1_Client_Confirmation.pdf"
+                                  className="bg-white border border-slate-300 text-xs px-3 py-1.5 rounded-lg flex-1 outline-none focus:border-slate-400"
+                                />
+                                <label className="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-lg cursor-pointer transition-all">
+                                  Browse
+                                  <input
+                                    type="file"
+                                    accept=".pdf,.png,.doc,.docx"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                      if (e.target.files?.[0]) {
+                                        setP1FileText(e.target.files[0].name);
+                                      }
+                                    }}
+                                  />
+                                </label>
+                              </div>
+                              <button
+                                onClick={() => {
+                                  const nameToUse = p1FileText.trim() || 'P1_Client_Confirmation.pdf';
+                                  const newConf = {
+                                    fileName: nameToUse,
+                                    fileUrl: '#',
+                                    submittedAt: new Date().toLocaleString([], { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                                  };
+                                  setClientConfirmationP1(newConf);
+                                  setP1FileText('');
+                                  if (onUpdateWorkflowState && caseObj) {
+                                    onUpdateWorkflowState(caseObj.id, { clientConfirmationP1: newConf });
+                                  }
+                                }}
+                                className="w-full bg-[#1e3a8a] hover:bg-[#172554] text-white text-xs font-bold py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs mt-1"
+                              >
+                                <Upload className="w-3.5 h-3.5" />
+                                <span>Submit Client Confirmation</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="bg-slate-100 border border-slate-200 rounded-lg p-3 text-xs text-slate-500 italic">
+                              Awaiting P1 Lawyer to upload and submit client confirmation.
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* P2 Column - Other Client */}
+                    <div className={`border rounded-xl p-4 flex flex-col gap-3 transition-all ${clientConfirmationP2 ? 'bg-emerald-50/40 border-emerald-300' : 'bg-slate-50/50 border-slate-300'
+                      }`}>
+                      <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                        <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                          P2 – OTHER CLIENT ({caseObj.p2Name})
+                        </h4>
+                        {activePersona === 'L2' && (
+                          <span className="text-[9px] font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded">YOU (L2)</span>
+                        )}
+                      </div>
+
+                      {clientConfirmationP2 ? (
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center gap-2 text-emerald-800 font-bold text-xs">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                            <span>Confirmation Received</span>
+                          </div>
+                          <p className="text-[11px] text-slate-600 font-mono">{clientConfirmationP2.submittedAt}</p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <button
+                              onClick={() => alert(`Opening attached confirmation document: ${clientConfirmationP2.fileName}`)}
+                              className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-bold px-3 py-1.5 rounded-lg transition-all cursor-pointer shadow-2xs flex items-center gap-1.5"
+                            >
+                              <FileText className="w-3.5 h-3.5 text-slate-500" />
+                              <span>View Confirmation ({clientConfirmationP2.fileName})</span>
+                            </button>
+                            {activePersona === 'L2' && (
+                              <button
+                                onClick={() => {
+                                  setClientConfirmationP2(null);
+                                  if (onUpdateWorkflowState && caseObj) {
+                                    onUpdateWorkflowState(caseObj.id, { clientConfirmationP2: null });
+                                  }
+                                }}
+                                className="text-red-600 hover:text-red-800 text-[10px] font-bold underline cursor-pointer"
+                              >
+                                Re-upload
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-3">
+                          <p className="text-xs text-slate-600">
+                            Attach your client's confirmation email or document (PDF / PNG / DOC):
+                          </p>
+                          {activePersona === 'L2' ? (
+                            <div className="flex flex-col gap-2">
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="text"
+                                  value={p2FileText}
+                                  onChange={(e) => setP2FileText(e.target.value)}
+                                  placeholder="e.g. P2_Client_Confirmation.pdf"
+                                  className="bg-white border border-slate-300 text-xs px-3 py-1.5 rounded-lg flex-1 outline-none focus:border-slate-400"
+                                />
+                                <label className="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-lg cursor-pointer transition-all">
+                                  Browse
+                                  <input
+                                    type="file"
+                                    accept=".pdf,.png,.doc,.docx"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                      if (e.target.files?.[0]) {
+                                        setP2FileText(e.target.files[0].name);
+                                      }
+                                    }}
+                                  />
+                                </label>
+                              </div>
+                              <button
+                                onClick={() => {
+                                  const nameToUse = p2FileText.trim() || 'P2_Client_Confirmation.pdf';
+                                  const newConf = {
+                                    fileName: nameToUse,
+                                    fileUrl: '#',
+                                    submittedAt: new Date().toLocaleString([], { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                                  };
+                                  setClientConfirmationP2(newConf);
+                                  setP2FileText('');
+                                  if (onUpdateWorkflowState && caseObj) {
+                                    onUpdateWorkflowState(caseObj.id, { clientConfirmationP2: newConf });
+                                  }
+                                }}
+                                className="w-full bg-[#1e3a8a] hover:bg-[#172554] text-white text-xs font-bold py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs mt-1"
+                              >
+                                <Upload className="w-3.5 h-3.5" />
+                                <span>Submit Client Confirmation</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="bg-slate-100 border border-slate-200 rounded-lg p-3 text-xs text-slate-500 italic">
+                              Awaiting P2 Lawyer to upload and submit client confirmation.
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                  </div>
+
+                  {/* Confirmation Status Banner */}
+                  {clientConfirmationP1 && clientConfirmationP2 ? (
+                    <div className="bg-emerald-100/90 border border-emerald-300 rounded-lg p-3 text-center text-xs font-extrabold text-emerald-900 flex items-center justify-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      <span>Both client confirmations have been received. Stage 2 (Sign-off &amp; ILA) is now available!</span>
+                    </div>
+                  ) : (
+                    <div className="bg-slate-100 border border-slate-200 rounded-lg p-3 text-center text-xs text-slate-600 font-semibold">
+                      Stage 2 will unlock automatically once both P1 and P2 client confirmations are submitted.
+                    </div>
+                  )}
+                </div>
+
+                {/* SECTION 2: STAGE 2 — LAWYER SIGN-OFF & ILA */}
+                <div className={`border rounded-xl p-5 shadow-xs flex flex-col gap-5 transition-all ${clientConfirmationP1 && clientConfirmationP2 ? 'bg-white border-slate-250' : 'bg-slate-50/60 border-slate-200 opacity-75'
+                  }`}>
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                    <div className="flex items-center gap-2">
+                      <span className={`w-6 h-6 rounded-full font-bold text-xs flex items-center justify-center ${clientConfirmationP1 && clientConfirmationP2 ? 'bg-[#0d1527] text-white' : 'bg-slate-300 text-slate-600'
+                        }`}>2</span>
+                      <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider font-sans">
+                        STAGE 2 — LAWYER SIGN-OFF &amp; ILA
+                      </h3>
+                    </div>
+                    {!(clientConfirmationP1 && clientConfirmationP2) && (
+                      <span className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full flex items-center gap-1.5">
+                        <Lock className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Locked until Stage 1 completes</span>
+                      </span>
+                    )}
+                  </div>
+
+                  {clientConfirmationP1 && clientConfirmationP2 ? (
+                    <div className="flex flex-col gap-6">
+                      <div className="grid grid-cols-2 gap-6">
+
+                        {/* P1 LAWYER SIGN-OFF */}
+                        <div className={`border rounded-xl p-4 flex flex-col gap-3 transition-all ${
+                          lawyerSignoffP1 ? 'bg-emerald-50/40 border-emerald-300' : 'bg-slate-50/50 border-slate-200'
+                        }`}>
+                          <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                            <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                              P1 LAWYER {activePersona === 'L1' ? '– YOU' : ''}
+                            </h4>
+                          </div>
+
+                          {lawyerSignoffP1 ? (
+                            <div className="flex flex-col gap-2">
+                              <div className="flex items-center gap-2 text-emerald-800 font-bold text-xs">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                                <span>Sign-off Complete</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-xs font-mono text-slate-700 font-semibold">
+                                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>ILA Generated – {lawyerSignoffP1.ilaFile || 'ILA_P1.pdf'}</span>
+                              </div>
+                              <p className="text-[10px] text-slate-500 font-mono">{lawyerSignoffP1.signedAt}</p>
+                              <button
+                                onClick={() => alert(`Downloading ${lawyerSignoffP1.ilaFile}...`)}
+                                className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-bold px-3 py-1.5 rounded-lg transition-all cursor-pointer shadow-2xs self-start mt-1 flex items-center gap-1.5"
+                              >
+                                <Download className="w-3.5 h-3.5 text-slate-500" />
+                                <span>View ILA</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col gap-3">
+                              <div className="flex items-center gap-2 text-amber-700 font-bold text-xs">
+                                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span>
+                                <span>Sign-off Pending</span>
+                              </div>
+                              {activePersona === 'L1' ? (
+                                <button
+                                  onClick={() => setIsIlaModalOpen(true)}
+                                  className="bg-[#0d1527] hover:bg-[#1b2947] text-white text-xs font-bold py-2.5 px-4 rounded-lg transition-all cursor-pointer shadow-xs text-center flex items-center justify-center gap-2"
+                                >
+                                  <FileCode className="w-4 h-4 text-emerald-400" />
+                                  <span>COMPLETE SIGN-OFF &amp; ILA</span>
+                                </button>
+                              ) : (
+                                <p className="text-xs text-slate-500 italic">
+                                  Awaiting P1 Lawyer to complete sign-off and upload ILA.
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* P2 LAWYER SIGN-OFF */}
+                        <div className={`border rounded-xl p-4 flex flex-col gap-3 transition-all ${
+                          lawyerSignoffP2 ? 'bg-emerald-50/40 border-emerald-300' : 'bg-slate-50/50 border-slate-200'
+                        }`}>
+                          <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                            <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                              P2 LAWYER {activePersona === 'L2' ? '– YOU' : ''}
+                            </h4>
+                          </div>
+
+                          {lawyerSignoffP2 ? (
+                            <div className="flex flex-col gap-2">
+                              <div className="flex items-center gap-2 text-emerald-800 font-bold text-xs">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                                <span>Sign-off Complete</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-xs font-mono text-slate-700 font-semibold">
+                                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>ILA Generated – {lawyerSignoffP2.ilaFile || 'ILA_P2.pdf'}</span>
+                              </div>
+                              <p className="text-[10px] text-slate-500 font-mono">{lawyerSignoffP2.signedAt}</p>
+                              <button
+                                onClick={() => alert(`Downloading ${lawyerSignoffP2.ilaFile}...`)}
+                                className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-bold px-3 py-1.5 rounded-lg transition-all cursor-pointer shadow-2xs self-start mt-1 flex items-center gap-1.5"
+                              >
+                                <Download className="w-3.5 h-3.5 text-slate-500" />
+                                <span>View ILA</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col gap-3">
+                              <div className="flex items-center gap-2 text-amber-700 font-bold text-xs">
+                                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span>
+                                <span>Sign-off Pending</span>
+                              </div>
+                              {activePersona === 'L2' ? (
+                                <button
+                                  onClick={() => setIsIlaModalOpen(true)}
+                                  className="bg-[#0d1527] hover:bg-[#1b2947] text-white text-xs font-bold py-2.5 px-4 rounded-lg transition-all cursor-pointer shadow-xs text-center flex items-center justify-center gap-2"
+                                >
+                                  <FileCode className="w-4 h-4 text-emerald-400" />
+                                  <span>COMPLETE SIGN-OFF &amp; ILA</span>
+                                </button>
+                              ) : (
+                                <p className="text-xs text-slate-500 italic">
+                                  Awaiting P2 Lawyer to complete sign-off and upload ILA.
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                      </div>
+
+                      {/* Dual Lawyer Sign-off Complete Banner */}
+                      {lawyerSignoffP1 && lawyerSignoffP2 ? (
+                        <div className="bg-emerald-50 border-2 border-emerald-400 rounded-xl p-5 text-center flex flex-col items-center justify-center gap-3 shadow-sm font-sans">
+                          <div className="flex items-center gap-2 text-emerald-900 font-extrabold text-sm uppercase tracking-wide">
+                            <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                            <span>✓ DUAL LAWYER SIGN-OFF &amp; ILA COMPLETE</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-slate-700 text-xs font-mono">
+                            <span>System Integrity Check:</span>
+                            <span className="font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-3 py-0.5 rounded-md flex items-center gap-1">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              PASSED
+                            </span>
+                          </div>
+                          <div className="bg-white border border-emerald-300 text-emerald-900 text-xs font-bold px-4 py-2 rounded-lg flex items-center gap-2 shadow-2xs mt-1">
+                            <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                            <span>Matter Completed! Available in the Completed Cases left menu page.</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="bg-slate-100 border border-slate-200 rounded-lg p-3 text-center text-xs text-slate-600 italic">
+                          {lawyerSignoffP1 ? 'P1 Sign-off complete. Awaiting P2 Lawyer sign-off &amp; ILA.' : lawyerSignoffP2 ? 'P2 Sign-off complete. Awaiting P1 Lawyer sign-off &amp; ILA.' : 'Awaiting both P1 and P2 Lawyers to complete sign-off.'}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="bg-slate-100 border border-slate-200 rounded-lg p-6 flex flex-col items-center justify-center gap-2 text-center text-slate-500">
+                      <Lock className="w-6 h-6 text-slate-400" />
+                      <p className="text-xs font-bold text-slate-700">Stage 2 Unavailable</p>
+                      <p className="text-xs">Both P1 and P2 client confirmations must be uploaded and submitted in Stage 1 before lawyer sign-off and ILA actions become available.</p>
+                    </div>
+                  )}
+                </div>
+
+              </div>
+
               {/* Card 1: Confidential Summary Notes */}
               <div className="bg-white border border-slate-300 rounded-xl p-5 shadow-xs flex flex-col gap-4">
                 <div className="flex items-center justify-between border-b border-slate-200 pb-2">
@@ -1144,587 +1687,6 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
                     <span>Neutral third party cannot record client summary notes.</span>
                   </div>
                 )}
-              </div>
-
-              {/* Card 2: Appendices & Disclosures */}
-              <div className="bg-white border border-slate-300 rounded-xl p-5 shadow-xs flex flex-col gap-4">
-                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                  <h3 className="text-xs font-extrabold text-slate-600 uppercase tracking-wider font-sans">
-                    APPENDICES & DISCLOSURES
-                  </h3>
-                  {!isAddingAppendix && !editingAppendix && activePersona !== 'L3' && (
-                    <button
-                      onClick={() => {
-                        setAppendixFormSlot('A');
-                        setAppendixFormTitle('');
-                        setAppendixFormDesc('');
-                        setAppendixFormFileName('');
-                        setIsAddingAppendix(true);
-                        setEditingAppendix(null);
-                      }}
-                      className="bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-bold text-[10px] uppercase px-2 py-0.5 rounded transition-all cursor-pointer"
-                    >
-                      + Add Appendix
-                    </button>
-                  )}
-                </div>
-
-                {/* Add / Edit Appendix Form */}
-                {(isAddingAppendix || editingAppendix) && (
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col gap-3 mb-2 text-xs">
-                    <h4 className="font-bold text-slate-800 uppercase text-[10px] tracking-wider border-b border-slate-200 pb-1">
-                      {editingAppendix ? 'Edit Appendix details' : 'Upload Appendix Document'}
-                    </h4>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="flex flex-col gap-1">
-                        <label className="text-slate-400 font-bold uppercase text-[9px]">Appendix Section Slot</label>
-                        <select
-                          value={appendixFormSlot}
-                          onChange={(e) => setAppendixFormSlot(e.target.value as any)}
-                          className="bg-white border border-slate-300 px-2 py-1 rounded text-xs outline-none cursor-pointer"
-                        >
-                          <option value="A">Appendix A: Property Documents</option>
-                          <option value="B">Appendix B: Bank Statements</option>
-                          <option value="C">Appendix C: Trust Documentation</option>
-                        </select>
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <label className="text-slate-400 font-bold uppercase text-[9px]">Document File Name</label>
-                        <input
-                          type="text"
-                          value={appendixFormFileName}
-                          onChange={(e) => setAppendixFormFileName(e.target.value)}
-                          placeholder="e.g. deed_toronto_property.pdf"
-                          className="bg-white border border-slate-300 px-2 py-1 rounded text-xs outline-none"
-                        />
-                      </div>
-                      <div className="flex flex-col gap-1 col-span-2">
-                        <label className="text-slate-400 font-bold uppercase text-[9px]">Document Title</label>
-                        <input
-                          type="text"
-                          value={appendixFormTitle}
-                          onChange={(e) => setAppendixFormTitle(e.target.value)}
-                          placeholder="e.g. Registered Title Deed for King St Condo"
-                          className="bg-white border border-slate-300 px-2 py-1 rounded text-xs outline-none"
-                        />
-                      </div>
-                      <div className="flex flex-col gap-1 col-span-2">
-                        <label className="text-slate-400 font-bold uppercase text-[9px]">Brief Description</label>
-                        <input
-                          type="text"
-                          value={appendixFormDesc}
-                          onChange={(e) => setAppendixFormDesc(e.target.value)}
-                          placeholder="e.g. Shows full ownership split and registry timestamp..."
-                          className="bg-white border border-slate-300 px-2 py-1 rounded text-xs outline-none"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 mt-2 justify-end">
-                      <button
-                        onClick={() => {
-                          setIsAddingAppendix(false);
-                          setEditingAppendix(null);
-                        }}
-                        className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-[10px] font-bold px-3 py-1 rounded transition-all cursor-pointer"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleSaveAppendixLocal}
-                        className="bg-[#1e3a8a] text-white hover:bg-[#172554] text-[10px] font-bold px-3 py-1 rounded transition-all cursor-pointer"
-                      >
-                        Save Appendix
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex flex-col gap-5">
-                  {/* Appendix A */}
-                  <div className="flex flex-col gap-2.5">
-                    <h4 className="text-xs font-bold text-slate-800 uppercase font-sans border-l-4 border-emerald-500 pl-2">
-                      APPENDIX A: PROPERTY DOCUMENTS
-                    </h4>
-                    <div className="flex flex-col gap-2">
-                      {localAppendices.A.length > 0 ? (
-                        localAppendices.A.map((app) => (
-                          <div key={app.id} className="border border-slate-200 rounded-lg p-3 bg-slate-50 flex items-center justify-between text-xs group">
-                            <div>
-                              <p className="font-bold text-slate-800">{app.title}</p>
-                              <p className="text-slate-500 text-[10px] mt-0.5">{app.description}</p>
-                              <p className="text-[9px] text-slate-400 font-mono mt-1">{app.fileName} | Uploaded by: {app.uploadedBy} on {app.createdDate}</p>
-                            </div>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              {activePersona !== 'L3' && (
-                                <>
-                                  <button
-                                    onClick={() => {
-                                      setAppendixFormSlot('A');
-                                      setAppendixFormTitle(app.title);
-                                      setAppendixFormDesc(app.description);
-                                      setAppendixFormFileName(app.fileName);
-                                      setEditingAppendix({ slot: 'A', appendix: app });
-                                      setIsAddingAppendix(false);
-                                    }}
-                                    className="bg-white border border-slate-350 text-slate-650 hover:bg-slate-50 p-1 rounded transition-all cursor-pointer"
-                                    title="Edit Appendix"
-                                  >
-                                    <Edit className="w-3.5 h-3.5" />
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      if (confirm('Are you sure you want to delete this appendix?')) {
-                                        setLocalAppendices({
-                                          ...localAppendices,
-                                          A: localAppendices.A.filter(a => a.id !== app.id)
-                                        });
-                                      }
-                                    }}
-                                    className="bg-white border border-slate-350 text-red-650 hover:bg-red-50 p-1 rounded transition-all cursor-pointer"
-                                    title="Delete Appendix"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
-                                </>
-                              )}
-                              <button
-                                onClick={() => alert(`Downloading appendix document from S3 path: ${app.s3Path}`)}
-                                className="bg-white border border-slate-350 text-slate-700 hover:bg-slate-50 p-1.5 rounded transition-all cursor-pointer"
-                              >
-                                <Download className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-xs text-slate-400 italic">No property documents uploaded in this slot.</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Appendix B */}
-                  <div className="flex flex-col gap-2.5 border-t border-slate-100 pt-4">
-                    <h4 className="text-xs font-bold text-slate-800 uppercase font-sans border-l-4 border-emerald-500 pl-2">
-                      APPENDIX B: BANK STATEMENTS
-                    </h4>
-                    <div className="flex flex-col gap-2">
-                      {localAppendices.B.length > 0 ? (
-                        localAppendices.B.map((app) => (
-                          <div key={app.id} className="border border-slate-200 rounded-lg p-3 bg-slate-50 flex items-center justify-between text-xs group">
-                            <div>
-                              <p className="font-bold text-slate-800">{app.title}</p>
-                              <p className="text-slate-500 text-[10px] mt-0.5">{app.description}</p>
-                              <p className="text-[9px] text-slate-400 font-mono mt-1">{app.fileName} | Uploaded by: {app.uploadedBy} on {app.createdDate}</p>
-                            </div>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              {activePersona !== 'L3' && (
-                                <>
-                                  <button
-                                    onClick={() => {
-                                      setAppendixFormSlot('B');
-                                      setAppendixFormTitle(app.title);
-                                      setAppendixFormDesc(app.description);
-                                      setAppendixFormFileName(app.fileName);
-                                      setEditingAppendix({ slot: 'B', appendix: app });
-                                      setIsAddingAppendix(false);
-                                    }}
-                                    className="bg-white border border-slate-350 text-slate-650 hover:bg-slate-50 p-1 rounded transition-all cursor-pointer"
-                                    title="Edit Appendix"
-                                  >
-                                    <Edit className="w-3.5 h-3.5" />
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      if (confirm('Are you sure you want to delete this appendix?')) {
-                                        setLocalAppendices({
-                                          ...localAppendices,
-                                          B: localAppendices.B.filter(a => a.id !== app.id)
-                                        });
-                                      }
-                                    }}
-                                    className="bg-white border border-slate-350 text-red-655 hover:bg-red-50 p-1 rounded transition-all cursor-pointer"
-                                    title="Delete Appendix"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
-                                </>
-                              )}
-                              <button
-                                onClick={() => alert(`Downloading appendix document from S3 path: ${app.s3Path}`)}
-                                className="bg-white border border-slate-350 text-slate-700 hover:bg-slate-50 p-1.5 rounded transition-all cursor-pointer"
-                              >
-                                <Download className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-xs text-slate-400 italic">No bank statements uploaded in this slot.</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Appendix C */}
-                  <div className="flex flex-col gap-2.5 border-t border-slate-100 pt-4">
-                    <h4 className="text-xs font-bold text-slate-800 uppercase font-sans border-l-4 border-emerald-500 pl-2">
-                      APPENDIX C: TRUST DOCUMENTATION
-                    </h4>
-                    <div className="flex flex-col gap-2">
-                      {localAppendices.C.length > 0 ? (
-                        localAppendices.C.map((app) => (
-                          <div key={app.id} className="border border-slate-200 rounded-lg p-3 bg-slate-50 flex items-center justify-between text-xs group">
-                            <div>
-                              <p className="font-bold text-slate-800">{app.title}</p>
-                              <p className="text-slate-500 text-[10px] mt-0.5">{app.description}</p>
-                              <p className="text-[9px] text-slate-400 font-mono mt-1">{app.fileName} | Uploaded by: {app.uploadedBy} on {app.createdDate}</p>
-                            </div>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              {activePersona !== 'L3' && (
-                                <>
-                                  <button
-                                    onClick={() => {
-                                      setAppendixFormSlot('C');
-                                      setAppendixFormTitle(app.title);
-                                      setAppendixFormDesc(app.description);
-                                      setAppendixFormFileName(app.fileName);
-                                      setEditingAppendix({ slot: 'C', appendix: app });
-                                      setIsAddingAppendix(false);
-                                    }}
-                                    className="bg-white border border-slate-350 text-slate-650 hover:bg-slate-50 p-1 rounded transition-all cursor-pointer"
-                                    title="Edit Appendix"
-                                  >
-                                    <Edit className="w-3.5 h-3.5" />
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      if (confirm('Are you sure you want to delete this appendix?')) {
-                                        setLocalAppendices({
-                                          ...localAppendices,
-                                          C: localAppendices.C.filter(a => a.id !== app.id)
-                                        });
-                                      }
-                                    }}
-                                    className="bg-white border border-slate-350 text-red-660 hover:bg-red-50 p-1 rounded transition-all cursor-pointer"
-                                    title="Delete Appendix"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
-                                </>
-                              )}
-                              <button
-                                onClick={() => alert(`Downloading appendix document from S3 path: ${app.s3Path}`)}
-                                className="bg-white border border-slate-350 text-slate-700 hover:bg-slate-50 p-1.5 rounded transition-all cursor-pointer"
-                              >
-                                <Download className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-xs text-slate-400 italic">No trust documentation uploaded in this slot.</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Card 3: ILA Certificates */}
-              <div className="bg-white border border-slate-300 rounded-xl p-5 shadow-xs flex flex-col gap-4">
-                <h3 className="text-xs font-extrabold text-slate-600 uppercase tracking-wider font-sans border-b border-slate-200 pb-2">
-                  ILA CERTIFICATES
-                </h3>
-                
-                {/* Client 1 ILA Certificate */}
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-bold text-slate-800 uppercase font-sans">
-                      CLIENT 1 ILA STATUS ({caseObj.p1Name?.toUpperCase()})
-                    </h4>
-                    {canSeeOpposingIla('p1') && (activePersona === 'L1') && !localIlaP1Cert && !isEditingIlaP1 && (
-                      <button
-                        onClick={() => {
-                          setIlaFormLawyerName('Robert Miller, Esq.');
-                          setIlaFormFirmName('Miller & Partners, LLP');
-                          setIlaFormBarNumber('BAR-2026-9921');
-                          setIlaFormIssueDate('2026-08-26');
-                          setIsEditingIlaP1(true);
-                        }}
-                        className="bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-bold text-[9px] uppercase px-2 py-0.5 rounded transition-all cursor-pointer"
-                      >
-                        + Issue Certificate
-                      </button>
-                    )}
-                  </div>
-                  
-                  {canSeeOpposingIla('p1') ? (
-                    isEditingIlaP1 ? (
-                      <div className="bg-slate-50 border border-slate-300 rounded-xl p-4 flex flex-col gap-3 mt-1 text-xs">
-                        <h5 className="font-bold text-slate-800 text-[10px] uppercase">Client 1 ILA Details</h5>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="flex flex-col gap-1">
-                            <label className="text-slate-400 font-bold text-[9px] uppercase">Issuing Attorney</label>
-                            <input
-                              type="text"
-                              value={ilaFormLawyerName}
-                              onChange={(e) => setIlaFormLawyerName(e.target.value)}
-                              className="bg-white border border-slate-350 px-2 py-1 rounded text-xs outline-none"
-                            />
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <label className="text-slate-400 font-bold text-[9px] uppercase">Legal Firm</label>
-                            <input
-                              type="text"
-                              value={ilaFormFirmName}
-                              onChange={(e) => setIlaFormFirmName(e.target.value)}
-                              className="bg-white border border-slate-350 px-2 py-1 rounded text-xs outline-none"
-                            />
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <label className="text-slate-400 font-bold text-[9px] uppercase">Bar Registration ID</label>
-                            <input
-                              type="text"
-                              value={ilaFormBarNumber}
-                              onChange={(e) => setIlaFormBarNumber(e.target.value)}
-                              className="bg-white border border-slate-350 px-2 py-1 rounded text-xs outline-none"
-                            />
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <label className="text-slate-400 font-bold text-[9px] uppercase">Issue Date</label>
-                            <input
-                              type="text"
-                              value={ilaFormIssueDate}
-                              onChange={(e) => setIlaFormIssueDate(e.target.value)}
-                              className="bg-white border border-slate-350 px-2 py-1 rounded text-xs outline-none"
-                            />
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 mt-2 justify-end">
-                          <button
-                            onClick={() => setIsEditingIlaP1(false)}
-                            className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-2.5 py-1 rounded text-[10px] font-bold cursor-pointer"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            onClick={() => handleSaveIlaCert('p1')}
-                            className="bg-[#1e3a8a] text-white hover:bg-[#172554] px-2.5 py-1 rounded text-[10px] font-bold cursor-pointer"
-                          >
-                            Save Cert
-                          </button>
-                        </div>
-                      </div>
-                    ) : localIlaP1Cert ? (
-                      <div className="flex flex-col gap-3 text-xs text-slate-700 bg-emerald-50/20 border border-emerald-200 p-4 rounded-xl mt-1 relative group">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2 text-emerald-800 font-bold">
-                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                            <span>ILA Certificate Issued &amp; Verified</span>
-                          </div>
-                          {activePersona === 'L1' && (
-                            <div className="flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
-                              <button
-                                onClick={() => {
-                                  setIlaFormLawyerName(localIlaP1Cert.lawyerName);
-                                  setIlaFormFirmName(localIlaP1Cert.firmName);
-                                  setIlaFormBarNumber(localIlaP1Cert.barNumber);
-                                  setIlaFormIssueDate(localIlaP1Cert.issueDate);
-                                  setIsEditingIlaP1(true);
-                                }}
-                                className="bg-white border border-slate-200 text-slate-650 hover:bg-slate-50 p-0.5 rounded cursor-pointer"
-                                title="Edit Certificate"
-                              >
-                                <Edit className="w-3 h-3" />
-                              </button>
-                              <button
-                                onClick={() => {
-                                  if (confirm('Are you sure you want to delete/revoke this certificate?')) {
-                                    setLocalIlaP1Cert(undefined);
-                                  }
-                                }}
-                                className="bg-white border border-slate-200 text-red-600 hover:bg-red-50 p-0.5 rounded cursor-pointer"
-                                title="Delete Certificate"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                        <div className="grid grid-cols-2 gap-4 mt-1 text-slate-650">
-                          <div>
-                            <span className="text-slate-400 text-[9px] uppercase font-bold">Issuing Attorney</span>
-                            <p className="text-slate-800 font-semibold">{localIlaP1Cert.lawyerName}</p>
-                          </div>
-                          <div>
-                            <span className="text-slate-400 text-[9px] uppercase font-bold">Legal Firm</span>
-                            <p className="text-slate-800 font-semibold">{localIlaP1Cert.firmName}</p>
-                          </div>
-                          <div>
-                            <span className="text-slate-400 text-[9px] uppercase font-bold">Bar registration id</span>
-                            <p className="text-slate-800 font-mono font-semibold">{localIlaP1Cert.barNumber}</p>
-                          </div>
-                          <div>
-                            <span className="text-slate-400 text-[9px] uppercase font-bold">Issue date</span>
-                            <p className="text-slate-800 font-semibold">{localIlaP1Cert.issueDate}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-xs text-slate-500 font-bold italic mt-1 bg-slate-50/50 p-2.5 rounded-lg border border-slate-100">
-                        No ILA Certificate issued yet for Client 1
-                      </p>
-                    )
-                  ) : (
-                    <p className="text-xs text-red-700 mt-1 bg-red-50 border border-red-200 p-3 rounded-lg font-sans italic">
-                      Access Prohibited: Lawyer for Client 2 cannot view Client 1's private ILA documents
-                    </p>
-                  )}
-                </div>
-
-                {/* Client 2 ILA Certificate */}
-                <div className="flex flex-col gap-2 border-t border-slate-100 pt-4">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-bold text-slate-855 uppercase font-sans">
-                      CLIENT 2 ILA STATUS ({caseObj.p2Name?.toUpperCase()})
-                    </h4>
-                    {canSeeOpposingIla('p2') && (activePersona === 'L2') && !localIlaP2Cert && !isEditingIlaP2 && (
-                      <button
-                        onClick={() => {
-                          setIlaFormLawyerName('Mark Sterling, Esq.');
-                          setIlaFormFirmName('Sterling Legal Group');
-                          setIlaFormBarNumber('BAR-2026-8812');
-                          setIlaFormIssueDate('2026-08-26');
-                          setIsEditingIlaP2(true);
-                        }}
-                        className="bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-bold text-[9px] uppercase px-2 py-0.5 rounded transition-all cursor-pointer"
-                      >
-                        + Issue Certificate
-                      </button>
-                    )}
-                  </div>
-                  
-                  {canSeeOpposingIla('p2') ? (
-                    isEditingIlaP2 ? (
-                      <div className="bg-slate-50 border border-slate-300 rounded-xl p-4 flex flex-col gap-3 mt-1 text-xs">
-                        <h5 className="font-bold text-slate-800 text-[10px] uppercase">Client 2 ILA Details</h5>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="flex flex-col gap-1">
-                            <label className="text-slate-400 font-bold text-[9px] uppercase">Issuing Attorney</label>
-                            <input
-                              type="text"
-                              value={ilaFormLawyerName}
-                              onChange={(e) => setIlaFormLawyerName(e.target.value)}
-                              className="bg-white border border-slate-350 px-2 py-1 rounded text-xs outline-none"
-                            />
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <label className="text-slate-400 font-bold text-[9px] uppercase">Legal Firm</label>
-                            <input
-                              type="text"
-                              value={ilaFormFirmName}
-                              onChange={(e) => setIlaFormFirmName(e.target.value)}
-                              className="bg-white border border-slate-350 px-2 py-1 rounded text-xs outline-none"
-                            />
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <label className="text-slate-400 font-bold text-[9px] uppercase">Bar Registration ID</label>
-                            <input
-                              type="text"
-                              value={ilaFormBarNumber}
-                              onChange={(e) => setIlaFormBarNumber(e.target.value)}
-                              className="bg-white border border-slate-350 px-2 py-1 rounded text-xs outline-none"
-                            />
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <label className="text-slate-400 font-bold text-[9px] uppercase">Issue Date</label>
-                            <input
-                              type="text"
-                              value={ilaFormIssueDate}
-                              onChange={(e) => setIlaFormIssueDate(e.target.value)}
-                              className="bg-white border border-slate-350 px-2 py-1 rounded text-xs outline-none"
-                            />
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 mt-2 justify-end">
-                          <button
-                            onClick={() => setIsEditingIlaP2(false)}
-                            className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-2.5 py-1 rounded text-[10px] font-bold cursor-pointer"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            onClick={() => handleSaveIlaCert('p2')}
-                            className="bg-[#1e3a8a] text-white hover:bg-[#172554] px-2.5 py-1 rounded text-[10px] font-bold cursor-pointer"
-                          >
-                            Save Cert
-                          </button>
-                        </div>
-                      </div>
-                    ) : localIlaP2Cert ? (
-                      <div className="flex flex-col gap-3 text-xs text-slate-700 bg-emerald-50/20 border border-emerald-200 p-4 rounded-xl mt-1 relative group">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2 text-emerald-800 font-bold">
-                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                            <span>ILA Certificate Issued &amp; Verified</span>
-                          </div>
-                          {activePersona === 'L2' && (
-                            <div className="flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
-                              <button
-                                onClick={() => {
-                                  setIlaFormLawyerName(localIlaP2Cert.lawyerName);
-                                  setIlaFormFirmName(localIlaP2Cert.firmName);
-                                  setIlaFormBarNumber(localIlaP2Cert.barNumber);
-                                  setIlaFormIssueDate(localIlaP2Cert.issueDate);
-                                  setIsEditingIlaP2(true);
-                                }}
-                                className="bg-white border border-slate-200 text-slate-650 hover:bg-slate-50 p-0.5 rounded cursor-pointer"
-                                title="Edit Certificate"
-                              >
-                                <Edit className="w-3 h-3" />
-                              </button>
-                              <button
-                                onClick={() => {
-                                  if (confirm('Are you sure you want to delete/revoke this certificate?')) {
-                                    setLocalIlaP2Cert(undefined);
-                                  }
-                                }}
-                                className="bg-white border border-slate-200 text-red-600 hover:bg-red-50 p-0.5 rounded cursor-pointer"
-                                title="Delete Certificate"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                        <div className="grid grid-cols-2 gap-4 mt-1 text-slate-650">
-                          <div>
-                            <span className="text-slate-400 text-[9px] uppercase font-bold">Issuing Attorney</span>
-                            <p className="text-slate-800 font-semibold">{localIlaP2Cert.lawyerName}</p>
-                          </div>
-                          <div>
-                            <span className="text-slate-400 text-[9px] uppercase font-bold">Legal Firm</span>
-                            <p className="text-slate-800 font-semibold">{localIlaP2Cert.firmName}</p>
-                          </div>
-                          <div>
-                            <span className="text-slate-400 text-[9px] uppercase font-bold">Bar registration id</span>
-                            <p className="text-slate-800 font-mono font-semibold">{localIlaP2Cert.barNumber}</p>
-                          </div>
-                          <div>
-                            <span className="text-slate-400 text-[9px] uppercase font-bold">Issue date</span>
-                            <p className="text-slate-800 font-semibold">{localIlaP2Cert.issueDate}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-xs text-slate-500 font-bold italic mt-1 bg-slate-50/50 p-2.5 rounded-lg border border-slate-100">
-                        No ILA Certificate issued yet for Client 2
-                      </p>
-                    )
-                  ) : (
-                    <p className="text-xs text-red-750 mt-1 bg-red-50 border border-red-200 p-3 rounded-lg font-sans italic font-bold">
-                      Access Prohibited: Lawyer for Client 1 cannot view Client 2's private ILA documents
-                    </p>
-                  )}
-                </div>
               </div>
 
             </div>
@@ -1830,7 +1792,7 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
               <p className="text-slate-500 italic mb-2">
                 This document is a compiled final execution pack for signing sign-offs:
               </p>
-              
+
               <div className="flex flex-col gap-2.5">
                 {[
                   { section: '1. Cover Page', desc: 'Pre-nuptial Agreement - Vance & Lin' },
@@ -1865,6 +1827,264 @@ export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
                 className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-lg border border-emerald-500 transition-all cursor-pointer"
               >
                 Download Pack PDF
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Complete Sign-off & ILA Modal */}
+      {isIlaModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-slate-900/80 backdrop-blur-xs font-sans">
+          <div className="bg-white rounded-xl shadow-2xl w-[600px] max-h-[92vh] overflow-hidden flex flex-col border border-slate-300">
+            {/* Modal Header */}
+            <div className="bg-[#0d1527] text-white p-5 flex items-center justify-between border-b border-[#1e293b]">
+              <div>
+                <h3 className="font-serif text-base font-bold text-white tracking-wide uppercase">
+                  LAWYER SIGN-OFF &amp; ILA
+                </h3>
+                <p className="text-[11px] text-emerald-400 font-mono mt-0.5">
+                  Matter: {caseObj?.id} • Clean Master: {activeVersionId}
+                </p>
+              </div>
+              <button
+                onClick={() => setIsIlaModalOpen(false)}
+                className="text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-5 text-xs text-slate-800">
+              
+              {/* Client & Confirmation Box */}
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 flex flex-col gap-2 font-mono">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Client:</span>
+                  <span className="font-bold text-slate-900">{activePersona === 'L1' ? caseObj?.p1Name : caseObj?.p2Name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Clean Master:</span>
+                  <span className="font-bold text-slate-900">{activeVersionId}</span>
+                </div>
+                <div className="border-t border-slate-200 pt-2 mt-1 flex items-center gap-2 text-emerald-700 font-bold">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <span>✓ Confirmation email attached ({activePersona === 'L1' ? clientConfirmationP1?.fileName : clientConfirmationP2?.fileName})</span>
+                </div>
+              </div>
+
+              {/* ILA DETAILS */}
+              <div className="flex flex-col gap-3">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-sans">
+                  ILA DETAILS
+                </span>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[11px] font-bold text-slate-700">Meeting Date</label>
+                    <input
+                      type="date"
+                      value={ilaMeetingDate}
+                      onChange={(e) => setIlaMeetingDate(e.target.value)}
+                      className="bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-mono text-slate-900 outline-none focus:border-slate-500"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[11px] font-bold text-slate-700">Meeting Platform</label>
+                    <select
+                      value={ilaMeetingPlatform}
+                      onChange={(e) => setIlaMeetingPlatform(e.target.value)}
+                      className="bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-900 outline-none focus:border-slate-500 cursor-pointer"
+                    >
+                      <option value="Zoom">Zoom</option>
+                      <option value="Microsoft Teams">Microsoft Teams</option>
+                      <option value="Google Meet">Google Meet</option>
+                      <option value="In-Person">In-Person Office Meeting</option>
+                      <option value="Telephone">Telephone Conference</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-bold text-slate-700">SRA / Bar ID Number</label>
+                  <input
+                    type="text"
+                    value={ilaSraNumber}
+                    onChange={(e) => setIlaSraNumber(e.target.value)}
+                    placeholder="e.g. SRA123456"
+                    className="bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-mono text-slate-900 outline-none focus:border-slate-500"
+                  />
+                </div>
+              </div>
+
+              {/* LAWYER */}
+              <div className="flex flex-col gap-1 bg-slate-50 border border-slate-200 p-3.5 rounded-lg text-xs">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-sans">LAWYER</span>
+                <span className="font-bold text-slate-900">{activePersona === 'L1' ? 'Robert Miller, Esq.' : 'Mark Sterling, Esq.'}</span>
+                <span className="text-slate-500">Firm: {activePersona === 'L1' ? 'Blake Cassels LLP' : 'Torys LLP'}</span>
+              </div>
+
+              {/* ILA CHECKLIST */}
+              <div className="flex flex-col gap-2.5">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-sans">
+                  ILA CHECKLIST
+                </span>
+
+                <div className="flex flex-col gap-2 bg-slate-50 border border-slate-200 p-4 rounded-xl text-xs text-slate-700">
+                  <label className="flex items-center gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={checklist.attendedAlone}
+                      onChange={(e) => setChecklist({ ...checklist, attendedAlone: e.target.checked })}
+                      className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer"
+                    />
+                    <span>Client attended advice session alone</span>
+                  </label>
+
+                  <label className="flex items-center gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={checklist.enteredFreely}
+                      onChange={(e) => setChecklist({ ...checklist, enteredFreely: e.target.checked })}
+                      className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer"
+                    />
+                    <span>Client entered agreement freely without duress</span>
+                  </label>
+
+                  <label className="flex items-center gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={checklist.understandsAgreement}
+                      onChange={(e) => setChecklist({ ...checklist, understandsAgreement: e.target.checked })}
+                      className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer"
+                    />
+                    <span>Client fully understands the terms of the agreement</span>
+                  </label>
+
+                  <label className="flex items-center gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={checklist.disclosureDiscussed}
+                      onChange={(e) => setChecklist({ ...checklist, disclosureDiscussed: e.target.checked })}
+                      className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer"
+                    />
+                    <span>Financial disclosures discussed in detail</span>
+                  </label>
+
+                  <label className="flex items-center gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={checklist.adviceProvided}
+                      onChange={(e) => setChecklist({ ...checklist, adviceProvided: e.target.checked })}
+                      className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer"
+                    />
+                    <span>Independent legal advice provided</span>
+                  </label>
+
+                  <label className="flex items-center gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={checklist.questionsAnswered}
+                      onChange={(e) => setChecklist({ ...checklist, questionsAnswered: e.target.checked })}
+                      className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer"
+                    />
+                    <span>All client questions thoroughly answered</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* UPLOAD ILA CERTIFICATE PDF */}
+              <div className="flex flex-col gap-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-sans">
+                  UPLOAD ILA CERTIFICATE (PDF / DOC)
+                </span>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={ilaFileText}
+                    onChange={(e) => setIlaFileText(e.target.value)}
+                    placeholder={activePersona === 'L1' ? 'e.g. ILA_P1_Certificate.pdf' : 'e.g. ILA_P2_Certificate.pdf'}
+                    className="bg-white border border-slate-300 text-xs px-3 py-2 rounded-lg flex-1 outline-none focus:border-slate-400 font-mono"
+                  />
+                  <label className="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold px-3 py-2 rounded-lg cursor-pointer transition-all">
+                    Browse
+                    <input
+                      type="file"
+                      accept=".pdf,.png,.doc,.docx"
+                      className="hidden"
+                      onChange={(e) => {
+                        if (e.target.files?.[0]) {
+                          setIlaFileText(e.target.files[0].name);
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {/* MASTER COMPLETE SIGN-OFF TICK BOX */}
+              <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-4 flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  id="confirmProvidedAdvice"
+                  checked={checklist.confirmProvidedAdvice}
+                  onChange={(e) => setChecklist({ ...checklist, confirmProvidedAdvice: e.target.checked })}
+                  className="rounded border-emerald-400 text-emerald-600 focus:ring-emerald-500 w-5 h-5 cursor-pointer mt-0.5"
+                />
+                <label htmlFor="confirmProvidedAdvice" className="text-xs font-bold text-emerald-950 cursor-pointer leading-tight">
+                  I confirm I have provided independent legal advice and verified all disclosure documentation.
+                </label>
+              </div>
+
+            </div>
+
+            {/* Modal Actions */}
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setIsIlaModalOpen(false)}
+                className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-bold px-4 py-2 rounded-lg transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                disabled={!checklist.confirmProvidedAdvice}
+                onClick={() => {
+                  const defaultName = activePersona === 'L1' ? 'ILA_P1.pdf' : 'ILA_P2.pdf';
+                  const fileNameToUse = ilaFileText.trim() || defaultName;
+                  const timestamp = new Date().toLocaleString([], { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+                  if (activePersona === 'L1') {
+                    const newSignoff = {
+                      status: 'COMPLETE' as const,
+                      ilaFile: fileNameToUse,
+                      signedAt: timestamp
+                    };
+                    setLawyerSignoffP1(newSignoff);
+                    if (onUpdateWorkflowState && caseObj) {
+                      onUpdateWorkflowState(caseObj.id, { lawyerSignoffP1: newSignoff });
+                    }
+                  } else {
+                    const newSignoff = {
+                      status: 'COMPLETE' as const,
+                      ilaFile: fileNameToUse,
+                      signedAt: timestamp
+                    };
+                    setLawyerSignoffP2(newSignoff);
+                    if (onUpdateWorkflowState && caseObj) {
+                      onUpdateWorkflowState(caseObj.id, { lawyerSignoffP2: newSignoff });
+                    }
+                  }
+                  setIsIlaModalOpen(false);
+                }}
+                className="bg-[#0d1527] hover:bg-[#1e293b] disabled:bg-slate-300 text-white disabled:text-slate-500 text-xs font-bold px-5 py-2.5 rounded-lg transition-all cursor-pointer shadow-sm flex items-center gap-2"
+              >
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <span>COMPLETE &amp; GENERATE ILA</span>
               </button>
             </div>
           </div>

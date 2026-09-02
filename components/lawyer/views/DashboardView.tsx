@@ -165,7 +165,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               TOTAL CASES
             </span>
             <div className="text-3xl font-bold font-sans text-white tracking-tight leading-none">
-              20
+              {assignedCases.length}
             </div>
           </div>
 
@@ -178,7 +178,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               ONBOARDING PENDING
             </span>
             <div className="text-3xl font-bold font-sans text-slate-800 tracking-tight leading-none">
-              7
+              {assignedCases.filter(c => c.status === 'FORMS_LOCKED').length}
             </div>
           </div>
 
@@ -194,7 +194,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </span>
             </div>
             <div className="text-3xl font-bold font-sans text-slate-800 tracking-tight leading-none">
-              7
+              {assignedCases.filter(c => c.status !== 'FORMS_LOCKED' && c.status !== 'CLOSED' && c.status !== 'ARCHIVED').length}
             </div>
           </div>
 
@@ -207,7 +207,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               COMPLETED
             </span>
             <div className="text-3xl font-bold font-sans text-slate-800 tracking-tight leading-none">
-              6
+              {assignedCases.filter(c => c.status === 'CLOSED' || c.status === 'ARCHIVED').length}
             </div>
           </div>
         </div>
@@ -223,7 +223,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 Review Pending
               </span>
               <div className="text-2xl font-bold font-sans text-slate-800 tracking-tight leading-none">
-                3
+                {assignedCases.filter(c => c.status === 'LAWYER_REVIEW').length}
               </div>
             </div>
 
@@ -236,7 +236,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 Clean Master Upload Pending
               </span>
               <div className="text-2xl font-bold font-sans text-slate-800 tracking-tight leading-none">
-                2
+                {assignedCases.filter(c => c.status === 'AWAITING_COUNTERPARTY_LAWYER_APPROVAL').length}
               </div>
             </div>
 
@@ -249,7 +249,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 Sign-Off & ILA Pending
               </span>
               <div className="text-2xl font-bold font-sans text-slate-800 tracking-tight leading-none">
-                2
+                {assignedCases.filter(c => c.status === 'READY_FOR_SIGNING' || c.status === 'CLIENT_APPROVED' || c.status === 'ILA_P1_COMPLETE' || c.status === 'ILA_P2_COMPLETE').length}
               </div>
             </div>
           </div>

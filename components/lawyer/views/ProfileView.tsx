@@ -2,13 +2,15 @@
 
 import React from 'react';
 import { LawyerPersona } from '../../../types/lawyer-portal';
-import { Shield, Building, Award, CheckCircle } from 'lucide-react';
+import { Shield, Building, Award, CheckCircle, LogOut } from 'lucide-react';
 
 interface ProfileViewProps {
   activePersona: LawyerPersona;
+  onPersonaChange?: (persona: LawyerPersona) => void;
+  onLogout?: () => void;
 }
 
-export const ProfileView: React.FC<ProfileViewProps> = ({ activePersona }) => {
+export const ProfileView: React.FC<ProfileViewProps> = ({ activePersona, onPersonaChange, onLogout }) => {
   const getPersonaDetails = (persona: LawyerPersona) => {
     switch (persona) {
       case 'L1':
@@ -58,7 +60,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ activePersona }) => {
 
   return (
     <div className="flex flex-col gap-6 max-w-[960px] font-sans">
-      <div className="bg-white border border-slate-300 rounded-xl p-8 shadow-xs flex items-start justify-between gap-6">
+      <div className="bg-white border border-slate-300 rounded-xl p-8 shadow-xs flex items-center justify-between gap-6">
         <div className="flex gap-6 items-center">
           <div className="w-20 h-20 rounded-full bg-[#0d1527] text-white border-2 border-emerald-400 font-bold text-2xl flex items-center justify-center">
             {activePersona}
@@ -75,6 +77,39 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ activePersona }) => {
             <p className="text-slate-400 text-xs mt-0.5">{lawyer.firm}</p>
           </div>
         </div>
+
+        {/* Logout Button on Profile Header */}
+        {onLogout && (
+          <button
+            onClick={onLogout}
+            className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all cursor-pointer shadow-xs"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Logout Account</span>
+          </button>
+        )}
+      </div>
+
+      {/* Account Session & Security Card */}
+      <div className="bg-white border border-slate-300 rounded-xl p-6 shadow-xs flex items-center justify-between">
+        <div className="flex flex-col gap-1">
+          <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+            <Shield className="w-4 h-4 text-emerald-600" />
+            <span>Account Session &amp; Security</span>
+          </h3>
+          <p className="text-xs text-slate-500">
+            Currently logged in as <strong className="text-slate-800">{lawyer.name}</strong> ({lawyer.email}).
+          </p>
+        </div>
+        {onLogout && (
+          <button
+            onClick={onLogout}
+            className="bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-600 border border-slate-300 hover:border-red-200 text-xs font-bold px-4 py-2 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Log Out</span>
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-6">

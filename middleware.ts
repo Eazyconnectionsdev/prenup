@@ -27,7 +27,9 @@ export default function middleware(req: NextRequest) {
   const isPublicRoute =
     nextUrl.pathname === "/" ||
     isAuthRoute ||
-    nextUrl.pathname.startsWith("/lawyer");
+    nextUrl.pathname.startsWith("/lawyer") ||
+    nextUrl.pathname.startsWith("/cm") ||
+    nextUrl.pathname.startsWith("/dashboard");
 
   let role: string | null = null;
 

@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Search, Shield } from 'lucide-react';
+import { Search, Shield, LogOut } from 'lucide-react';
 import { NavView, LawyerPersona } from '../../types/lawyer-portal';
 
 interface TopBarProps {
@@ -12,6 +12,7 @@ interface TopBarProps {
   activePersona: LawyerPersona;
   onPersonaChange: (persona: LawyerPersona) => void;
   onOpenProfile: () => void;
+  onLogout?: () => void;
 }
 
 const VIEW_TITLES: Record<NavView, string> = {
@@ -34,6 +35,7 @@ export const LawyerTopBar: React.FC<TopBarProps> = ({
   activePersona,
   onPersonaChange,
   onOpenProfile,
+  onLogout,
 }) => {
   const getPersonaDetails = (persona: LawyerPersona) => {
     switch (persona) {
@@ -61,8 +63,8 @@ export const LawyerTopBar: React.FC<TopBarProps> = ({
         </span>
       </div>
 
-      {/* Top Actions: Interactive User Account Details */}
-      <div className="flex items-center gap-4">
+      {/* Top Actions: Interactive User Account Details & Logout */}
+      <div className="flex items-center gap-3">
         {/* User profile details */}
         <div
           onClick={onOpenProfile}
