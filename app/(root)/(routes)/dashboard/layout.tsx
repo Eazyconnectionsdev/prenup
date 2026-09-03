@@ -9,7 +9,7 @@ export default function MainLayouyt({
   return (
     <>
       <Sidebar>
-        <TopBar caseId="LP-2026-000123" />
+        <TopBar />
 
         <div className="h-full">{children}</div>
       </Sidebar>
