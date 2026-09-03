@@ -81,3 +81,46 @@ export const getFreshProfile = createAsyncThunk(
     }
   }
 );
+
+
+export const acceptInvite = createAsyncThunk(
+  "auth/acceptInvite",
+  async (
+    {
+      token,
+      caseId,
+      password,
+    }: {
+      token: string;
+      caseId: string;
+      password: string;
+    },
+    { rejectWithValue }
+  ) => {
+    try {
+      const { data } = await Axios.post(
+        "/auth/accept-invite",
+        {
+          token,
+          caseId,
+          password,
+        }
+      );
+
+      return data;
+    } catch (error: any) {
+      if (error.response && error.response.data) {
+        console.log(
+          "🚀 ~ Getting Error in accept invite thunk ~ error:",
+          error
+        );
+
+        return rejectWithValue(error.response.data);
+      }
+
+      return rejectWithValue(
+        "Something went wrong. Please try again."
+      );
+    }
+  }
+);

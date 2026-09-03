@@ -6,12 +6,13 @@ export interface PartnerData {
   firstName: string;
   lastName: string;
   email: string;
-  phone: string;
+  mobileNumber: string;
   relationshipStatus: RelationshipStatus;
-  targetDate: string;
+  targetWeddingDate: string;
   personalMessage: string;
   status: InvitationStateStatus;
   sentTimestamp?: string;
+  
 }
 
 export interface TimelineEvent {
@@ -20,3 +21,5 @@ export interface TimelineEvent {
   timestamp: string;
   completed: boolean;
 }
+
+
