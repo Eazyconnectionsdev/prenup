@@ -84,7 +84,7 @@ export default function SharedLiabilitiesForm({ onContinue }: SharedLiabilitiesF
     setIsApproving(true);
     setApproveError("");
     try {
-      await Axios.post(`/cases/${caseId}/approve-and-generate`);
+      await Axios.post(`/document/${caseId}/approve-and-generate`);
       setApproved(true);
     } catch (error) {
       console.error("Error approving agreement:", error);
