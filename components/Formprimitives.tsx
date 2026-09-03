@@ -37,9 +37,9 @@ export function makeId(prefix: string) {
 /* ---------------------------------------------------------------------- */
 
 export const inputClasses =
-  "w-full rounded-[10px] border border-slate-300 bg-slate-50 px-3.5 py-2.5 text-[0.925rem] text-slate-900 transition focus:border-indigo-600 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-600/10 disabled:cursor-not-allowed disabled:opacity-60";
+  "w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-1.5 text-[0.875rem] text-slate-900 transition focus:border-indigo-600 focus:bg-white focus:outline-none focus:ring-3 focus:ring-indigo-600/10 disabled:cursor-not-allowed disabled:opacity-60";
 
-export const textareaClasses = inputClasses + " min-h-[70px] resize-y";
+export const textareaClasses = inputClasses + " min-h-[56px] resize-y";
 
 /* ---------------------------------------------------------------------- */
 /* Reusable field components                                               */
@@ -49,7 +49,7 @@ export function Tooltip({ text }: { text: string }) {
   return (
     <span
       title={text}
-      className="inline-flex h-[18px] w-[18px] cursor-help items-center justify-center rounded-full bg-indigo-100 text-[0.75rem] font-bold text-indigo-600"
+      className="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-indigo-100 text-[0.7rem] font-bold text-indigo-600"
     >
       ⓘ
     </span>
@@ -58,7 +58,7 @@ export function Tooltip({ text }: { text: string }) {
 
 export function PartHeader({ children, tooltip }: { children: ReactNode; tooltip?: string }) {
   return (
-    <div className="mb-4 mt-8 flex items-center gap-2 text-[1.15rem] font-bold text-slate-800">
+    <div className="mb-2 mt-4 flex items-center gap-1.5 text-[0.95rem] font-bold text-slate-800">
       {children}
       {tooltip && <Tooltip text={tooltip} />}
     </div>
@@ -71,7 +71,7 @@ export function SysBanner({ children, tone = "info" }: { children: ReactNode; to
       ? "border-amber-500 bg-amber-50 text-amber-900"
       : "border-indigo-600 bg-indigo-50 text-indigo-800";
   return (
-    <div className={`mb-6 rounded-r-[10px] border-l-4 p-4 text-[0.9rem] font-medium ${toneClasses}`}>
+    <div className={`mb-3 rounded-r-lg border-l-4 p-2.5 text-[0.825rem] font-medium ${toneClasses}`}>
       {children}
     </div>
   );
@@ -85,16 +85,16 @@ interface YesNoToggleProps {
 
 export function YesNoToggle({ name, value, onChange }: YesNoToggleProps) {
   return (
-    <div className="mb-3 grid grid-cols-2 gap-3">
+    <div className="mb-2 grid grid-cols-2 gap-2">
       {(["Yes", "No"] as YesNo[]).map((opt) => {
         const checked = value === opt;
         return (
           <label
             key={opt}
-            className={`relative flex cursor-pointer items-center gap-3 rounded-[10px] border px-4 py-3 transition ${
+            className={`relative flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-1.5 transition ${
               checked
-                ? "border-indigo-600 bg-slate-50"
-                : "border-slate-300 bg-slate-50 hover:border-indigo-600 hover:bg-white"
+                ? "border-indigo-600 bg-indigo-50/40 text-indigo-700 font-semibold"
+                : "border-slate-300 bg-slate-50 hover:border-indigo-500 hover:bg-white text-slate-700"
             }`}
           >
             <input
@@ -106,7 +106,7 @@ export function YesNoToggle({ name, value, onChange }: YesNoToggleProps) {
               className="sr-only"
             />
             <span
-              className={`relative h-4 w-4 flex-shrink-0 rounded-full border-2 ${
+              className={`relative h-3.5 w-3.5 flex-shrink-0 rounded-full border-2 ${
                 checked ? "border-indigo-600 bg-indigo-600" : "border-slate-300 bg-white"
               }`}
             >
@@ -114,9 +114,7 @@ export function YesNoToggle({ name, value, onChange }: YesNoToggleProps) {
                 <span className="absolute left-1/2 top-1/2 h-1 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white" />
               )}
             </span>
-            <span className={`text-[0.9rem] font-semibold ${checked ? "text-indigo-600" : "text-slate-900"}`}>
-              {opt}
-            </span>
+            <span className="text-[0.85rem]">{opt}</span>
           </label>
         );
       })}
@@ -136,13 +134,13 @@ export function MatrixBox({
   addLabel: string;
 }) {
   return (
-    <div className="mb-6 rounded-2xl border border-slate-300 bg-slate-50 p-6">
-      <div className="mb-4 text-[0.85rem] font-bold uppercase tracking-wide text-slate-500">{title}</div>
+    <div className="mb-3.5 rounded-xl border border-slate-200/90 bg-slate-50/80 p-3 sm:p-4">
+      <div className="mb-2 text-[0.75rem] font-bold uppercase tracking-wide text-slate-500">{title}</div>
       {children}
       <button
         type="button"
         onClick={onAdd}
-        className="flex w-full items-center justify-center gap-2 rounded-[10px] border-2 border-dashed border-indigo-600 bg-transparent px-5 py-3 text-[0.9rem] font-semibold text-indigo-600 transition hover:border-solid hover:bg-indigo-100"
+        className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-indigo-500/80 bg-white/70 px-3 py-1.5 text-[0.825rem] font-semibold text-indigo-600 transition hover:border-solid hover:bg-indigo-50"
       >
         + {addLabel}
       </button>
@@ -152,12 +150,12 @@ export function MatrixBox({
 
 export function RowItem({ children, onDelete }: { children: ReactNode; onDelete: () => void }) {
   return (
-    <div className="relative mb-5 rounded-[10px] border border-slate-300 bg-white p-6 shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+    <div className="relative mb-2.5 rounded-lg border border-slate-200/90 bg-white p-3 sm:p-3.5 shadow-xs">
       <button
         type="button"
         onClick={onDelete}
         aria-label="Remove item"
-        className="absolute right-4 top-4 text-[1.1rem] text-slate-500 transition hover:text-red-500"
+        className="absolute right-2.5 top-2.5 text-[0.95rem] text-slate-400 transition hover:text-red-500"
       >
         ✕
       </button>
@@ -195,19 +193,15 @@ export function ValueWithUnsure({
         placeholder={unknown ? "Value unknown" : placeholder}
         className={inputClasses}
       />
-      <label className="mt-1.5 flex cursor-pointer items-center gap-1.5 text-[0.8rem] font-normal text-slate-500">
+      <label className="mt-1 flex cursor-pointer items-center gap-1.5 text-[0.75rem] text-slate-500">
         <input
           type="checkbox"
           checked={unknown}
           onChange={(e) => onUnknownChange(e.target.checked)}
-          className="h-3.5 w-3.5"
+          className="h-3 w-3 rounded text-indigo-600"
         />
-        I am unsure of the current value.
+        <span>I am unsure of current value (estimate)</span>
       </label>
-      <small className="mt-1 block pl-5 text-[0.75rem] leading-tight text-slate-500">
-        Please provide an estimated value where possible. You may update this information later if additional
-        details become available.
-      </small>
     </div>
   );
 }

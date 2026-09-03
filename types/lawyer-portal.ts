@@ -113,6 +113,16 @@ export interface LawyerCase {
 
   // Simulated Email logs
   emails: EmailLog[];
+
+  // 2-Stage Lawyer Actions Workflow State (Persisted across sessions)
+  workflowState?: LawyerActionsWorkflowState;
+}
+
+export interface LawyerActionsWorkflowState {
+  clientConfirmationP1?: { fileName: string; fileUrl: string; submittedAt: string } | null;
+  clientConfirmationP2?: { fileName: string; fileUrl: string; submittedAt: string } | null;
+  lawyerSignoffP1?: { status: 'COMPLETE' | 'PENDING'; ilaFile?: string; signedAt?: string } | null;
+  lawyerSignoffP2?: { status: 'COMPLETE' | 'PENDING'; ilaFile?: string; signedAt?: string } | null;
 }
 
 export interface ClientFormsData {

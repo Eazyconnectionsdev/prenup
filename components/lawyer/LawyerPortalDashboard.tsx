@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { LawyerCase, NavView, LawyerPersona, AgreementVersion, SummaryNote, Appendix, CaseStatus } from '../../types/lawyer-portal';
+import { LawyerCase, NavView, LawyerPersona, AgreementVersion, SummaryNote, Appendix, CaseStatus, LawyerActionsWorkflowState } from '../../types/lawyer-portal';
 import { LawyerSidebar } from './LawyerSidebar';
 import { LawyerTopBar } from './LawyerTopBar';
 import { DashboardView } from './views/DashboardView';
@@ -548,14 +548,40 @@ export const LawyerPortalDashboard: React.FC = () => {
   const [currentView, setCurrentView] = useState<NavView>('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
-  
+
+  // Authentication & Logout State
+  const [isLoggedOut, setIsLoggedOut] = useState(false);
+  const [loginPersona, setLoginPersona] = useState<LawyerPersona>('L1');
+  const [loginEmail, setLoginEmail] = useState('robert.miller@blakes.com');
+  const [loginPassword, setLoginPassword] = useState('••••••••••••');
+  const [passwordVisible, setPasswordVisible] = useState(false);
+
   // Cases database state
   const [cases, setCases] = useState<LawyerCase[]>(MOCK_INITIAL_CASES);
-  
+
   // Modals / Drawer state
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isScorecardOpen, setIsScorecardOpen] = useState(false);
+
+  const handleLogout = () => {
+    setIsLoggedOut(true);
+    setIsDrawerOpen(false);
+    setSelectedCaseId(null);
+  };
+
+  const handleLoginSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setActivePersona(loginPersona);
+    setIsLoggedOut(false);
+  };
+
+  const handleSelectLoginAccount = (persona: LawyerPersona) => {
+    setLoginPersona(persona);
+    if (persona === 'L1') setLoginEmail('robert.miller@blakes.com');
+    else if (persona === 'L2') setLoginEmail('mark.sterling@torys.com');
+    else setLoginEmail('clara.conner@osler.com');
+  };
 
   const handleViewChange = (view: NavView) => {
     setCurrentView(view);
@@ -751,6 +777,36 @@ export const LawyerPortalDashboard: React.FC = () => {
     );
   };
 
+  const handleUpdateWorkflowState = (caseId: string, workflowStateUpdate: Partial<LawyerActionsWorkflowState>) => {
+    setCases((prevCases) =>
+      prevCases.map((c) => {
+        if (c.id !== caseId) return c;
+        const updatedWorkflow: LawyerActionsWorkflowState = {
+          ...(c.workflowState || {}),
+          ...workflowStateUpdate,
+        };
+        const p1ConfDone = !!updatedWorkflow.clientConfirmationP1;
+        const p2ConfDone = !!updatedWorkflow.clientConfirmationP2;
+        const p1SignoffDone = updatedWorkflow.lawyerSignoffP1?.status === 'COMPLETE';
+        const p2SignoffDone = updatedWorkflow.lawyerSignoffP2?.status === 'COMPLETE';
+
+        let nextStatus = c.status;
+        if (p1SignoffDone && p2SignoffDone) {
+          nextStatus = 'CLOSED' as const;
+        } else if (p1ConfDone && p2ConfDone && c.status !== 'CLOSED' && c.status !== 'ARCHIVED') {
+          nextStatus = 'READY_FOR_SIGNING' as const;
+        }
+
+        return {
+          ...c,
+          status: nextStatus,
+          workflowState: updatedWorkflow,
+          lastActivity: new Date().toISOString().split('T')[0],
+        };
+      })
+    );
+  };
+
   const handleSaveNote = (caseId: string, notes: string) => {
     setCases((prevCases) =>
       prevCases.map((c) => {
@@ -796,6 +852,151 @@ export const LawyerPortalDashboard: React.FC = () => {
   };
   const isCaseOpen = isDrawerOpen && !!selectedCaseObj;
 
+  // Render Full Screen Login Interface when logged out
+  if (isLoggedOut) {
+    return (
+      <div className="min-h-screen bg-[#0d1527] text-slate-100 flex flex-col justify-between p-6 font-sans relative overflow-hidden">
+        {/* Background Accent Gradients */}
+        <div className="absolute top-[-150px] left-[-150px] w-[500px] h-[500px] rounded-full bg-emerald-500/10 blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-[-150px] right-[-150px] w-[500px] h-[500px] rounded-full bg-blue-600/10 blur-[120px] pointer-events-none" />
+
+        {/* Top Header */}
+        <div className="flex items-center justify-between max-w-6xl w-full mx-auto z-10 pt-2">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full border border-emerald-400 bg-[#0a101f] text-emerald-300 font-serif font-bold text-base flex items-center justify-center shadow-md">
+              LP
+            </div>
+            <div className="flex flex-col">
+              <h1 className="font-serif text-xl font-bold text-white tracking-wide leading-none">
+                LetsPrenup
+              </h1>
+              <span className="text-[9px] uppercase tracking-wider text-emerald-400 font-bold mt-1">
+                LAWYER PORTAL V1.1
+              </span>
+            </div>
+          </div>
+          <span className="text-xs font-mono text-slate-400 bg-slate-800/80 px-3 py-1 rounded-full border border-slate-700">
+            SECURE ATTORNEY AUTHENTICATION
+          </span>
+        </div>
+
+        {/* Main Login Card */}
+        <div className="my-auto py-12 flex items-center justify-center z-10">
+          <div className="bg-white text-slate-900 border border-slate-200 rounded-2xl p-8 max-w-[460px] w-full shadow-2xl flex flex-col gap-6">
+            <div className="flex flex-col text-center gap-1.5">
+              <h2 className="text-2xl font-bold font-sans text-slate-900 tracking-tight">
+                Lawyer Portal Sign-In
+              </h2>
+              <p className="text-xs text-slate-500 font-sans">
+                Select your verified attorney profile and sign in to view assigned matters.
+              </p>
+            </div>
+
+            <form onSubmit={handleLoginSubmit} className="flex flex-col gap-5">
+              {/* Account Selection Radio */}
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Select Attorney Profile:
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div
+                    onClick={() => handleSelectLoginAccount('L1')}
+                    className={`p-3 rounded-xl border cursor-pointer transition-all flex flex-col gap-1 ${
+                      loginPersona === 'L1'
+                        ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                        : 'bg-slate-50 text-slate-800 border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                        loginPersona === 'L1' ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-700'
+                      }`}>
+                        L1 Lawyer
+                      </span>
+                      {loginPersona === 'L1' && <span className="w-2 h-2 rounded-full bg-emerald-400"></span>}
+                    </div>
+                    <span className="text-xs font-bold font-sans mt-1">Robert Miller, Esq.</span>
+                    <span className={`text-[10px] truncate ${loginPersona === 'L1' ? 'text-slate-300' : 'text-slate-500'}`}>
+                      Blake Cassels LLP
+                    </span>
+                  </div>
+
+                  <div
+                    onClick={() => handleSelectLoginAccount('L2')}
+                    className={`p-3 rounded-xl border cursor-pointer transition-all flex flex-col gap-1 ${
+                      loginPersona === 'L2'
+                        ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                        : 'bg-slate-50 text-slate-800 border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                        loginPersona === 'L2' ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-700'
+                      }`}>
+                        L2 Lawyer
+                      </span>
+                      {loginPersona === 'L2' && <span className="w-2 h-2 rounded-full bg-emerald-400"></span>}
+                    </div>
+                    <span className="text-xs font-bold font-sans mt-1">Mark Sterling, Esq.</span>
+                    <span className={`text-[10px] truncate ${loginPersona === 'L2' ? 'text-slate-300' : 'text-slate-500'}`}>
+                      Torys LLP
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Email Input */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-slate-700">Corporate Email</label>
+                <input
+                  type="email"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-sans font-medium text-slate-900 outline-none focus:border-slate-500"
+                  required
+                />
+              </div>
+
+              {/* Password Input */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-slate-700">Password</label>
+                <div className="relative">
+                  <input
+                    type={passwordVisible ? "text" : "password"}
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-sans font-medium text-slate-900 outline-none focus:border-slate-500"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setPasswordVisible(!passwordVisible)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600 font-bold"
+                  >
+                    {passwordVisible ? "Hide" : "Show"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                className="w-full bg-[#0d1527] hover:bg-[#1e293b] text-white font-bold py-3 rounded-xl text-xs transition-all shadow-md mt-2 cursor-pointer text-center"
+              >
+                Sign In to Lawyer Portal
+              </button>
+            </form>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="text-center text-[11px] text-slate-500 font-mono z-10 pb-2">
+          LetsPrenup Attorney Platform © 2026. Confidential Law Practice Module.
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#f1f5f9] text-slate-800 flex font-sans">
       {/* Left Sidebar */}
@@ -806,6 +1007,7 @@ export const LawyerPortalDashboard: React.FC = () => {
         completedCount={completedCount}
         activePersona={activePersona}
         onOpenProfile={() => handleViewChange('profile')}
+        onLogout={handleLogout}
       />
 
       {/* Main Area */}
@@ -819,6 +1021,7 @@ export const LawyerPortalDashboard: React.FC = () => {
             activePersona={activePersona}
             onPersonaChange={handlePersonaChange}
             onOpenProfile={() => handleViewChange('profile')}
+            onLogout={handleLogout}
           />
         )}
 
@@ -841,6 +1044,7 @@ export const LawyerPortalDashboard: React.FC = () => {
               onSignAgreement={handleSignAgreement}
               onSaveNote={handleSaveNote}
               onUploadAppendix={handleUploadAppendix}
+              onUpdateWorkflowState={handleUpdateWorkflowState}
               isInline={true}
             />
           ) : (
@@ -877,7 +1081,11 @@ export const LawyerPortalDashboard: React.FC = () => {
               )}
 
               {currentView === 'profile' && (
-                <ProfileView activePersona={activePersona} />
+                <ProfileView
+                  activePersona={activePersona}
+                  onPersonaChange={handlePersonaChange}
+                  onLogout={handleLogout}
+                />
               )}
 
               {currentView === 'settings' && (
