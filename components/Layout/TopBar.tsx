@@ -7,7 +7,11 @@ import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
 import { logOutUser } from "@/store/asyncThunk/authThunk";
 
-const TopBar = () => {
+interface TopBarProps {
+  caseId?: string;
+}
+
+const TopBar = ({ caseId }: TopBarProps) => {
   const { user } = useSelector((state: RootState) => state.auth);
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
@@ -38,7 +42,7 @@ const TopBar = () => {
       <span className="text-sm font-semibold text-[#1E1B3C]">
         Case ID:{" "}
         <span className="font-mono font-normal text-[#5B5B75]">
-          {user?.inviteCaseId}
+          {caseId || user?.inviteCaseId}
         </span>
       </span>
       <button
