@@ -48,10 +48,7 @@ import {
 } from "@/types/case-manager";
 import AgreementTab from "../tabs/AgreementTab";
 import OverViewTab from "../tabs/OverViewTab";
-<<<<<<< HEAD
 import FormsDisclosuresTab from "../tabs/FormsDisclosuresTab";
-=======
->>>>>>> main
 
 interface CaseSlideDrawerProps {
   caseObj: CaseItem | null;
@@ -761,7 +758,6 @@ export const CaseSlideDrawer: React.FC<CaseSlideDrawerProps> = ({
   ];
 
   return (
-<<<<<<< HEAD
     <div className="fixed top-0 bottom-0 left-[240px] right-0 z-40 bg-slate-100 flex flex-col font-sans shadow-2xl overflow-hidden animate-in fade-in duration-200">
       <div className="w-full h-full bg-white flex flex-col min-w-0">
         {/* Drawer Header */}
@@ -774,13 +770,6 @@ export const CaseSlideDrawer: React.FC<CaseSlideDrawerProps> = ({
             >
               <span>← Back to Cases</span>
             </button>
-=======
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex justify-end font-sans">
-      <div className="w-full max-w-[960px] h-full bg-white border-l border-slate-300 flex flex-col shadow-2xl animate-in slide-in-from-right duration-250">
-        {/* Drawer Header */}
-        <div className="px-7 py-5 bg-slate-900 text-white flex items-center justify-between">
-          <div className="flex items-center gap-3 flex-wrap">
->>>>>>> main
             <span className="font-mono text-base font-bold text-slate-200">
               {caseObj.id}
             </span>
@@ -817,10 +806,7 @@ export const CaseSlideDrawer: React.FC<CaseSlideDrawerProps> = ({
             <button
               onClick={onClose}
               className="w-8 h-8 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 flex items-center justify-center transition-all cursor-pointer"
-<<<<<<< HEAD
               title="Close Case Details"
-=======
->>>>>>> main
             >
               <X className="w-5 h-5" />
             </button>
@@ -851,7 +837,6 @@ export const CaseSlideDrawer: React.FC<CaseSlideDrawerProps> = ({
             <OverViewTab caseObj={caseObj} />
           )}
 
-<<<<<<< HEAD
           {/* TAB 2: FORMS & QUESTIONNAIRES MODULE (Shahmir's exact UI design system) */}
           {activeTab === "forms" && (
             <FormsDisclosuresTab
@@ -862,10 +847,6 @@ export const CaseSlideDrawer: React.FC<CaseSlideDrawerProps> = ({
             />
           )}
           {false && (
-=======
-          {/* TAB 2: FORMS & QUESTIONNAIRES MODULE (100% COMPLETE QUESTIONS FROM ALL 9 HTML FILES) */}
-          {activeTab === "forms" && (
->>>>>>> main
             <div className="flex flex-col gap-6 font-sans">
               {/* Submission State Banner */}
               <div className="p-4 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 shadow-xs flex items-center justify-between">
@@ -1029,12 +1010,7 @@ export const CaseSlideDrawer: React.FC<CaseSlideDrawerProps> = ({
                     {/* Section 1: Personal Information */}
                     <div className="flex flex-col gap-3">
                       <h5 className="text-xs font-bold text-slate-800 uppercase tracking-wider border-b pb-1">
-<<<<<<< HEAD
                         1. Personal Information
-=======
-                        1. Personal Information &amp; Identity (From 1.personal
-                        info (1).html)
->>>>>>> main
                       </h5>
                       <div className="grid grid-cols-3 gap-3">
                         <div className="flex flex-col gap-1 text-xs">
@@ -1219,12 +1195,7 @@ export const CaseSlideDrawer: React.FC<CaseSlideDrawerProps> = ({
                     {/* Section 1a: Legal Declarations */}
                     <div className="flex flex-col gap-3 border-t pt-4">
                       <h5 className="text-xs font-bold text-slate-800 uppercase tracking-wider border-b pb-1">
-<<<<<<< HEAD
                         2. Legal Declarations &amp; Objectives
-=======
-                        1a. Legal Declarations &amp; Objectives (From 1a.Legal
-                        declaration.html)
->>>>>>> main
                       </h5>
                       <div className="flex flex-col gap-3">
                         <div className="flex flex-col gap-1 text-xs">
@@ -1359,12 +1330,7 @@ export const CaseSlideDrawer: React.FC<CaseSlideDrawerProps> = ({
                     {/* Section 3a: Individual Assets */}
                     <div className="flex flex-col gap-3 border-t pt-4">
                       <h5 className="text-xs font-bold text-slate-800 uppercase tracking-wider border-b pb-1">
-<<<<<<< HEAD
                         3. Individual Assets &amp; Property
-=======
-                        3a. Individual Assets &amp; Property (From
-                        3a_individual_assets (1).html)
->>>>>>> main
                       </h5>
                       <div className="grid grid-cols-2 gap-3 text-xs">
                         <div className="flex flex-col gap-1 p-3 bg-slate-50 border rounded-lg">
@@ -1553,11 +1519,7 @@ export const CaseSlideDrawer: React.FC<CaseSlideDrawerProps> = ({
                     <div className="grid grid-cols-2 gap-4 border-t pt-4">
                       <div className="flex flex-col gap-3">
                         <h5 className="text-xs font-bold text-slate-800 uppercase tracking-wider border-b pb-1">
-<<<<<<< HEAD
                           4. Income &amp; Revenue
-=======
-                          3b. Income &amp; Revenue (From 3b_income_revenue.html)
->>>>>>> main
                         </h5>
                         <div className="flex flex-col gap-2 text-xs">
                           <div>
@@ -1616,12 +1578,7 @@ export const CaseSlideDrawer: React.FC<CaseSlideDrawerProps> = ({
 
                       <div className="flex flex-col gap-3">
                         <h5 className="text-xs font-bold text-slate-800 uppercase tracking-wider border-b pb-1">
-<<<<<<< HEAD
                           5. Liabilities &amp; Debts
-=======
-                          3c. Liabilities &amp; Debts (From
-                          3c_liabilities_debts.html)
->>>>>>> main
                         </h5>
                         <div className="flex flex-col gap-2 text-xs">
                           <div>
