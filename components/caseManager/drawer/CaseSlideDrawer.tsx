@@ -922,7 +922,7 @@ export const CaseSlideDrawer: React.FC<CaseSlideDrawerProps> = ({
                   </div>
                   <div>
                     <h4 className="text-sm font-bold tracking-tight">
-                      {caseObj.p1} Questionnaire
+                      {caseObj?.p1} Questionnaire
                     </h4>
                     <p
                       className={`text-xs mt-1 ${formSubTab === "p1" ? "text-slate-300" : "text-slate-500"}`}
@@ -958,7 +958,7 @@ export const CaseSlideDrawer: React.FC<CaseSlideDrawerProps> = ({
                   </div>
                   <div>
                     <h4 className="text-sm font-bold tracking-tight">
-                      {caseObj.p2} Questionnaire
+                      {caseObj?.p2} Questionnaire
                     </h4>
                     <p
                       className={`text-xs mt-1 ${formSubTab === "p2" ? "text-slate-300" : "text-slate-500"}`}
@@ -1018,11 +1018,11 @@ export const CaseSlideDrawer: React.FC<CaseSlideDrawerProps> = ({
                     <div className="flex items-center justify-between border-b pb-3">
                       <h4 className="text-sm font-bold text-slate-900 uppercase tracking-tight flex items-center gap-2">
                         <User className="w-4 h-4 text-slate-700" />
-                        Partner 1 ({caseObj.p1}) Complete Questionnaire &bull;
+                        Partner 1 ({caseObj?.p1}) Complete Questionnaire &bull;
                         All Questions Included
                       </h4>
                       <span className="text-xs font-bold text-slate-500 font-mono">
-                        P1 Form Key: {caseObj.id}-P1
+                        P1 Form Key: {caseObj?.id}-P1
                       </span>
                     </div>
 
@@ -1687,11 +1687,11 @@ export const CaseSlideDrawer: React.FC<CaseSlideDrawerProps> = ({
                     <div className="flex items-center justify-between border-b pb-3">
                       <h4 className="text-sm font-bold text-slate-900 uppercase tracking-tight flex items-center gap-2">
                         <User className="w-4 h-4 text-slate-700" />
-                        Partner 2 ({caseObj.p2}) Complete Questionnaire &bull;
+                        Partner 2 ({caseObj?.p2}) Complete Questionnaire &bull;
                         All Questions Included
                       </h4>
                       <span className="text-xs font-bold text-slate-500 font-mono">
-                        P2 Form Key: {caseObj.id}-P2
+                        P2 Form Key: {caseObj?.id}-P2
                       </span>
                     </div>
 
@@ -2306,7 +2306,7 @@ export const CaseSlideDrawer: React.FC<CaseSlideDrawerProps> = ({
                         4b, 4c &amp; 4d Matrimony HTML Files)
                       </h4>
                       <span className="text-xs font-bold text-slate-500 font-mono">
-                        Joint Key: {caseObj.id}-JOINT
+                        Joint Key: {caseObj?.id}-JOINT
                       </span>
                     </div>
 
