@@ -281,7 +281,7 @@ export const RulesApiConsoleView: React.FC<RulesApiConsoleViewProps> = ({
             showRawJson ? (
               <div className="bg-[#0d1527] border border-slate-800 rounded-xl p-4 font-mono text-xs text-emerald-400 shadow-inner overflow-x-auto min-h-[160px]">
                 <div className="text-rose-400 font-bold mb-2">
-                  // [{latestLog.method}] {latestLog.endpoint} (Status 200 OK — {latestLog.timestamp})
+                  {`// [${latestLog.method}] ${latestLog.endpoint} (Status 200 OK — ${latestLog.timestamp})`}
                 </div>
                 <pre className="text-slate-300 text-[11px] leading-relaxed">
                   {JSON.stringify(latestLog.payload, null, 2)}
