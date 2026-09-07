@@ -904,7 +904,6 @@ export const CaseSlideDrawer: React.FC<CaseSlideDrawerProps> = ({
                   <div>
                     <h4 className="text-sm font-bold tracking-tight">
                       {caseObj?.p1} Questionnaire
-                      {caseObj.p1} Questionnaire
                     </h4>
                     <p
                       className={`text-xs mt-1 ${formSubTab === "p1" ? "text-slate-300" : "text-slate-500"}`}
@@ -941,7 +940,6 @@ export const CaseSlideDrawer: React.FC<CaseSlideDrawerProps> = ({
                   <div>
                     <h4 className="text-sm font-bold tracking-tight">
                       {caseObj?.p2} Questionnaire
-                      {caseObj.p2} Questionnaire
                     </h4>
                     <p
                       className={`text-xs mt-1 ${formSubTab === "p2" ? "text-slate-300" : "text-slate-500"}`}
@@ -1006,8 +1004,6 @@ export const CaseSlideDrawer: React.FC<CaseSlideDrawerProps> = ({
                       </h4>
                       <span className="text-xs font-bold text-slate-500 font-mono">
                         P1 Form Key: {caseObj?.id}-P1
-                        Partner 1 ({caseObj.p1}) Complete Questionnaire &bull;
-                        P1 Form Key: {caseObj.id}-P1
                       </span>
                     </div>
 
@@ -1653,8 +1649,6 @@ export const CaseSlideDrawer: React.FC<CaseSlideDrawerProps> = ({
                       </h4>
                       <span className="text-xs font-bold text-slate-500 font-mono">
                         P2 Form Key: {caseObj?.id}-P2
-                        Partner 2 ({caseObj.p2}) Complete Questionnaire &bull;
-                        P2 Form Key: {caseObj.id}-P2
                       </span>
                     </div>
 
@@ -2270,7 +2264,6 @@ export const CaseSlideDrawer: React.FC<CaseSlideDrawerProps> = ({
                       </h4>
                       <span className="text-xs font-bold text-slate-500 font-mono">
                         Joint Key: {caseObj?.id}-JOINT
-                        Joint Key: {caseObj.id}-JOINT
                       </span>
                     </div>
 

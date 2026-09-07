@@ -55,12 +55,7 @@ export default function LoginPageStatic() {
       console.log("Backend API offline, proceeding with local preview redirect.");
     }
 
-    // Redirect directly to Lawyer portal
     router.push("/lawyer");
-        router.push("/dashboard");
-      console.log("Error while Signing In", error.message);
-      if (error.message) {
-        toast.error(error.message || "Error while Signing In");
   };
 
   return (

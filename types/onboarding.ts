@@ -6,12 +6,4 @@ export interface AgreementOption {
   overviewTitle: string;
   overviewDescription: string;
   legalNote: string;
-export interface AgreementOption {
-  id: string;
-  title: string;
-  badge?: string;
-  subtitle: string;
-  overviewTitle: string;
-  overviewDescription: string;
-  legalNote: string;
 }

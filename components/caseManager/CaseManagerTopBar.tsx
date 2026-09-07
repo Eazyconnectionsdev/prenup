@@ -11,6 +11,7 @@ interface TopBarProps {
   onSearchChange: (query: string) => void;
   onOpenScorecard: () => void;
   onOpenAccountModal: () => void;
+  onViewChange?: (view: NavView) => void;
 }
 
 const VIEW_TITLES: Record<NavView, string> = {
