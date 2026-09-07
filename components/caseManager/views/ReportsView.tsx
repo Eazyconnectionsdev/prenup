@@ -188,7 +188,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ cases, onLogApiCall })
 
   // GENERATE REPORT DATA BASED ON SELECTED REPORT TYPE AND FILTERS
   const handleGenerateReport = () => {
-    const filteredCases = cases.filter((c) => {
+    let filteredCases = cases.filter((c) => {
       if (filters.status !== 'ALL' && c.backendState !== filters.status) return false;
       if (filters.priority !== 'ALL' && c.priority !== filters.priority) return false;
       if (filters.lawFirm !== 'ALL' && c.p1Firm !== filters.lawFirm && c.p2Firm !== filters.lawFirm) return false;

@@ -103,6 +103,8 @@ export const PartnerDetailsForm: React.FC<PartnerDetailsFormProps> = ({
             type="tel"
             value={partnerData.mobileNumber}
             onChange={(e) => onChange({ mobileNumber: e.target.value })}
+            value={partnerData.phone}
+            onChange={(e) => onChange({ phone: e.target.value })}
             placeholder="+44 7911 123456"
             className="w-full px-4 py-3 rounded-xl bg-[#fffff] border-2 border-[#E7E7F2] text-sm font-normal text-[#0F172A] placeholder-[#64748B] focus:outline-none shadow-sm transition-all"
           />
@@ -139,6 +141,8 @@ export const PartnerDetailsForm: React.FC<PartnerDetailsFormProps> = ({
             type="date"
             value={partnerData.targetWeddingDate}
             onChange={(e) => onChange({ targetWeddingDate: e.target.value })}
+            value={partnerData.targetDate}
+            onChange={(e) => onChange({ targetDate: e.target.value })}
             className="w-full px-4 py-3 rounded-xl bg-[#fffff] border-2 border-[#E7E7F2] text-sm font-normal text-[#0F172A] focus:outline-none shadow-sm transition-all"
           />
         </div>

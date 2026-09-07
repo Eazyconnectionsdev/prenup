@@ -11,7 +11,6 @@ const AUTHROUTES = [
   "/reset-password",
 ];
 
-
 const ROLE_REDIRECT_MAP: Record<string, string> = {
   admin: "/admin",
   case_manager: "/cm",

@@ -1,5 +1,3 @@
-
-
 // Personal information page types
 
 export interface personalInfoFormData {

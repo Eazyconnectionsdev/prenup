@@ -12,6 +12,7 @@ export const PartnerHeader = () => {
         </h1>
         <p className="text-xs md:text-sm font-semibold text-[#475569]">
           Connect your partner&apos;s account to unlock the shared matrimonial workspace.
+          Connect your partner's account to unlock the shared matrimonial workspace.
         </p>
       </div>
 
