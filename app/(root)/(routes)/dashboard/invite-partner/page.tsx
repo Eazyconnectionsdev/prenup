@@ -21,6 +21,8 @@ export default function InvitePartnerPage() {
     targetWeddingDate: "",
     mobileNumber: "",
     relationshipStatus: "Fiancé",
+    phone: "",
+    targetDate: "",
     personalMessage: "",
     status: "DRAFT",
     sentTimestamp: "",

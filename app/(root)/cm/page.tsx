@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import {
   NavView,
   CaseItem,
@@ -668,8 +669,15 @@ const MOCK_CASES: CaseItem[] = [
 ];
 
 
-export default function CaseManager() {
-  const [currentView, setCurrentView] = useState<NavView>("dashboard");
+function CaseManagerContent({ initialView = "dashboard" }: { initialView?: NavView }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const urlView = searchParams.get("view") as NavView | null;
+  const urlCaseId = searchParams.get("caseId");
+
+  const [currentView, setCurrentView] = useState<NavView>(initialView);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterState, setFilterState] = useState<FilterState>({
     status: "ALL",
@@ -763,9 +771,39 @@ export default function CaseManager() {
     setAuditLogs((prev) => [newLog, ...prev]);
   };
 
+  useEffect(() => {
+    if (pathname.includes("/dashboard")) {
+      setCurrentView("dashboard");
+    } else if (pathname.includes("/cases")) {
+      setCurrentView("cases");
+    } else if (pathname.includes("/archived")) {
+      setCurrentView("archived");
+    } else if (pathname.includes("/reports")) {
+      setCurrentView("reports");
+    } else if (urlView && ["dashboard", "cases", "archived", "reports"].includes(urlView)) {
+      setCurrentView(urlView);
+    }
+    if (urlCaseId) {
+      setSelectedCaseId(urlCaseId);
+      setIsDrawerOpen(true);
+    }
+  }, [pathname, urlView, urlCaseId]);
+
+  const handleViewChange = (newView: NavView) => {
+    setCurrentView(newView);
+    router.push(`/cm/${newView}`);
+  };
+
   const handleOpenDrawer = (caseId: string) => {
     setSelectedCaseId(caseId);
     setIsDrawerOpen(true);
+    router.push(`/cm/${currentView}?caseId=${caseId}`);
+  };
+
+  const handleCloseDrawer = () => {
+    setIsDrawerOpen(false);
+    setSelectedCaseId(null);
+    router.push(`/cm/${currentView}`);
   };
 
   const handleFilterChange = (key: keyof FilterState, val: string) => {
@@ -783,16 +821,13 @@ export default function CaseManager() {
   };
 
   const handleFilterByScorecardStatus = (statusFilter: string) => {
-
-    console.log("statusFilter", statusFilter)
-
     if (statusFilter === "ARCHIVED") {
-      setCurrentView("archived");
+      handleViewChange("archived");
     } else if (statusFilter === "ALL") {
-      setCurrentView("cases");
+      handleViewChange("cases");
       setFilterState((prev) => ({ ...prev, status: "ALL" }));
     } else {
-      setCurrentView("cases");
+      handleViewChange("cases");
       setFilterState((prev) => ({ ...prev, status: statusFilter }));
     }
   };
@@ -1097,7 +1132,7 @@ export default function CaseManager() {
     <div className="min-h-screen bg-[#f7f4ee] text-slate-800 flex font-sans">
       <CaseManagerSidebar
         currentView={currentView}
-        onViewChange={setCurrentView}
+        onViewChange={handleViewChange}
         casesCount={cases.filter((c) => c.backendState !== "ARCHIVED").length}
         archivedCount={
           cases.filter((c) => c.backendState === "ARCHIVED").length
@@ -1105,14 +1140,14 @@ export default function CaseManager() {
         onOpenAccountModal={() => setIsAccountModalOpen(true)}
       />
 
-
-      <div className="ml-[240px] flex-1 flex flex-col min-w-0">
+      <div className="pl-[240px] flex-1 flex flex-col min-w-0">
         <CaseManagerTopBar
           currentView={currentView}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onOpenScorecard={() => setIsScorecardOpen(true)}
           onOpenAccountModal={() => setIsAccountModalOpen(true)}
+          onViewChange={handleViewChange}
         />
 
         <main className="p-8 flex-1">
@@ -1158,7 +1193,7 @@ export default function CaseManager() {
       <CaseSlideDrawer
         caseObj={selectedCaseObj}
         isOpen={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
+        onClose={handleCloseDrawer}
         auditLogs={auditLogs}
         onApprove={handleApproveCase}
         onReturnToDraft={handleReturnToDraft}
@@ -1190,4 +1225,12 @@ export default function CaseManager() {
       <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
     </div>
   );
-};
+}
+
+export default function CaseManager({ initialView = "dashboard" }: { initialView?: NavView }) {
+  return (
+    <Suspense fallback={<div className="p-8 text-center bg-[#f7f4ee] min-h-screen">Loading Case Manager...</div>}>
+      <CaseManagerContent initialView={initialView} />
+    </Suspense>
+  );
+}

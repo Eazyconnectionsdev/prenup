@@ -132,6 +132,7 @@ export default function OnboardingPage () {
             <div className="space-y-2 mb-8">
               <h1 className="text-3xl md:text-4xl font-serif-legal font-semibold tracking-wide text-[#0F172A]">
                 Welcome to Lets Prenup
+                Welcome to Let's Prenup
               </h1>
               <p className="text-[#5A6578] text-sm md:text-base font-normal">
                 Select the agreement that best reflects your current circumstances.

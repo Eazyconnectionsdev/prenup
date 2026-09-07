@@ -55,7 +55,6 @@ export default function LoginPageStatic() {
       console.log("Backend API offline, proceeding with local preview redirect.");
     }
 
-    // Redirect directly to Lawyer portal
     router.push("/lawyer");
   };
 
