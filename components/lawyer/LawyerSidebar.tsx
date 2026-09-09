@@ -63,7 +63,7 @@ export const LawyerSidebar: React.FC<SidebarProps> = ({
   const lawyer = getPersonaDetails(activePersona);
 
   return (
-    <aside className="w-[250px] bg-[#0d1527] border-r border-[#1e293b] fixed top-0 bottom-0 left-0 z-50 flex flex-col justify-between p-5 text-slate-200">
+    <aside className="w-[220px] bg-[#0d1527] border-r border-[#1e293b] fixed top-0 bottom-0 left-0 z-50 flex flex-col justify-between p-5 text-slate-200">
       <div>
         {/* Logo & Header */}
         <div className="flex items-center gap-3 mb-8 pt-2">

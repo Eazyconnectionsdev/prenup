@@ -38,7 +38,7 @@ export interface PreQuestionnaire {
   lockedAt: string | null;
 }
 
-export interface CaseOwner {
+export interface userType {
   _id: string;
   email: string;
   firstName: string | null;
@@ -72,8 +72,6 @@ export interface CaseApproval {
   approvedBy: string | null;
 }
 
-// The actual submitted answers for a "…Information" section. Extend this
-// as more sub-sections (family, financials, etc.) get added on the backend.
 export interface InformationSection {
   personalInformation?: Record<string, unknown>;
   legalDeclaration?: Record<string, unknown>;
@@ -85,14 +83,12 @@ export interface JointInformationSection {
   [key: string]: unknown;
 }
 
-/* ---------- Full case payload (what getCasesDetails resolves to) ---------- */
-
 export interface CaseDetails {
   _id: string;
   title: string;
   inviteCredentials: unknown;
-  owner: CaseOwner;
-  invitedUser: unknown;
+  owner: userType;
+  invitedUser: userType;
   invitedEmail: string | null;
   inviteToken: string | null;
   inviteTokenExpires: string | null;
@@ -118,7 +114,8 @@ interface CasesState {
   isLoading: boolean;
   caseId: string | null;
   title: string;
-  owner: CaseOwner | null;
+  owner: userType | null;
+  invitedUser : userType | null;
   status: CaseStatus;
   preQuestionnaireUser1: PreQuestionnaire | Record<string, never>;
   preQuestionnaireUser2: PreQuestionnaire | Record<string, never>;
@@ -135,6 +132,7 @@ const initialState: CasesState = {
   caseId: null,
   title: "",
   owner: null,
+  invitedUser : null,
   status: {},
   preQuestionnaireUser1: {},
   preQuestionnaireUser2: {},
@@ -162,6 +160,7 @@ const CasesSlice = createSlice({
           state.caseId = payload._id;
           state.title = payload.title;
           state.owner = payload.owner;
+          state.invitedUser = payload.invitedUser;
           state.status = payload.status;
           state.preQuestionnaireUser1 = payload.preQuestionnaireUser1;
           state.preQuestionnaireUser2 = payload.preQuestionnaireUser2;

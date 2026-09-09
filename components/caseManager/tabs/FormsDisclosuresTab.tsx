@@ -340,7 +340,6 @@ export default function FormsDisclosuresTab({
     };
   }
 
-  // Partner 1 Form Data
   const [p1Data, setP1Data] = useState<any>({
     firstName: "Arthur",
     middleName: "",
@@ -467,7 +466,6 @@ export default function FormsDisclosuresTab({
     ],
   });
 
-  // Partner 2 Form Data
   const [p2Data, setP2Data] = useState<any>({
     firstName: "Sophia",
     middleName: "",
@@ -576,7 +574,6 @@ export default function FormsDisclosuresTab({
     debts: [],
   });
 
-  // Joint Form Data
   const [jointData, setJointData] = useState<any>({
     livingArrangement: "Joint",
     livingArrangementDetail: "140 King St W, Suite 2400, Toronto ON (50/50 Equity)",

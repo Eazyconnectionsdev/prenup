@@ -262,8 +262,7 @@ function Leaf({
 
 export default function AgreementSidebar() {
   const dispatch = useDispatch<AppDispatch>();
-  const { status, myInformation, partnerInformation, jointInformation } =
-    useSelector((state: RootState) => state.cases);
+  const { status, myInformation, partnerInformation, jointInformation } = useSelector((state: RootState) => state.cases);
   const user = useSelector((state: RootState) => state.auth.user);
 
   const [activeLeaf, setActiveLeaf] = useState("/");

@@ -1011,7 +1011,7 @@ export const LawyerPortalDashboard: React.FC = () => {
       />
 
       {/* Main Area */}
-      <div className="ml-[250px] flex-1 flex flex-col min-w-0">
+      <div className="ml-[220px] flex-1 flex flex-col min-w-0">
         {!isCaseOpen && (
           <LawyerTopBar
             currentView={currentView}
