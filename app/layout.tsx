@@ -13,9 +13,9 @@ const inter = Inter({
 });
 
 const instrumentSerif = Instrument_Serif({
-  subsets: ["latin"],
   weight: ["400"],
   style: ["normal", "italic"],
+  subsets: ["latin"],
   variable: "--font-instrument-serif",
   display: "swap",
 });
@@ -53,7 +53,7 @@ export default function RootLayout({
         "font-sans"
       )}
     >
-      <body  cz-shortcut-listen="true" className="min-h-full flex flex-col">
+      <body cz-shortcut-listen="true" className="min-h-full flex flex-col">
         <StoreProvider>
           <ToastContext />
           {children}

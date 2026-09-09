@@ -237,7 +237,7 @@ export default function FormsDisclosuresTab({
     };
   }
 
-  const sharedTreatmentOptions = [
+  const sharedTreatmentOptions: { value: Treatment; label: string }[] = [
     { value: "ShareEqually", label: "Share Equally (50/50)" },
     { value: "Contribution", label: "Split by Contribution" },
     { value: "Percentage", label: "Share by Percentage" },
