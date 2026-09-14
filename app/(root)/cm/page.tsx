@@ -13,7 +13,7 @@ import {
 } from "@/types/case-manager";
 import { CaseManagerSidebar } from "@/components/caseManager/CaseManagerSidebar";
 import { CaseManagerTopBar } from "@/components/caseManager/CaseManagerTopBar";
-import { DashboardLedgerView } from "@/components/caseManager/views/DashboardLedgerView";
+import DashboardLedgerView from "@/components/caseManager/views/DashboardLedgerView";
 import { CasesMasterView } from "@/components/caseManager/views/CasesMasterView";
 import { ArchivedVaultView } from "@/components/caseManager/views/ArchivedVaultView";
 import { ReportsView } from "@/components/caseManager/views/ReportsView";
@@ -1152,17 +1152,11 @@ function CaseManagerContent({ initialView = "dashboard" }: { initialView?: NavVi
 
         <main className="p-8 flex-1">
           {currentView === "dashboard" && (
-            <DashboardLedgerView
-              activeCases={activeCasesList}
-              allCases={cases}
-              onSelectCase={handleOpenDrawer}
-              onFilterByStatus={handleFilterByScorecardStatus}
-            />
+            <DashboardLedgerView />
           )}
 
           {currentView === "cases" && (
             <CasesMasterView
-              cases={filteredCases}
               filters={filterState}
               onFilterChange={handleFilterChange}
               onResetFilters={handleResetFilters}

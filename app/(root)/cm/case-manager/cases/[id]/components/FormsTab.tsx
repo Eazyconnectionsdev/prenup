@@ -1,410 +1,594 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import React, {
+  useEffect,
+  useState,
+} from "react";
+
+import {
+  User,
+  Users,
+  Home,
+  DollarSign,
+  CreditCard,
+  Edit3,
+  Unlock,
+  Lock,
+  Save,
+} from "lucide-react";
+
+import PersonalInformation from "./forms/PersonalInformation";
+import LegalDeclarations from "./forms/LegalDeclarations";
+import FamilyDependents from "./forms/FamilyDependents";
+import IndividualAssets from "./forms/IndividualAssets";
+import IncomeRevenue from "./forms/IncomeRevenue";
+import LiabilitiesDebts from "./forms/LiabilitiesDebts";
+import JointAssets from "./forms/JointAssets";
+import JointIncome from "./forms/JointIncome";
+import JointLiabilities from "./forms/JointLiabilities";
 
 interface Props {
   caseData: any;
+  isCmEditing: boolean;
+  setIsCmEditing: (
+    value: boolean
+  ) => void;
+  onSave: (payload: any) => void;
 }
 
-export default function FormsTab({ caseData }: Props) {
-  const [activeSection, setActiveSection] =
-    useState<string | null>("myInformation");
+export default function FormsViewTab({
+  caseData,
+  isCmEditing,
+  setIsCmEditing,
+  onSave,
+}: Props) {
+  const [activeParty, setActiveParty] =
+    useState<
+      "user1" | "user2" | "joint"
+    >("user1");
 
-  const toggleSection = (section: string) => {
-    setActiveSection((prev) =>
-      prev === section ? null : section
+  const [activeSection, setActiveSection] =
+    useState<
+      | "personal"
+      | "legal"
+      | "family"
+      | "assets"
+      | "income"
+      | "liabilities"
+    >("personal");
+
+  const [activeJointSection, setActiveJointSection] =
+    useState<
+      | "assets"
+      | "income"
+      | "liabilities"
+    >("assets");
+
+  const [user1, setUser1] =
+    useState<any>({});
+
+  const [user2, setUser2] =
+    useState<any>({});
+
+  const [joint, setJoint] =
+    useState<any>({});
+
+  useEffect(() => {
+    if (!caseData) return;
+
+    setUser1(
+      caseData.myInformation || {}
     );
+
+    setUser2(
+      caseData.partnerInformation ||
+      {}
+    );
+
+    setJoint(
+      caseData.jointInformation || {}
+    );
+  }, [caseData]);
+
+  const currentUser =
+    activeParty === "user1"
+      ? user1
+      : user2;
+
+  const setCurrentUser =
+    activeParty === "user1"
+      ? setUser1
+      : setUser2;
+
+  const updateSection = (
+    section: string,
+    field: string,
+    value: any
+  ) => {
+    setCurrentUser((prev: any) => ({
+      ...prev,
+      [section]: {
+        ...(prev?.[section] || {}),
+        [field]: value,
+      },
+    }));
+  };
+  
+  const updateJointSection = (
+  section: string,
+  field: string,
+  value: any
+) => {
+  setJoint((prev: any) => ({
+    ...prev,
+    [section]: {
+      ...(prev?.[section] || {}),
+      [field]: value,
+    },
+  }));
+};
+
+  const saveAll = () => {
+    onSave({
+      myInformation: user1,
+      partnerInformation: user2,
+      jointInformation: joint,
+    });
   };
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-7xl mx-auto p-6 space-y-6">
 
-      {/* Form Status Cards */}
+      {/* TOP BAR */}
 
-      <div className="grid md:grid-cols-3 gap-4">
+      <div className="border rounded-xl bg-amber-50 border-amber-300 p-4 flex justify-between items-center">
 
-        <ExpandableCard
-          title="My Information"
-          submitted={
-            caseData.status?.myInformation?.submitted
-          }
-          active={activeSection === "myInformation"}
-          onClick={() =>
-            toggleSection("myInformation")
-          }
-        />
-
-        <ExpandableCard
-          title="Joint Information"
-          submitted={
-            caseData.status?.jointInformation?.submitted
-          }
-          active={
-            activeSection === "jointInformation"
-          }
-          onClick={() =>
-            toggleSection("jointInformation")
-          }
-        />
-
-        <ExpandableCard
-          title="Independent Legal Advice"
-          submitted={
-            caseData.status
-              ?.independentLegalAdvice?.submitted
-          }
-          active={
-            activeSection ===
-            "independentLegalAdvice"
-          }
-          onClick={() =>
-            toggleSection(
-              "independentLegalAdvice"
-            )
-          }
-        />
-
-      </div>
-
-      {/* MY INFORMATION */}
-
-      {activeSection === "myInformation" && (
-        <MyInformationDetails
-          data={caseData.myInformation}
-        />
-      )}
-
-      {/* JOINT INFORMATION */}
-
-      {activeSection === "jointInformation" && (
-        <JointInformationDetails
-          data={caseData.jointInformation}
-        />
-      )}
-
-      {/* ILA */}
-
-      {activeSection ===
-        "independentLegalAdvice" && (
-        <ILADetails
-          data={caseData.independentLegalAdvice}
-        />
-      )}
-
-    </div>
-  );
-}
-
-/* ---------------- CARD ---------------- */
-
-function ExpandableCard({
-  title,
-  submitted,
-  active,
-  onClick,
-}: any) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={!submitted}
-      className={`border rounded-xl p-4 text-left transition w-full ${
-        submitted
-          ? "hover:border-slate-400 cursor-pointer"
-          : "opacity-60 cursor-not-allowed"
-      }`}
-    >
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="font-semibold">
-            {title}
-          </div>
-
-          <div
-            className={`text-sm mt-2 ${
-              submitted
-                ? "text-green-600"
-                : "text-red-600"
-            }`}
-          >
-            {submitted
-              ? "Submitted"
-              : "Pending"}
-          </div>
+        <div className="flex items-center gap-2">
+          <Lock size={16} />
+          <span>
+            Submitted Questionnaire
+          </span>
         </div>
 
-        {active ? (
-          <ChevronUp size={18} />
-        ) : (
-          <ChevronDown size={18} />
-        )}
+        <button
+          onClick={() =>
+            setIsCmEditing(
+              !isCmEditing
+            )
+          }
+          className="border rounded-lg px-4 py-2 flex items-center gap-2"
+        >
+          {isCmEditing ? (
+            <Unlock size={16} />
+          ) : (
+            <Edit3 size={16} />
+          )}
+
+          {isCmEditing
+            ? "CM Edit Active"
+            : "Enable CM Edit"}
+        </button>
+
       </div>
-    </button>
-  );
-}
 
-/* ---------------- MY INFO ---------------- */
+      {/* PARTY CARDS */}
 
-function MyInformationDetails({
-  data,
-}: any) {
-  const personal =
-    data?.personalInformation || {};
+      <div className="grid grid-cols-3 gap-4">
 
-  const declaration =
-    data?.legalDeclaration || {};
-
-  const assets =
-    data?.individualAssets || {};
-
-  const income =
-    data?.incomeAndRevenue || {};
-
-  const debts =
-    data?.liabilitiesAndDebts || {};
-
-  return (
-    <div className="space-y-5">
-
-      <Section title="Personal Information">
-        <Field
-          label="First Name"
-          value={personal.firstName}
-        />
-        <Field
-          label="Middle Name"
-          value={personal.middleName}
-        />
-        <Field
-          label="Last Name"
-          value={personal.lastName}
-        />
-        <Field
-          label="Date Of Birth"
-          value={personal.dateOfBirth}
-        />
-        <Field
-          label="Nationality"
-          value={personal.nationality}
-        />
-        <Field
-          label="Language Fluency"
-          value={personal.languageFluency}
-        />
-        <Field
-          label="Profession"
-          value={personal.currentProfession}
-        />
-        <Field
-          label="Domicile Status"
-          value={personal.domicileStatus}
-        />
-        <Field
-          label="City"
-          value={personal.city}
-        />
-        <Field
-          label="County"
-          value={personal.county}
-        />
-        <Field
-          label="Postcode"
-          value={personal.postcode}
-        />
-        <Field
-          label="Marriage Date"
-          value={personal.marriageDate}
-        />
-      </Section>
-
-      <Section title="Legal Declaration">
-        <Field
-          label="Agreement Objectives"
-          value={
-            declaration.agreementObjectives
+        <button
+          onClick={() =>
+            setActiveParty(
+              "user1"
+            )
           }
-        />
+          className={`border rounded-xl p-5 text-left ${activeParty === "user1"
+              ? "bg-slate-900 text-white"
+              : "bg-white"
+            }`}
+        >
+          <h3 className="font-bold">
+            User 1
+          </h3>
 
-        <Field
-          label="Future Living Situation"
-          value={
-            declaration.livingSituationFuture
+          <p className="text-sm">
+            Personal Forms
+          </p>
+        </button>
+
+        <button
+          onClick={() =>
+            setActiveParty(
+              "user2"
+            )
           }
-        />
+          className={`border rounded-xl p-5 text-left ${activeParty === "user2"
+              ? "bg-slate-900 text-white"
+              : "bg-white"
+            }`}
+        >
+          <h3 className="font-bold">
+            Partner
+          </h3>
 
-        <Field
-          label="Confirm Personal Effects"
-          value={
-            declaration.confirmPersonalEffects
-              ? "Yes"
-              : "No"
+          <p className="text-sm">
+            Personal Forms
+          </p>
+        </button>
+
+        <button
+          onClick={() =>
+            setActiveParty(
+              "joint"
+            )
           }
-        />
+          className={`border rounded-xl p-5 text-left ${activeParty === "joint"
+              ? "bg-slate-900 text-white"
+              : "bg-white"
+            }`}
+        >
+          <h3 className="font-bold">
+            Joint
+          </h3>
 
-        <Field
-          label="Confirm Accuracy"
-          value={
-            declaration.confirmAccuracy
-              ? "Yes"
-              : "No"
-          }
-        />
-      </Section>
+          <p className="text-sm">
+            Shared Forms
+          </p>
+        </button>
 
-      <Section title="Assets">
-        <Field
-          label="Real Estate"
-          value={assets.hasRealEstate}
-        />
+      </div>
 
-        <Field
-          label="Savings"
-          value={assets.hasSavings}
-        />
+      {/* USER NAV */}
 
-        <Field
-          label="Pensions"
-          value={assets.hasPensions}
-        />
+      {activeParty !==
+        "joint" && (
+          <div className="flex flex-wrap gap-2">
 
-        <Field
-          label="Businesses"
-          value={assets.hasBusinesses}
-        />
-
-        <Field
-          label="IP Assets"
-          value={assets.hasIP}
-        />
-
-        <Field
-          label="Chattels"
-          value={assets.hasChattels}
-        />
-      </Section>
-
-      <Section title="Income & Revenue">
-        <Field
-          label="Gross Annual Income"
-          value={income.grossAnnualIncome}
-        />
-
-        <Field
-          label="Primary Bonus"
-          value={income.hasPrimaryBonus}
-        />
-
-        <Field
-          label="Alternative Income"
-          value={income.hasAlternativeIncome}
-        />
-      </Section>
-
-      <Section title="Liabilities & Debts">
-        <Field
-          label="Has Debts"
-          value={debts.hasDebts}
-        />
-
-        <Field
-          label="Has Maintenance"
-          value={debts.hasMaintenance}
-        />
-      </Section>
-
-    </div>
-  );
-}
-
-/* ---------------- JOINT INFO ---------------- */
-
-function JointInformationDetails({
-  data,
-}: any) {
-  return (
-    <div className="border rounded-xl p-5">
-      <h3 className="font-semibold mb-4">
-        Joint Information
-      </h3>
-
-      <pre className="bg-slate-50 p-4 rounded-lg overflow-auto text-xs">
-        {JSON.stringify(data, null, 2)}
-      </pre>
-    </div>
-  );
-}
-
-/* ---------------- ILA ---------------- */
-
-function ILADetails({
-  data,
-}: any) {
-  const questionnaire =
-    data?.lawyerQuestionnaire || {};
-
-  return (
-    <div className="border rounded-xl p-5">
-
-      <h3 className="font-semibold mb-4">
-        Independent Legal Advice
-      </h3>
-
-      <div className="grid md:grid-cols-2 gap-4">
-
-        {Object.entries(questionnaire).map(
-          ([key, value]) => (
-            <Field
-              key={key}
-              label={key}
-              value={
-                typeof value === "boolean"
-                  ? value
-                    ? "Yes"
-                    : "No"
-                  : value
+            <button
+              onClick={() =>
+                setActiveSection(
+                  "personal"
+                )
               }
-            />
-          )
+              className="border rounded-lg px-4 py-2 flex items-center gap-2"
+            >
+              <User size={14} />
+              Personal
+            </button>
+
+            <button
+              onClick={() =>
+                setActiveSection(
+                  "legal"
+                )
+              }
+              className="border rounded-lg px-4 py-2"
+            >
+              Legal
+            </button>
+
+            <button
+              onClick={() =>
+                setActiveSection(
+                  "family"
+                )
+              }
+              className="border rounded-lg px-4 py-2 flex items-center gap-2"
+            >
+              <Users size={14} />
+              Family
+            </button>
+
+            <button
+              onClick={() =>
+                setActiveSection(
+                  "assets"
+                )
+              }
+              className="border rounded-lg px-4 py-2 flex items-center gap-2"
+            >
+              <Home size={14} />
+              Assets
+            </button>
+
+            <button
+              onClick={() =>
+                setActiveSection(
+                  "income"
+                )
+              }
+              className="border rounded-lg px-4 py-2 flex items-center gap-2"
+            >
+              <DollarSign size={14} />
+              Income
+            </button>
+
+            <button
+              onClick={() =>
+                setActiveSection(
+                  "liabilities"
+                )
+              }
+              className="border rounded-lg px-4 py-2 flex items-center gap-2"
+            >
+              <CreditCard size={14} />
+              Liabilities
+            </button>
+
+          </div>
         )}
 
+      {/* JOINT NAV */}
+
+      {activeParty ===
+        "joint" && (
+          <div className="flex gap-2">
+
+            <button
+              onClick={() =>
+                setActiveJointSection(
+                  "assets"
+                )
+              }
+              className="border rounded-lg px-4 py-2"
+            >
+              Joint Assets
+            </button>
+
+            <button
+              onClick={() =>
+                setActiveJointSection(
+                  "income"
+                )
+              }
+              className="border rounded-lg px-4 py-2"
+            >
+              Joint Income
+            </button>
+
+            <button
+              onClick={() =>
+                setActiveJointSection(
+                  "liabilities"
+                )
+              }
+              className="border rounded-lg px-4 py-2"
+            >
+              Joint Liabilities
+            </button>
+
+          </div>
+        )}
+
+      {/* CONTENT */}
+
+      <div className="border rounded-xl p-6 bg-white">
+
+        {activeParty !==
+          "joint" && (
+            <>
+              {activeSection ===
+                "personal" && (
+                  <PersonalInformation
+                    data={
+                      currentUser.personalInformation
+                    }
+                    isEditing={
+                      isCmEditing
+                    }
+                    onChange={(
+                      field,
+                      value
+                    ) =>
+                      updateSection(
+                        "personalInformation",
+                        field,
+                        value
+                      )
+                    }
+                  />
+                )}
+
+              {activeSection ===
+                "legal" && (
+                  <LegalDeclarations
+                    data={
+                      currentUser.legalDeclaration
+                    }
+                    isEditing={
+                      isCmEditing
+                    }
+                    onChange={(
+                      field,
+                      value
+                    ) =>
+                      updateSection(
+                        "legalDeclaration",
+                        field,
+                        value
+                      )
+                    }
+                  />
+                )}
+
+              {activeSection ===
+                "family" && (
+                  <FamilyDependents
+                    data={
+                      currentUser.familyAndDependents
+                    }
+                    isEditing={
+                      isCmEditing
+                    }
+                    onChange={(
+                      field,
+                      value
+                    ) =>
+                      updateSection(
+                        "familyAndDependents",
+                        field,
+                        value
+                      )
+                    }
+                  />
+                )}
+
+              {activeSection ===
+                "assets" && (
+                  <IndividualAssets
+                    data={
+                      currentUser.individualAssets
+                    }
+                    isEditing={
+                      isCmEditing
+                    }
+                    onChange={(
+                      field,
+                      value
+                    ) =>
+                      updateSection(
+                        "individualAssets",
+                        field,
+                        value
+                      )
+                    }
+                  />
+                )}
+
+              {activeSection ===
+                "income" && (
+                  <IncomeRevenue
+                    data={
+                      currentUser.incomeAndRevenue
+                    }
+                    isEditing={
+                      isCmEditing
+                    }
+                    onChange={(
+                      field,
+                      value
+                    ) =>
+                      updateSection(
+                        "incomeAndRevenue",
+                        field,
+                        value
+                      )
+                    }
+                  />
+                )}
+
+              {activeSection ===
+                "liabilities" && (
+                  <LiabilitiesDebts
+                    data={
+                      currentUser.liabilitiesAndDebts
+                    }
+                    isEditing={
+                      isCmEditing
+                    }
+                    onChange={(
+                      field,
+                      value
+                    ) =>
+                      updateSection(
+                        "liabilitiesAndDebts",
+                        field,
+                        value
+                      )
+                    }
+                  />
+                )}
+            </>
+          )}
+
+        {activeParty ===
+          "joint" && (
+            <>
+              {activeJointSection ===
+                "assets" && (
+                  <JointAssets
+                    data={
+                      joint.jointAssets
+                    }
+                    isEditing={
+                      isCmEditing
+                    }
+                    onChange={(
+                      field,
+                      value
+                    ) =>
+                      updateJointSection(
+                        "jointAssets",
+                        field,
+                        value
+                      )
+                    }
+                  />
+                )}
+
+              {activeJointSection ===
+                "income" && (
+                  <JointIncome
+                    data={
+                      joint.jointIncomeAndRevenue
+                    }
+                    isEditing={
+                      isCmEditing
+                    }
+                    onChange={(
+                      field,
+                      value
+                    ) =>
+                      updateJointSection(
+                        "jointIncomeAndRevenue",
+                        field,
+                        value
+                      )
+                    }
+                  />
+                )}
+
+              {activeJointSection ===
+                "liabilities" && (
+                  <JointLiabilities
+                    data={
+                      joint.jointLiabilitiesAndDebts
+                    }
+                    isEditing={
+                      isCmEditing
+                    }
+                    onChange={(
+                      field,
+                      value
+                    ) =>
+                      updateJointSection(
+                        "jointLiabilitiesAndDebts",
+                        field,
+                        value
+                      )
+                    }
+                  />
+                )}
+            </>
+          )}
+
       </div>
 
-    </div>
-  );
-}
+      {/* SAVE */}
 
-/* ---------------- SHARED ---------------- */
+      {isCmEditing && (
+        <div className="flex justify-end">
 
-function Section({
-  title,
-  children,
-}: any) {
-  return (
-    <div className="border rounded-xl p-5">
-      <h3 className="font-semibold mb-4">
-        {title}
-      </h3>
+          <button
+            onClick={saveAll}
+            className="bg-indigo-600 text-white px-6 py-3 rounded-xl flex items-center gap-2"
+          >
+            <Save size={16} />
+            Save Changes
+          </button>
 
-      <div className="grid md:grid-cols-2 gap-4">
-        {children}
-      </div>
-    </div>
-  );
-}
+        </div>
+      )}
 
-function Field({
-  label,
-  value,
-}: any) {
-  return (
-    <div>
-      <div className="text-xs text-slate-500">
-        {label}
-      </div>
-
-      <div className="font-medium">
-        {value || "-"}
-      </div>
     </div>
   );
 }
