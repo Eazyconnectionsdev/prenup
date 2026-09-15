@@ -29,6 +29,6 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
-  ],
+, "app/(root)/cm/case-manager/cases/[id]/components/CMActionsTabsx"  ],
   "exclude": ["node_modules"]
 }

@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import OverviewTab from "./components/OverviewTab";
 import FormsTab from "./components/FormsTab";
 import AgreementTab from "./components/AgreementTab";
-import LawyersTab from "./components/LawyersTab";
+import CMActionsTab from "./components/CMActionsTabs";
 import TimelineTab from "./components/TimelineTab";
 import EmailsTab from "./components/EmailsTab";
 import AuditTab from "./components/AuditTab";
@@ -78,7 +78,7 @@ export default function CaseDetailPage() {
     },
     {
       id: "lawyers",
-      label: "4. Lawyers Assignment",
+      label: "4. CM Actions",
     },
     {
       id: "timeline",
@@ -171,7 +171,7 @@ export default function CaseDetailPage() {
           )}
 
           {activeTab === "lawyers" && (
-            <LawyersTab caseData={caseData} />
+            <CMActionsTab caseData={caseData} />
           )}
 
           {activeTab === "timeline" && (
