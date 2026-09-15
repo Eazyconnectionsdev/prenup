@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import React, { useState, useEffect } from "react";
 import {
@@ -35,15 +35,25 @@ interface SharedDebtRow extends TreatmentFields {
   outstandingBalance: string;
 }
 
+type AgreementStatus = "draft" | "submitted" | "approved" | "disapproved";
+
 function makeSharedDebtRow(): SharedDebtRow {
-  return { id: makeId("sdebt"), lenderName: "", liabilityType: "", outstandingBalance: "", ...emptyTreatment };
+  return {
+    id: makeId("sdebt"),
+    lenderName: "",
+    liabilityType: "",
+    outstandingBalance: "",
+    ...emptyTreatment,
+  };
 }
 
 interface SharedLiabilitiesFormProps {
   onContinue?: () => void;
 }
 
-export default function SharedLiabilitiesForm({ onContinue }: SharedLiabilitiesFormProps = {}) {
+export default function SharedLiabilitiesForm({
+  onContinue,
+}: SharedLiabilitiesFormProps = {}) {
   const user = useSelector((state: RootState) => state.auth.user);
   const caseId = useSelector((state: RootState) => state.auth.caseId);
   const isOwner = user?.endUserType === "user1";
@@ -54,10 +64,17 @@ export default function SharedLiabilitiesForm({ onContinue }: SharedLiabilitiesF
   const [isLoading, setIsLoading] = useState(true);
 
   const [isApproving, setIsApproving] = useState(false);
-  const [approved, setApproved] = useState(false);
-  const [approveError, setApproveError] = useState("");
+  const [status, setStatus] = useState<AgreementStatus>("draft");
+  const [isDisapproving, setIsDisapproving] = useState(false);
 
-  const handleToggle = makeToggleHandler(setHasSharedDebts, setSharedDebts, makeSharedDebtRow);
+  const isUser1 = "draft"
+  const isUser2 = "draft"
+
+  const handleToggle = makeToggleHandler(
+    setHasSharedDebts,
+    setSharedDebts,
+    makeSharedDebtRow,
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,7 +87,7 @@ export default function SharedLiabilitiesForm({ onContinue }: SharedLiabilitiesF
     try {
       const { data } = await Axios.post(
         `/cases/${caseId}/questionnaire/joint-liabilities-and-debts`,
-        payload
+        payload,
       );
 
       setSubmitted(true);
@@ -82,15 +99,24 @@ export default function SharedLiabilitiesForm({ onContinue }: SharedLiabilitiesF
 
   const handleApprove = async () => {
     setIsApproving(true);
-    setApproveError("");
     try {
-      await Axios.post(`/agreement/${caseId}/document/generate`); 
-      setApproved(true);
+      await Axios.post(`/agreement/${caseId}/document/generate`);
     } catch (error) {
       console.error("Error approving agreement:", error);
-      setApproveError("Something went wrong while approving. Please try again.");
     } finally {
       setIsApproving(false);
+    }
+  };
+
+  const handleDisapprove = async () => {
+    setIsDisapproving(true);
+    try {
+      // await api.disapproveAgreement(agreementId);
+      setStatus("disapproved");
+      // no other logic runs on the frontend — backend sends
+      // the "disapproved" email to user1 when this call succeeds
+    } finally {
+      setIsDisapproving(false);
     }
   };
 
@@ -106,7 +132,9 @@ export default function SharedLiabilitiesForm({ onContinue }: SharedLiabilitiesF
 
         setHasSharedDebts(jointLiabilities.hasSharedDebts ?? "No");
         setSharedDebts(
-          Array.isArray(jointLiabilities.sharedDebts) ? jointLiabilities.sharedDebts : []
+          Array.isArray(jointLiabilities.sharedDebts)
+            ? jointLiabilities.sharedDebts
+            : [],
         );
       } catch (error) {
         console.error("Error fetching shared liabilities:", error);
@@ -125,7 +153,9 @@ export default function SharedLiabilitiesForm({ onContinue }: SharedLiabilitiesF
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-100">
-        <p className="text-sm font-medium text-slate-500">Loading your information...</p>
+        <p className="text-sm font-medium text-slate-500">
+          Loading your information...
+        </p>
       </div>
     );
   }
@@ -137,10 +167,15 @@ export default function SharedLiabilitiesForm({ onContinue }: SharedLiabilitiesF
       </PartHeader>
       <div className="mb-4">
         <label className="mb-2 block text-[0.95rem] font-semibold text-slate-800">
-          Do you and your partner jointly hold any liabilities, including mortgages, loans, credit cards,
-          finance agreements or other financial obligations?
+          Do you and your partner jointly hold any liabilities, including
+          mortgages, loans, credit cards, finance agreements or other financial
+          obligations?
         </label>
-        <YesNoToggle name="has_shared_debts" value={hasSharedDebts} onChange={handleToggle} />
+        <YesNoToggle
+          name="has_shared_debts"
+          value={hasSharedDebts}
+          onChange={handleToggle}
+        />
       </div>
 
       {hasSharedDebts === "Yes" && (
@@ -150,19 +185,30 @@ export default function SharedLiabilitiesForm({ onContinue }: SharedLiabilitiesF
           addLabel="Add Shared Liability"
         >
           {sharedDebts.map((row) => (
-            <RowItem key={row.id} onDelete={() => removeRow(setSharedDebts, row.id)}>
+            <RowItem
+              key={row.id}
+              onDelete={() => removeRow(setSharedDebts, row.id)}
+            >
               <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-[1.5fr_1fr_1fr]">
                 <input
                   type="text"
                   placeholder="Lender / Creditor Name"
                   value={row.lenderName}
-                  onChange={(e) => updateRow(setSharedDebts, row.id, { lenderName: e.target.value })}
+                  onChange={(e) =>
+                    updateRow(setSharedDebts, row.id, {
+                      lenderName: e.target.value,
+                    })
+                  }
                   required
                   className={inputClasses}
                 />
                 <select
                   value={row.liabilityType}
-                  onChange={(e) => updateRow(setSharedDebts, row.id, { liabilityType: e.target.value })}
+                  onChange={(e) =>
+                    updateRow(setSharedDebts, row.id, {
+                      liabilityType: e.target.value,
+                    })
+                  }
                   required
                   className={inputClasses}
                 >
@@ -182,7 +228,11 @@ export default function SharedLiabilitiesForm({ onContinue }: SharedLiabilitiesF
                   min={1}
                   placeholder="Outstanding Balance (£)"
                   value={row.outstandingBalance}
-                  onChange={(e) => updateRow(setSharedDebts, row.id, { outstandingBalance: e.target.value })}
+                  onChange={(e) =>
+                    updateRow(setSharedDebts, row.id, {
+                      outstandingBalance: e.target.value,
+                    })
+                  }
                   required
                   className={inputClasses}
                 />
@@ -232,8 +282,7 @@ export default function SharedLiabilitiesForm({ onContinue }: SharedLiabilitiesF
               <fieldset disabled className="border-0 p-0 m-0">
                 {formBody}
               </fieldset>
-
-              <div className="mt-8 flex flex-col items-end gap-3">
+              {/* <div className="mt-8 flex flex-col items-end gap-3">
                 {approveError && (
                   <p className="text-sm font-medium text-red-500">{approveError}</p>
                 )}
@@ -249,11 +298,68 @@ export default function SharedLiabilitiesForm({ onContinue }: SharedLiabilitiesF
                 >
                   {approved ? "Approved ✓" : isApproving ? "Approving..." : "Approve Agreement"}
                 </button>
-              </div>
+                <button
+                  type="button"
+                  disabled={isApproving || approved}
+                  onClick={handleApprove}
+                  className={`rounded-[10px] px-10 py-3.5 font-semibold text-white shadow-[0_4px_12px_rgba(79,70,229,0.2)] transition ${
+                    approved
+                      ? "cursor-not-allowed bg-emerald-600"
+                      : "bg-indigo-600 hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-70"
+                  }`}
+                >
+                  {approved ? "Approved ✓" : isApproving ? "Approving..." : "Approve Agreement"}
+                </button>
+              </div> */}
+              <div className="flex gap-4">
+                {isUser1 &&
+                  (status === "draft" || status === "disapproved") && (
+                    <button
+                      type="button"
+                      onClick={handleSubmit}
+                      className="rounded-[10px] bg-indigo-600 px-10 py-3.5 font-semibold text-white shadow-[0_4px_12px_rgba(79,70,229,0.2)] transition hover:bg-indigo-700"
+                    >
+                      {status === "disapproved"
+                        ? "Resubmit Agreement"
+                        : "Submit Agreement"}
+                    </button>
+                  )}
+
+                {isUser2 && status === "submitted" && (
+                  <>
+                    <button
+                      type="button"
+                      disabled={isApproving || isDisapproving}
+                      onClick={handleApprove}
+                      className="rounded-[10px] bg-indigo-600 px-10 py-3.5 font-semibold text-white shadow-[0_4px_12px_rgba(79,70,229,0.2)] transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-70"
+                    >
+                      {isApproving ? "Approving..." : "Approve"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isApproving || isDisapproving}
+                      onClick={handleDisapprove}
+                      className="rounded-[10px] bg-red-600 px-10 py-3.5 font-semibold text-white shadow-[0_4px_12px_rgba(220,38,38,0.2)] transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-70"
+                    >
+                      {isDisapproving ? "Disapproving..." : "Disapprove"}
+                    </button>
+                  </>
+                )}
+
+                {status === "approved" && (
+                  <span className="rounded-[10px] bg-emerald-600 px-10 py-3.5 font-semibold text-white">
+                    Approved ✓
+                  </span>
+                )}
+              </div>{" "}
             </div>
           )}
 
-          {submitted && <p className="mt-4 text-right text-sm text-emerald-600">Saved. Ready for the next module.</p>}
+          {submitted && (
+            <p className="mt-4 text-right text-sm text-emerald-600">
+              Saved. Ready for the next module.
+            </p>
+          )}
         </div>
       </div>
     </div>
