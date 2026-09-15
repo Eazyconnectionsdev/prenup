@@ -1,76 +1,193 @@
 "use client";
 
-import { User, Mail, Phone, ShieldCheck } from "lucide-react";
-
 interface Props {
   caseData: any;
 }
 
-export default function OverviewTab({ caseData }: Props) {
+export default function OverviewTab({
+  caseData,
+}: Props) {
+  const p1 = caseData?.owner
+    ? `${caseData.owner.firstName || ""} ${caseData.owner.lastName || ""}`.trim()
+    : "Unknown";
+
+  const p2 = caseData?.invitedUser
+    ? `${caseData.invitedUser.firstName || ""} ${caseData.invitedUser.lastName || ""}`.trim()
+    : "Not Invited";
+
+  const assignedCm = caseData?.assignedCaseManager
+    ? `${caseData.assignedCaseManager.firstName || ""} ${caseData.assignedCaseManager.lastName || ""}`.trim()
+    : "Unassigned";
+
   return (
-    <div className="space-y-6">
-      <div className="grid md:grid-cols-4 gap-4">
-        <Card title="Case ID" value={caseData._id} />
-        <Card title="Status" value={caseData.workflowStatus} />
-        <Card
-          title="Case Locked"
-          value={caseData.fullyLocked ? "Yes" : "No"}
-        />
-        <Card
-          title="Case Manager"
-          value={caseData.assignedCaseManager || "Unassigned"}
-        />
+    <div className="flex flex-col gap-6">
+
+      {/* Top Summary Cards */}
+
+      <div className="grid grid-cols-3 gap-4">
+        <div className="p-4 rounded-xl bg-white border border-slate-300 flex flex-col gap-1 shadow-xs">
+          <span className="text-[10px] uppercase font-bold text-slate-400">
+            CASE ID & SERVICE
+          </span>
+
+          <span className="font-mono text-xs font-bold text-slate-900">
+            {caseData._id}
+          </span>
+
+          <span className="text-xs text-slate-600 font-semibold">
+            Prenuptial Agreement
+          </span>
+        </div>
+
+        <div className="p-4 rounded-xl bg-white border border-slate-300 flex flex-col gap-1 shadow-xs">
+          <span className="text-[10px] uppercase font-bold text-slate-400">
+            STATUS & OWNER ROLE
+          </span>
+
+          <span className="text-xs font-bold text-slate-900">
+            {caseData.workflowStatus}
+          </span>
+
+          <span className="text-xs text-slate-600 font-semibold">
+            Owner: {caseData.owner?.role}
+          </span>
+
+          <span className="text-xs text-slate-600 font-semibold">
+            Case Manager: {assignedCm}
+          </span>
+        </div>
+
+        <div className="p-4 rounded-xl bg-white border border-slate-300 flex flex-col gap-1 shadow-xs">
+          <span className="text-[10px] uppercase font-bold text-slate-400">
+            HEALTH & PRIORITY
+          </span>
+
+          <span className="text-xs font-bold text-emerald-700">
+            HEALTH: GOOD
+          </span>
+
+          <span className="text-xs font-bold text-rose-700">
+            PRIORITY: {caseData.priority}
+          </span>
+        </div>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-4">
-        <InfoPanel
-          title="Owner Information"
-          icon={<User className="w-4 h-4" />}
-        >
-          <p>
-            {caseData.owner?.firstName}{" "}
-            {caseData.owner?.lastName}
-          </p>
+      {/* Party Information */}
 
-          <p className="flex items-center gap-2">
-            <Mail size={14} />
+      <div className="grid grid-cols-2 gap-4">
+        <div className="p-4 rounded-xl bg-white border border-slate-300 flex flex-col gap-2 text-xs shadow-xs">
+          <div className="font-bold uppercase text-[10px] text-slate-500 border-b pb-1">
+            Party 1 Details
+          </div>
+
+          <div>
+            <strong>Name:</strong> {p1}
+          </div>
+
+          <div>
+            <strong>Email:</strong>{" "}
             {caseData.owner?.email}
-          </p>
+          </div>
 
-          <p className="flex items-center gap-2">
-            <Phone size={14} />
-            {caseData.owner?.phone}
-          </p>
-        </InfoPanel>
+          <div>
+            <strong>Phone:</strong>{" "}
+            {caseData.owner?.phone || "-"}
+          </div>
 
-        <InfoPanel
-          title="Submission Status"
-          icon={<ShieldCheck className="w-4 h-4" />}
-        >
-          <StatusRow
-            title="My Information"
-            value={caseData.status?.myInformation?.submitted}
+          <div>
+            <strong>Account Role:</strong>{" "}
+            {caseData.owner?.role}
+          </div>
+
+          <div>
+            <strong>Email Verified:</strong>{" "}
+            {caseData.owner?.emailVerified
+              ? "Yes"
+              : "No"}
+          </div>
+        </div>
+
+        <div className="p-4 rounded-xl bg-white border border-slate-300 flex flex-col gap-2 text-xs shadow-xs">
+          <div className="font-bold uppercase text-[10px] text-slate-500 border-b pb-1">
+            Party 2 Details
+          </div>
+
+          <div>
+            <strong>Name:</strong> {p2}
+          </div>
+
+          <div>
+            <strong>Email:</strong>{" "}
+            {caseData.invitedUser?.email ||
+              caseData.invitedEmail ||
+              "-"}
+          </div>
+
+          <div>
+            <strong>Phone:</strong>{" "}
+            {caseData.invitedUser?.phone || "-"}
+          </div>
+
+          <div>
+            <strong>Account Role:</strong>{" "}
+            {caseData.invitedUser?.role ||
+              "-"}
+          </div>
+
+          <div>
+            <strong>Partner Invited:</strong>{" "}
+            {caseData.partnerInvited
+              ? "Yes"
+              : "No"}
+          </div>
+        </div>
+      </div>
+
+      {/* Case Workflow */}
+
+      <div className="bg-white border border-slate-300 rounded-xl p-5">
+        <h4 className="font-bold text-xs uppercase mb-4">
+          Workflow Progress
+        </h4>
+
+        <div className="grid grid-cols-3 gap-4 text-xs">
+
+          <StatusItem
+            title="Payment Completed"
+            value={caseData.paymentCompleted}
           />
 
-          <StatusRow
-            title="Joint Information"
-            value={caseData.status?.jointInformation?.submitted}
+          <StatusItem
+            title="CM Approved"
+            value={caseData.cmApproved}
           />
 
-          <StatusRow
-            title="Independent Legal Advice"
-            value={
-              caseData.status?.independentLegalAdvice
-                ?.submitted
-            }
+          <StatusItem
+            title="Partner Invited"
+            value={caseData.partnerInvited}
           />
-        </InfoPanel>
+
+          <StatusItem
+            title="P1 Confirmed"
+            value={caseData.p1Confirmed}
+          />
+
+          <StatusItem
+            title="P2 Confirmed"
+            value={caseData.p2Confirmed}
+          />
+
+          <StatusItem
+            title="Execution Pack"
+            value={caseData.executionPackGenerated}
+          />
+        </div>
       </div>
     </div>
   );
 }
 
-function StatusRow({
+function StatusItem({
   title,
   value,
 }: {
@@ -78,56 +195,19 @@ function StatusRow({
   value: boolean;
 }) {
   return (
-    <div className="flex justify-between">
-      <span>{title}</span>
+    <div className="border rounded-lg p-3 bg-slate-50">
+      <div className="text-slate-500 text-[10px] uppercase font-bold">
+        {title}
+      </div>
 
-      <span
-        className={`font-medium ${
+      <div
+        className={`mt-1 font-bold ${
           value
-            ? "text-green-600"
-            : "text-amber-600"
+            ? "text-emerald-700"
+            : "text-amber-700"
         }`}
       >
-        {value ? "Submitted" : "Pending"}
-      </span>
-    </div>
-  );
-}
-
-function Card({
-  title,
-  value,
-}: {
-  title: string;
-  value: any;
-}) {
-  return (
-    <div className="border rounded-xl p-4">
-      <div className="text-xs text-slate-500">
-        {title}
-      </div>
-
-      <div className="font-semibold mt-1">
-        {value || "-"}
-      </div>
-    </div>
-  );
-}
-
-function InfoPanel({
-  title,
-  children,
-  icon,
-}: any) {
-  return (
-    <div className="border rounded-xl p-4">
-      <div className="flex items-center gap-2 mb-3 font-semibold">
-        {icon}
-        {title}
-      </div>
-
-      <div className="space-y-2 text-sm">
-        {children}
+        {value ? "Completed" : "Pending"}
       </div>
     </div>
   );
