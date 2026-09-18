@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { Search, Shield, LogOut } from 'lucide-react';
 import { NavView, LawyerPersona } from '../../types/lawyer-portal';
 
@@ -13,6 +14,7 @@ interface TopBarProps {
   onPersonaChange: (persona: LawyerPersona) => void;
   onOpenProfile: () => void;
   onLogout?: () => void;
+  onViewChange?: (view: NavView) => void;
 }
 
 const VIEW_TITLES: Record<NavView, string> = {
@@ -36,7 +38,24 @@ export const LawyerTopBar: React.FC<TopBarProps> = ({
   onPersonaChange,
   onOpenProfile,
   onLogout,
+  onViewChange,
 }) => {
+  const router = useRouter();
+
+  const handleTitleClick = () => {
+    if (onViewChange) {
+      onViewChange('dashboard');
+    }
+    router.push('/lawyer/dashboard');
+  };
+
+  const handleProfileClick = () => {
+    if (onOpenProfile) {
+      onOpenProfile();
+    }
+    router.push('/lawyer/profile');
+  };
+
   const getPersonaDetails = (persona: LawyerPersona) => {
     switch (persona) {
       case 'L1':
@@ -54,9 +73,9 @@ export const LawyerTopBar: React.FC<TopBarProps> = ({
   return (
     <header className="h-[76px] bg-white flex items-center justify-between px-8 pt-4 pb-2 border-b border-slate-200">
       {/* Title */}
-      <div className="flex flex-col">
-        <h1 className="text-xl font-bold font-sans text-slate-900 tracking-tight leading-tight">
-          {VIEW_TITLES[currentView]}
+      <div className="flex flex-col cursor-pointer" onClick={handleTitleClick}>
+        <h1 className="text-xl font-bold font-sans text-slate-900 tracking-tight leading-tight hover:text-slate-700 transition-colors">
+          {VIEW_TITLES[currentView] || 'Lawyer Dashboard'}
         </h1>
         <span className="text-[10px] text-slate-500 font-mono">
           MODULE: LAWYER_PORTAL_V1.1
@@ -67,7 +86,7 @@ export const LawyerTopBar: React.FC<TopBarProps> = ({
       <div className="flex items-center gap-3">
         {/* User profile details */}
         <div
-          onClick={onOpenProfile}
+          onClick={handleProfileClick}
           className="flex items-center gap-3 bg-white border border-slate-200 rounded-full px-3 py-1.5 shadow-xs cursor-pointer hover:border-slate-400 hover:bg-slate-50 transition-all"
         >
           <div className="w-7 h-7 rounded-full bg-slate-900 text-white font-bold text-[11px] font-sans flex items-center justify-center">
@@ -86,3 +105,4 @@ export const LawyerTopBar: React.FC<TopBarProps> = ({
     </header>
   );
 };
+

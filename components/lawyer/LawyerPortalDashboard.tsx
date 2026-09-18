@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, Suspense } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { LawyerCase, NavView, LawyerPersona, AgreementVersion, SummaryNote, Appendix, CaseStatus, LawyerActionsWorkflowState } from '../../types/lawyer-portal';
 import { LawyerSidebar } from './LawyerSidebar';
 import { LawyerTopBar } from './LawyerTopBar';
@@ -543,9 +544,28 @@ const MOCK_INITIAL_CASES: LawyerCase[] = [
   }
 ];
 
-export const LawyerPortalDashboard: React.FC = () => {
+const VIEW_ROUTES: Record<NavView, string> = {
+  dashboard: '/lawyer/dashboard',
+  assigned_cases: '/lawyer/assigned-cases',
+  completed: '/lawyer/completed',
+  settings: '/lawyer/settings',
+  profile: '/lawyer/profile',
+  versions: '/lawyer/versions',
+  notes: '/lawyer/notes',
+  appendices: '/lawyer/appendices',
+  ila: '/lawyer/ila',
+};
+
+function LawyerPortalDashboardContent({ initialView = 'dashboard' }: { initialView?: NavView }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const urlView = searchParams.get('view') as NavView | null;
+  const urlCaseId = searchParams.get('caseId');
+
   const [activePersona, setActivePersona] = useState<LawyerPersona>('L1');
-  const [currentView, setCurrentView] = useState<NavView>('dashboard');
+  const [currentView, setCurrentView] = useState<NavView>(initialView);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
 
@@ -563,6 +583,35 @@ export const LawyerPortalDashboard: React.FC = () => {
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isScorecardOpen, setIsScorecardOpen] = useState(false);
+
+  useEffect(() => {
+    if (pathname.includes('/dashboard')) {
+      setCurrentView('dashboard');
+    } else if (pathname.includes('/assigned-cases') || pathname.includes('/assigned_cases') || pathname.includes('/cases')) {
+      setCurrentView('assigned_cases');
+    } else if (pathname.includes('/completed')) {
+      setCurrentView('completed');
+    } else if (pathname.includes('/settings')) {
+      setCurrentView('settings');
+    } else if (pathname.includes('/profile')) {
+      setCurrentView('profile');
+    } else if (pathname.includes('/versions')) {
+      setCurrentView('versions');
+    } else if (pathname.includes('/notes')) {
+      setCurrentView('notes');
+    } else if (pathname.includes('/appendices')) {
+      setCurrentView('appendices');
+    } else if (pathname.includes('/ila')) {
+      setCurrentView('ila');
+    } else if (urlView && VIEW_ROUTES[urlView]) {
+      setCurrentView(urlView);
+    }
+
+    if (urlCaseId) {
+      setSelectedCaseId(urlCaseId);
+      setIsDrawerOpen(true);
+    }
+  }, [pathname, urlView, urlCaseId]);
 
   const handleLogout = () => {
     setIsLoggedOut(true);
@@ -587,6 +636,7 @@ export const LawyerPortalDashboard: React.FC = () => {
     setCurrentView(view);
     setIsDrawerOpen(false);
     setSelectedCaseId(null);
+    router.push(VIEW_ROUTES[view] || `/lawyer/${view}`);
   };
 
   // Helper info for active lawyer name based on persona
@@ -627,6 +677,15 @@ export const LawyerPortalDashboard: React.FC = () => {
   const handleOpenDrawer = (caseId: string) => {
     setSelectedCaseId(caseId);
     setIsDrawerOpen(true);
+    const basePath = VIEW_ROUTES[currentView] || `/lawyer/${currentView}`;
+    router.push(`${basePath}?caseId=${caseId}`);
+  };
+
+  const handleCloseDrawer = () => {
+    setIsDrawerOpen(false);
+    setSelectedCaseId(null);
+    const basePath = VIEW_ROUTES[currentView] || `/lawyer/${currentView}`;
+    router.push(basePath);
   };
 
   const handlePersonaChange = (persona: LawyerPersona) => {
@@ -1022,6 +1081,7 @@ export const LawyerPortalDashboard: React.FC = () => {
             onPersonaChange={handlePersonaChange}
             onOpenProfile={() => handleViewChange('profile')}
             onLogout={handleLogout}
+            onViewChange={handleViewChange}
           />
         )}
 
@@ -1030,10 +1090,7 @@ export const LawyerPortalDashboard: React.FC = () => {
           {isDrawerOpen && selectedCaseObj ? (
             <LawyerCaseDrawer
               isOpen={isDrawerOpen}
-              onClose={() => {
-                setIsDrawerOpen(false);
-                setSelectedCaseId(null);
-              }}
+              onClose={handleCloseDrawer}
               caseObj={selectedCaseObj}
               activePersona={activePersona}
               onUploadVersion={handleUploadVersion}
@@ -1135,4 +1192,13 @@ export const LawyerPortalDashboard: React.FC = () => {
       />
     </div>
   );
+}
+
+export const LawyerPortalDashboard: React.FC<{ initialView?: NavView }> = ({ initialView = 'dashboard' }) => {
+  return (
+    <Suspense fallback={<div className="p-8 text-center bg-[#f1f5f9] min-h-screen">Loading Lawyer Portal...</div>}>
+      <LawyerPortalDashboardContent initialView={initialView} />
+    </Suspense>
+  );
 };
+
