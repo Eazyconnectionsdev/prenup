@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from "react";
@@ -24,62 +25,129 @@ export default function FamilyDependents({
   const inputClass =
     "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-100 disabled:text-slate-600";
 
+  /*
+   * Show legal separation checkbox only when the user
+   * previously selected divorced.
+   */
   const showSeparationCheckbox =
     data?.priorMarriageStatus === "Yes, previously divorced";
 
+  /*
+   * Show warning when the user is legally separated.
+   */
   const showSeparationWarning =
-    showSeparationCheckbox && data?.isLegallySeparated;
+    showSeparationCheckbox &&
+    data?.isLegallySeparated === true;
 
+  /*
+   * Show children details when user has children.
+   */
   const showChildren =
     data?.hasLivingChildren === "Yes";
 
+  /*
+   * Generate a unique child ID.
+   */
+  const createChildId = () => {
+    return `child_${Date.now()}_${Math.random()
+      .toString(36)
+      .slice(2, 7)}`;
+  };
+
+  /*
+   * Add a new child.
+   */
   const addChild = () => {
+    if (!isEditing) return;
+
     const child: Child = {
-      id: `child_${Date.now()}_${Math.random()
-        .toString(36)
-        .slice(2, 7)}`,
+      id: createChildId(),
       fullName: "",
       dob: "",
       parentalRelationship: "",
     };
 
     onChange("children", [
-      ...(data?.children || []),
+      ...(Array.isArray(data?.children)
+        ? data.children
+        : []),
       child,
     ]);
   };
 
+  /*
+   * Remove a child.
+   */
   const removeChild = (id: string) => {
+    if (!isEditing) return;
+
+    const children: Child[] = Array.isArray(
+      data?.children
+    )
+      ? data.children
+      : [];
+
     onChange(
       "children",
-      (data?.children || []).filter(
-        (child: Child) => child.id !== id,
-      ),
+      children.filter(
+        (child: Child) => child.id !== id
+      )
     );
   };
 
+  /*
+   * Update a child field.
+   *
+   * IMPORTANT:
+   * The old implementation did:
+   *
+   * {
+   *   ...child,
+   *   value
+   * }
+   *
+   * which created a "value" property instead of
+   * updating fullName / dob / parentalRelationship.
+   *
+   * This implementation correctly uses:
+   *
+   * [field]&#58; value
+   */
   const updateChild = (
     id: string,
     field: keyof Child,
-    value: string,
+    value: string
   ) => {
-    onChange(
-      "children",
-      (data?.children || []).map(
-        (child: Child) =>
-          child.id === id
-            ? {
-                ...child,
-                value,
-              }
-            : child,
-      ),
+    if (!isEditing) return;
+
+    const children: Child[] = Array.isArray(
+      data?.children
+    )
+      ? data.children
+      : [];
+
+    const updatedChildren = children.map(
+      (child: Child) => {
+        if (child.id !== id) {
+          return child;
+        }
+
+        return {
+          ...child,
+          [field]: value,
+        };
+      }
     );
+
+    onChange("children", updatedChildren);
   };
 
   return (
     <div className="space-y-8">
-      {/* Header */}
+
+      {/* =====================================================
+          HEADER
+      ====================================================== */}
 
       <div>
         <h2 className="text-xl font-bold text-slate-900">
@@ -94,7 +162,10 @@ export default function FamilyDependents({
         </p>
       </div>
 
-      {/* Prior Marital History */}
+
+      {/* =====================================================
+          PRIOR MARITAL HISTORY
+      ====================================================== */}
 
       <div>
         <h3 className="mb-4 border-b border-slate-200 pb-2 text-lg font-bold">
@@ -118,7 +189,7 @@ export default function FamilyDependents({
           onChange={(e) =>
             onChange(
               "priorMarriageStatus",
-              e.target.value,
+              e.target.value
             )
           }
           className={inputClass}
@@ -140,19 +211,24 @@ export default function FamilyDependents({
           </option>
         </select>
 
+
+        {/* LEGAL SEPARATION */}
+
         {showSeparationCheckbox && (
           <div className="mt-4 rounded-lg border border-slate-300 bg-slate-50 p-4">
             <label className="flex items-center gap-3">
               <input
                 type="checkbox"
                 checked={
-                  data?.isLegallySeparated || false
+                  Boolean(
+                    data?.isLegallySeparated
+                  )
                 }
                 disabled={!isEditing}
                 onChange={(e) =>
                   onChange(
                     "isLegallySeparated",
-                    e.target.checked,
+                    e.target.checked
                   )
                 }
               />
@@ -165,6 +241,9 @@ export default function FamilyDependents({
             </label>
           </div>
         )}
+
+
+        {/* LEGAL SEPARATION WARNING */}
 
         {showSeparationWarning && (
           <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
@@ -182,7 +261,10 @@ export default function FamilyDependents({
         )}
       </div>
 
-      {/* Current Children Status */}
+
+      {/* =====================================================
+          CURRENT CHILDREN STATUS
+      ====================================================== */}
 
       <div>
         <h3 className="mb-4 border-b border-slate-200 pb-2 text-lg font-bold">
@@ -202,7 +284,7 @@ export default function FamilyDependents({
           onChange={(e) =>
             onChange(
               "hasLivingChildren",
-              e.target.value,
+              e.target.value
             )
           }
           className={inputClass}
@@ -221,10 +303,14 @@ export default function FamilyDependents({
         </select>
       </div>
 
-      {/* Children Details */}
+
+      {/* =====================================================
+          CHILDREN DETAILS
+      ====================================================== */}
 
       {showChildren && (
         <div>
+
           <div className="mb-4 flex items-center justify-between">
             <h3 className="font-bold">
               Children's Details
@@ -234,106 +320,138 @@ export default function FamilyDependents({
               <button
                 type="button"
                 onClick={addChild}
-                className="flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-white"
+                className="flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-white hover:bg-indigo-700"
               >
                 <Plus size={14} />
+
                 Add Child
               </button>
             )}
           </div>
 
+
           <div className="space-y-4">
-            {(data?.children || []).map(
-              (child: Child) => (
-                <div
-                  key={child.id}
-                  className="rounded-xl border border-slate-200 p-4"
-                >
-                  <div className="grid gap-4 md:grid-cols-3">
-                    <input
-                      value={child.fullName}
-                      disabled={!isEditing}
-                      onChange={(e) =>
-                        updateChild(
-                          child.id,
-                          "fullName",
-                          e.target.value,
-                        )
-                      }
-                      placeholder="Child's Full Name"
-                      className={inputClass}
-                    />
 
-                    <input
-                      type="date"
-                      value={child.dob}
-                      disabled={!isEditing}
-                      onChange={(e) =>
-                        updateChild(
-                          child.id,
-                          "dob",
-                          e.target.value,
-                        )
-                      }
-                      className={inputClass}
-                    />
+            {(
+              Array.isArray(data?.children)
+                ? data.children
+                : []
+            ).map((child: Child) => (
 
-                    <select
-                      value={
-                        child.parentalRelationship
-                      }
-                      disabled={!isEditing}
-                      onChange={(e) =>
-                        updateChild(
-                          child.id,
-                          "parentalRelationship",
-                          e.target.value,
-                        )
-                      }
-                      className={inputClass}
-                    >
-                      <option value="">
-                        Select Parental Relationship
-                      </option>
+              <div
+                key={child.id}
+                className="rounded-xl border border-slate-200 p-4"
+              >
 
-                      <option value="My child from a prior relationship">
-                        My child from a previous
-                        relationship
-                      </option>
+                <div className="grid gap-4 md:grid-cols-3">
 
-                      <option value="My partner's child from a prior relationship">
-                        My partner's child from a
-                        previous relationship
-                      </option>
+                  {/* CHILD NAME */}
 
-                      <option value="Our mutual child (born or adopted within our relationship)">
-                        Our child together (born
-                        or adopted during our
-                        relationship)
-                      </option>
-                    </select>
-                  </div>
+                  <input
+                    type="text"
+                    value={
+                      child?.fullName || ""
+                    }
+                    disabled={!isEditing}
+                    onChange={(e) =>
+                      updateChild(
+                        child.id,
+                        "fullName",
+                        e.target.value
+                      )
+                    }
+                    placeholder="Child's Full Name"
+                    className={inputClass}
+                  />
 
-                  {isEditing && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        removeChild(child.id)
-                      }
-                      className="mt-3 flex items-center gap-2 text-red-600"
-                    >
-                      <Trash2 size={14} />
-                      Remove Child
-                    </button>
-                  )}
+
+                  {/* CHILD DOB */}
+
+                  <input
+                    type="date"
+                    value={
+                      child?.dob || ""
+                    }
+                    disabled={!isEditing}
+                    onChange={(e) =>
+                      updateChild(
+                        child.id,
+                        "dob",
+                        e.target.value
+                      )
+                    }
+                    className={inputClass}
+                  />
+
+
+                  {/* PARENTAL RELATIONSHIP */}
+
+                  <select
+                    value={
+                      child?.parentalRelationship ||
+                      ""
+                    }
+                    disabled={!isEditing}
+                    onChange={(e) =>
+                      updateChild(
+                        child.id,
+                        "parentalRelationship",
+                        e.target.value
+                      )
+                    }
+                    className={inputClass}
+                  >
+                    <option value="">
+                      Select Parental Relationship
+                    </option>
+
+                    <option value="My child from a prior relationship">
+                      My child from a previous
+                      relationship
+                    </option>
+
+                    <option value="My partner's child from a prior relationship">
+                      My partner's child from a
+                      previous relationship
+                    </option>
+
+                    <option value="Our mutual child (born or adopted within our relationship)">
+                      Our child together (born
+                      or adopted during our
+                      relationship)
+                    </option>
+                  </select>
+
                 </div>
-              ),
-            )}
+
+
+                {/* REMOVE CHILD */}
+
+                {isEditing && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      removeChild(child.id)
+                    }
+                    className="mt-3 flex items-center gap-2 text-red-600 hover:text-red-700"
+                  >
+                    <Trash2 size={14} />
+
+                    Remove Child
+                  </button>
+                )}
+
+              </div>
+            ))}
+
           </div>
         </div>
       )}
 
-      {/* Future Family Plans */}
+
+      {/* =====================================================
+          FUTURE FAMILY PLANS
+      ====================================================== */}
 
       <div>
         <h3 className="mb-4 border-b border-slate-200 pb-2 text-lg font-bold">
@@ -354,7 +472,7 @@ export default function FamilyDependents({
           onChange={(e) =>
             onChange(
               "futureParentalIntentions",
-              e.target.value,
+              e.target.value
             )
           }
           className={inputClass}
@@ -380,7 +498,10 @@ export default function FamilyDependents({
         </select>
       </div>
 
-      {/* Pets */}
+
+      {/* =====================================================
+          FAMILY PETS
+      ====================================================== */}
 
       <div>
         <label className="mb-2 block font-semibold">
@@ -391,12 +512,14 @@ export default function FamilyDependents({
         </label>
 
         <select
-          value={data?.hasFamilyPets || ""}
+          value={
+            data?.hasFamilyPets || ""
+          }
           disabled={!isEditing}
           onChange={(e) =>
             onChange(
               "hasFamilyPets",
-              e.target.value,
+              e.target.value
             )
           }
           className={inputClass}
@@ -414,6 +537,8 @@ export default function FamilyDependents({
           </option>
         </select>
       </div>
+
     </div>
   );
 }
+

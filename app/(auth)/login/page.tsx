@@ -38,8 +38,7 @@ export default function LoginPageStatic() {
     e.preventDefault();
 
     // Set demo access_token cookie for local preview
-    document.cookie = "access_token=demo_token; path=/;";
-
+  
     const payload = {
       email: form.email,
       password: form.password,
