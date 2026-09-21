@@ -147,7 +147,22 @@ const initialState: CasesState = {
 const CasesSlice = createSlice({
   name: "cases",
   initialState,
-  reducers: {},
+  reducers: {
+    updateApproval(state, action: PayloadAction<Partial<CaseApproval>>) {
+      if (state.approval) {
+        state.approval = { ...state.approval, ...action.payload };
+      }
+    },
+    updateJointInformationStatus(state, action: PayloadAction<Partial<SectionStatus>>) {
+      state.status = {
+        ...state.status,
+        jointInformation: {
+          ...(state.status.jointInformation as SectionStatus),
+          ...action.payload,
+        },
+      };
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(getCasesDetails.pending, (state) => {
@@ -180,5 +195,5 @@ const CasesSlice = createSlice({
   },
 });
 
-export const {} = CasesSlice.actions;
+export const { updateApproval, updateJointInformationStatus } = CasesSlice.actions;
 export default CasesSlice.reducer;
