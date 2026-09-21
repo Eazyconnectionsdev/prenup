@@ -49,8 +49,6 @@ export default function LoginPageStatic() {
         "Backend API offline, proceeding with local preview redirect.",
       );
     }
-
-    router.push("/lawyer");
   };
 
   return (
