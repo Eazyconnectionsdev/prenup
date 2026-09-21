@@ -10,6 +10,20 @@ import type {
   DiffParagraph,
 } from "@/types/types-agreement";
 
+export async function fetchCaseDetails(
+  caseId: string,
+){
+  try {
+     const { data } = await Axios.get(`/cases/${caseId}`);
+    return { success: true, data };
+  } catch (error) {
+    return {
+      success: false,
+      error: getErrorMessage(error, "Failed to load version history."),
+    };
+  }
+}
+
 export async function fetchAllVersions(
   caseId: string,
 ): Promise<ApiResult<VersionEntry[]>> {

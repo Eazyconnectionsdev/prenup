@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import OverviewTab from "./components/OverviewTab";
 import FormsTab from "./components/FormsTab";
 import AgreementTab from "./components/AgreementTab";
-import CMActionsTab from "./components/CMActionsTabs";
+import LawyerActionsTab from "./components/LawyerActionTabs";
 import TimelineTab from "./components/TimelineTab";
 import EmailsTab from "./components/EmailsTab";
 import AuditTab from "./components/AuditTab";
@@ -66,35 +66,35 @@ export default function CaseDetailPage() {
   const tabs = [
     {
       id: "overview",
-      label: "1. Overview",
+      label: "Overview",
     },
     {
       id: "forms",
-      label: "2. Forms & Disclosures",
+      label: "Forms & Disclosures",
     },
     {
       id: "agreement",
-      label: "3. Agreement",
+      label: "Agreement",
     },
     {
       id: "lawyers",
-      label: "4. CM Actions",
+      label: "Lawyer Actions",
     },
     {
       id: "timeline",
-      label: "5. Timeline",
+      label: "Timeline",
     },
     {
       id: "emails",
-      label: "6. Emails",
+      label: "Emails",
     },
     {
       id: "audit",
-      label: "7. Audit Logs",
+      label: "Audit Logs",
     },
     {
       id: "notes",
-      label: "8. CM Notes",
+      label: "CM Notes",
     },
   ];
 
@@ -115,37 +115,17 @@ export default function CaseDetailPage() {
   }
 
   return (
-    <div className="p-6">
-      <div className="bg-white border rounded-xl p-6 mb-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold">
-              {caseData.title}
-            </h1>
-
-            <p className="text-sm text-slate-500">
-              {caseData._id}
-            </p>
-          </div>
-
-          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
-            {caseData.workflowStatus}
-          </span>
-        </div>
-      </div>
-
-      <div className="bg-white border rounded-xl overflow-hidden">
+      <div className="bg-white overflow-hidden">
         <div className="flex overflow-auto border-b">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={`px-5 py-3 text-sm font-semibold whitespace-nowrap ${
-                activeTab === tab.id
+              className={`px-5 py-3 text-sm font-semibold whitespace-nowrap ${activeTab === tab.id
                   ? "border-b-2 border-black bg-slate-50"
                   : ""
-              }`}
+                }`}
             >
               {tab.label}
             </button>
@@ -162,7 +142,6 @@ export default function CaseDetailPage() {
               caseData={caseData}
               isCmEditing={isCmEditing}
               setIsCmEditing={setIsCmEditing}
-              onSave={handleFormsSave}
             />
           )}
 
@@ -171,7 +150,7 @@ export default function CaseDetailPage() {
           )}
 
           {activeTab === "lawyers" && (
-            <CMActionsTab caseData={caseData} />
+            <LawyerActionsTab  />
           )}
 
           {activeTab === "timeline" && (
@@ -191,6 +170,5 @@ export default function CaseDetailPage() {
           )}
         </div>
       </div>
-    </div>
   );
 }

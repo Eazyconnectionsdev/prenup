@@ -20,6 +20,7 @@ import {
   checkInDocument,
   downloadVersionFile,
   compareDocumentVersions,
+  fetchCaseDetails,
 } from "@/lib/api/agreement";
 
 import type {
@@ -30,15 +31,19 @@ import type {
   DiffParagraph,
 } from "@/types/types-agreement";
 import { Modal } from "../Modal";
+import { useParams } from "next/navigation";
 
-const CASE_ID = "6a99454fb23e05b06008526a";
 const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
 const DOCX_MIME =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
 export default function AgreementPage() {
-  const [caseDetails, setCaseDetails] = useState<CaseDetails | null>(null);
+  const params = useParams()
+  const CASE_ID = typeof params.id === "string" ? params.id : "";
+  const [caseDetails, setCaseDetails] = useState<CaseDetails | any>(null);
   const [caseError, setCaseError] = useState<string | null>(null);
+
+  console.log("caseDetails", caseDetails)
 
   const [allAgreements, setAllAgreements] = useState<VersionEntry[]>([]);
   const [versionsError, setVersionsError] = useState<string | null>(null);
@@ -166,6 +171,14 @@ export default function AgreementPage() {
     setIsCheckingIn(false);
   };
 
+
+  const getCaseDetail = async () => {
+    const result = await fetchCaseDetails(CASE_ID);
+    if(result.success){
+      setCaseDetails(result.data)
+    }
+  };
+
   const handleFileSelect = (file: File) => {
     setFileError(null);
     const isDocx =
@@ -274,6 +287,7 @@ export default function AgreementPage() {
   useEffect(() => {
     loadAllVersions();
     refreshLockStatus();
+    getCaseDetail()
   }, [loadAllVersions, refreshLockStatus]);
 
   useEffect(() => {

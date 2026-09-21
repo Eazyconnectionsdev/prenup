@@ -820,17 +820,7 @@ function CaseManagerContent({ initialView = "dashboard" }: { initialView?: NavVi
     });
   };
 
-  const handleFilterByScorecardStatus = (statusFilter: string) => {
-    if (statusFilter === "ARCHIVED") {
-      handleViewChange("archived");
-    } else if (statusFilter === "ALL") {
-      handleViewChange("cases");
-      setFilterState((prev) => ({ ...prev, status: "ALL" }));
-    } else {
-      handleViewChange("cases");
-      setFilterState((prev) => ({ ...prev, status: statusFilter }));
-    }
-  };
+
 
   const selectedCaseObj = useMemo(() => {
     return cases.find((c) => c.id === selectedCaseId) || null;
@@ -852,41 +842,6 @@ function CaseManagerContent({ initialView = "dashboard" }: { initialView?: NavVi
       return true;
     });
   }, [cases, searchQuery]);
-
-  const filteredCases = useMemo(() => {
-    return cases.filter((c) => {
-      if (c.backendState === "ARCHIVED") return false;
-      if (filterState.status !== "ALL") {
-        if (c.backendState !== filterState.status) {
-          return false;
-        }
-      }
-      if (filterState.health !== "ALL" && c.health !== filterState.health)
-        return false;
-      if (
-        filterState.payment !== "ALL" &&
-        c.paymentStatus !== filterState.payment
-      )
-        return false;
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matches =
-          c.id.toLowerCase().includes(q) ||
-          c.p1.toLowerCase().includes(q) ||
-          c.p2.toLowerCase().includes(q) ||
-          c.p1Email.toLowerCase().includes(q) ||
-          c.p2Email.toLowerCase().includes(q) ||
-          c.p1Phone.toLowerCase().includes(q) ||
-          c.p2Phone.toLowerCase().includes(q) ||
-          c.p1Firm.toLowerCase().includes(q) ||
-          c.p2Firm.toLowerCase().includes(q) ||
-          c.service.toLowerCase().includes(q) ||
-          c.version.toLowerCase().includes(q);
-        if (!matches) return false;
-      }
-      return true;
-    });
-  }, [cases, filterState, searchQuery]);
 
   const archivedCases = useMemo(() => {
     return cases.filter((c) => {
@@ -1182,39 +1137,6 @@ function CaseManagerContent({ initialView = "dashboard" }: { initialView?: NavVi
           )}
         </main>
       </div>
-
-      {/* Slide Drawer */}
-      <CaseSlideDrawer
-        caseObj={selectedCaseObj}
-        isOpen={isDrawerOpen}
-        onClose={handleCloseDrawer}
-        auditLogs={auditLogs}
-        onApprove={handleApproveCase}
-        onReturnToDraft={handleReturnToDraft}
-        onAssignLawyers={handleAssignLawyers}
-        onReplaceLawyer={handleReplaceLawyer}
-        onSendReminder={handleSendReminder}
-        onRegenPdf={handleRegenPdf}
-        onEscalate={handleEscalateCase}
-        onArchive={handleArchiveCase}
-        onSaveNote={handleSaveNote}
-        onRbacProhibitedTest={handleRbacProhibited}
-        onUpdateCase={handleUpdateCase}
-        onOpenPaymentModal={() => setIsPaymentModalOpen(true)}
-      />
-
-      {/* Scorecard Modal */}
-      <ScorecardModal
-        isOpen={isScorecardOpen}
-        onClose={() => setIsScorecardOpen(false)}
-      />
-
-      {/* Interactive Case Manager Account Profile Modal */}
-      <CaseManagerAccountModal
-        isOpen={isAccountModalOpen}
-        onClose={() => setIsAccountModalOpen(false)}
-        onShowToast={showToast}
-      />
 
       <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
     </div>
