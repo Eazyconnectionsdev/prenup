@@ -36,25 +36,19 @@ export default function LoginPageStatic() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Set demo access_token cookie for local preview
-  
     const payload = {
       email: form.email,
       password: form.password,
     };
 
     try {
-      const result = await dispatch(LoginUser(payload)).unwrap();
-      if (result && result.success) {
-        router.push("/lawyer");
-        return;
-      }
+       await dispatch(LoginUser(payload)).unwrap();
+       router.refresh()
     } catch (error: any) {
-      console.log("Backend API offline, proceeding with local preview redirect.");
+      console.log(
+        "Backend API offline, proceeding with local preview redirect.",
+      );
     }
-
-    router.push("/lawyer");
   };
 
   return (

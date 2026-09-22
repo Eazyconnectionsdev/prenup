@@ -1,73 +1,69 @@
 import { NextRequest, NextResponse } from "next/server";
-import { decodeJwt } from "jose";
+import { jwtVerify } from "jose";
 
 export const DEFAULT_LOGIN_REDIRECT = "/login";
 
-const AUTHROUTES = [
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
+
+const AUTH_ROUTES = [
   "/login",
   "/register",
+  "/register-partner",
   "/email-verification",
   "/forgot-password",
   "/reset-password",
 ];
 
-const ROLE_REDIRECT_MAP: Record<string, string> = {
+const PUBLIC_ROUTES = [...AUTH_ROUTES];
+
+const ROLE_HOME: Record<string, string> = {
   admin: "/admin",
   case_manager: "/cm",
-  end_user: "/",
+  lawyer: "/lawyer",
+  end_user: "/dashboard",
 };
 
-export default function middleware(req: NextRequest) {
+async function getRoleFromToken(token: string | undefined): Promise<string | null> {
+  if (!token) return null;
+  try {
+
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+
+    return typeof payload.role === "string" ? payload.role : null;
+  } catch(error : any) {
+    console.log("getRoleFromToken error", error)
+    return null;
+  }
+}
+
+export default async function middleware(req: NextRequest) {
   const { nextUrl } = req;
   const token = req.cookies.get("access_token")?.value;
 
-  const isLoggedIn = Boolean(token);
-  const isAuthRoute = AUTHROUTES.includes(nextUrl.pathname);
-  const isPublicRoute =
-    nextUrl.pathname === "/" ||
-    isAuthRoute ||
-    nextUrl.pathname.startsWith("/lawyer") ||
-    nextUrl.pathname.startsWith("/cm") ||
-    nextUrl.pathname.startsWith("/dashboard");
+  const role = await getRoleFromToken(token);
 
-  let role: string | null = null;
-
-  if (token) {
-    try {
-      const payload = decodeJwt(token);
-      role = payload?.role as string;
-    } catch {
-      role = null;
-    }
-  }
+  const isLoggedIn = role !== null;
+  const isAuthRoute = AUTH_ROUTES.includes(nextUrl.pathname);
+  const isPublicRoute = PUBLIC_ROUTES.includes(nextUrl.pathname);
 
   if (!isLoggedIn && !isPublicRoute) {
-    return NextResponse.redirect(
-      new URL(DEFAULT_LOGIN_REDIRECT, nextUrl)
-    );
+    const loginUrl = new URL(DEFAULT_LOGIN_REDIRECT, nextUrl);
+    loginUrl.searchParams.set("callbackUrl", nextUrl.pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
-  if (isLoggedIn && isAuthRoute && role) {
-    const redirectPath = ROLE_REDIRECT_MAP[role];
-
-    if (redirectPath) {
-      return NextResponse.redirect(
-        new URL(redirectPath, nextUrl)
-      );
-    }
+  if (isLoggedIn && !role) {
+    return NextResponse.redirect(new URL(DEFAULT_LOGIN_REDIRECT, nextUrl));
   }
 
-  if (isLoggedIn && role) {
-    const allowedBasePath = ROLE_REDIRECT_MAP[role];
+  const homePath = role ? ROLE_HOME[role] : null;
 
-    if (
-      allowedBasePath &&
-      !nextUrl.pathname.startsWith(allowedBasePath)
-    ) {
-      return NextResponse.redirect(
-        new URL(allowedBasePath, nextUrl)
-      );
-    }
+  if (isLoggedIn && homePath && (isAuthRoute || nextUrl.pathname === "/")) {
+    return NextResponse.redirect(new URL(homePath, nextUrl));
+  }
+
+  if (isLoggedIn && homePath && !nextUrl.pathname.startsWith(homePath)) {
+    return NextResponse.redirect(new URL(homePath, nextUrl));
   }
 
   return NextResponse.next();

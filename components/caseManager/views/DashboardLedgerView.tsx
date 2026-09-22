@@ -105,15 +105,15 @@ const DashboardLedgerView: React.FC = () => {
         {
           label: "Partner Not Invited",
           value:
-            dashboardData.partnerFilling
-              .partnerNotInvited,
+            dashboardData?.partnerFilling
+              ?.partnerNotInvited,
           filter: "PARTNER_NOT_INVITED",
         },
         {
           label: "Partner Filling",
           value:
-            dashboardData.partnerFilling
-              .partnerFilling,
+            dashboardData?.partnerFilling
+              ?.partnerFilling,
           filter: "PARTNER_FILLING",
         },
       ],
@@ -125,15 +125,15 @@ const DashboardLedgerView: React.FC = () => {
         {
           label: "Returned To Draft",
           value:
-            dashboardData.cmReview
-              .returnedToDraft,
+            dashboardData?.cmReview
+              ?.returnedToDraft,
           filter: "RETURNED_TO_DRAFT",
         },
         {
           label: "Awaiting CM Review",
           value:
-            dashboardData.cmReview
-              .awaitingCmReview,
+            dashboardData?.cmReview
+              ?.awaitingCmReview,
           filter: "AWAITING_CM_REVIEW",
         },
       ],
@@ -145,36 +145,36 @@ const DashboardLedgerView: React.FC = () => {
         {
           label: "P1 Questionnaire Pending",
           value:
-            dashboardData.legalReview
-              .preLawyer
-              .p1QuestionnairePending,
+            dashboardData?.legalReview
+              ?.preLawyer
+              ?.p1QuestionnairePending,
           filter:
             "P1_QUESTIONNAIRE_PENDING",
         },
         {
           label: "P2 Questionnaire Pending",
           value:
-            dashboardData.legalReview
-              .preLawyer
-              .p2QuestionnairePending,
+            dashboardData?.legalReview
+              ?.preLawyer
+              ?.p2QuestionnairePending,
           filter:
             "P2_QUESTIONNAIRE_PENDING",
         },
         {
           label: "P1 Confirmation Pending",
           value:
-            dashboardData.legalReview
-              .clientConfirmation
-              .p1ConfirmationPending,
+            dashboardData?.legalReview
+              ?.clientConfirmation
+              ?.p1ConfirmationPending,
           filter:
             "P1_CONFIRMATION_PENDING",
         },
         {
           label: "P2 Confirmation Pending",
           value:
-            dashboardData.legalReview
-              .clientConfirmation
-              .p2ConfirmationPending,
+            dashboardData?.legalReview
+              ?.clientConfirmation
+              ?.p2ConfirmationPending,
           filter:
             "P2_CONFIRMATION_PENDING",
         },
@@ -182,9 +182,9 @@ const DashboardLedgerView: React.FC = () => {
           label:
             "P1 Lawyer Approval & ILA Pending",
           value:
-            dashboardData.legalReview
-              .lawyerSignOff
-              .p1LawyerApprovalPending,
+            dashboardData?.legalReview
+              ?.lawyerSignOff
+              ?.p1LawyerApprovalPending,
           filter:
             "P1_LAWYER_APPROVAL_PENDING",
         },
@@ -192,9 +192,9 @@ const DashboardLedgerView: React.FC = () => {
           label:
             "P2 Lawyer Approval & ILA Pending",
           value:
-            dashboardData.legalReview
-              .lawyerSignOff
-              .p2LawyerApprovalPending,
+            dashboardData?.legalReview
+              ?.lawyerSignOff
+              ?.p2LawyerApprovalPending,
           filter:
             "P2_LAWYER_APPROVAL_PENDING",
         },
@@ -208,8 +208,8 @@ const DashboardLedgerView: React.FC = () => {
           label:
             "Execution Pack Generated",
           value:
-            dashboardData.completed
-              .executionPackGenerated,
+            dashboardData?.completed
+              ?.executionPackGenerated,
           filter:
             "EXECUTION_PACK_GENERATED",
         },
@@ -222,8 +222,8 @@ const DashboardLedgerView: React.FC = () => {
         {
           label: "Ready For Archive",
           value:
-            dashboardData.readyForArchive
-              .total,
+            dashboardData?.readyForArchive
+              ?.total,
           filter:
             "READY_FOR_ARCHIVE",
         },
@@ -251,7 +251,7 @@ const DashboardLedgerView: React.FC = () => {
           </span>
 
           <div className="text-2xl font-bold text-slate-900">
-            {dashboardData.totalCases}
+            {dashboardData?.totalCases}
           </div>
         </div>
       </div>
