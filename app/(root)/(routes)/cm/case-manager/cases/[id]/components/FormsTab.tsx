@@ -450,9 +450,7 @@ export default function FormsViewTab({
         return;
       }
 
-      await Axios.post(
-        `/cases/${caseData._id}/questionnaire/generate-document`
-      );
+      await Axios.post(`/agreement/${caseData?._id}/document/cm/generate`); 
 
       setIsCmEditing(false);
 
