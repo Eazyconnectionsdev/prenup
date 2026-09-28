@@ -206,10 +206,14 @@ export default function CMActionsTab({
           `/case-manager/${caseId}/approve`,
           {},
         );
+        
+        await Axios.post(`/agreement/${caseId}/document/cm/generate`); 
 
         alert(
           "Case approved successfully",
         );
+
+
       } catch (error) {
         console.error(error);
       } finally {

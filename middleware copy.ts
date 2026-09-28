@@ -26,23 +26,20 @@ const ROLE_HOME: Record<string, string> = {
 async function getRoleFromToken(token: string | undefined): Promise<string | null> {
   if (!token) return null;
   try {
+
     const { payload } = await jwtVerify(token, JWT_SECRET);
+
     return typeof payload.role === "string" ? payload.role : null;
-  } catch (error: any) {
-    console.log("getRoleFromToken error", error);
+  } catch(error : any) {
+    console.log("getRoleFromToken error", error)
     return null;
   }
 }
 
 export default async function middleware(req: NextRequest) {
   const { nextUrl } = req;
-
-  // Let proxied API calls go straight to the rewrite (backend handles its own auth)
-  if (nextUrl.pathname === "/backend" || nextUrl.pathname.startsWith("/backend/")) {
-    return NextResponse.next();
-  }
-
   const token = req.cookies.get("access_token")?.value;
+
   const role = await getRoleFromToken(token);
 
   const isLoggedIn = role !== null;
@@ -74,7 +71,7 @@ export default async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next|backend(?:/|$)|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|jpg|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|jpg|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
     "/",
   ],
 };
