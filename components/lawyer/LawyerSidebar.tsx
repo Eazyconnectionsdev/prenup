@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -62,12 +61,10 @@ export const LawyerSidebar: React.FC = () => {
           <div className="w-9 h-9 rounded-full border border-emerald-400 bg-[#0a101f] text-emerald-300 font-serif font-bold text-sm flex items-center justify-center shadow-xs">
             LP
           </div>
-
           <div className="flex flex-col">
             <h1 className="font-serif text-lg font-bold text-white tracking-wide leading-none">
               LetsPrenup
             </h1>
-
             <span className="text-[9px] uppercase tracking-wider text-emerald-400 font-bold mt-1">
               LAWYER PORTAL
             </span>
@@ -111,16 +108,13 @@ export const LawyerSidebar: React.FC = () => {
             <div className="w-9 h-9 rounded-full bg-emerald-950 border border-emerald-400/50 text-emerald-200 font-bold text-xs flex items-center justify-center shadow-xs font-sans">
               {initials}
             </div>
-
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-[#0d1527] absolute bottom-0 right-0" />
           </div>
 
-          {/* User information */}
           <div className="flex flex-col min-w-0">
             <div className="text-xs font-bold text-white truncate font-sans">
               {fullName}
             </div>
-
             <div className="text-[10px] text-slate-400 font-sans truncate">
               {title}
             </div>
