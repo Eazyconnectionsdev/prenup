@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import React, { useState, useEffect } from "react";
 import {
@@ -17,9 +17,11 @@ import {
   updateRow,
   removeRow,
 } from "@/components/Formprimitives";
-import { useSelector } from "react-redux";
-import { RootState } from "@/store/store";
+import { useSelector, useDispatch } from "react-redux";
+import { RootState, AppDispatch } from "@/store/store";
 import Axios from "@/lib/ApiConfig";
+import { getCasesDetails } from "@/store/asyncThunk/casesThunk";
+import { updateApproval, updateJointInformationStatus } from "@/store/slices/casesSlice";
 
 const sharedTreatmentOptions: { value: Treatment; label: string }[] = [
   { value: "ShareEqually", label: "Share Equally (50/50)" },
@@ -36,93 +38,173 @@ interface SharedDebtRow extends TreatmentFields {
 }
 
 function makeSharedDebtRow(): SharedDebtRow {
-  return { id: makeId("sdebt"), lenderName: "", liabilityType: "", outstandingBalance: "", ...emptyTreatment };
+  return {
+    id: makeId("sdebt"),
+    lenderName: "",
+    liabilityType: "",
+    outstandingBalance: "",
+    ...emptyTreatment,
+  };
 }
 
 interface SharedLiabilitiesFormProps {
   onContinue?: () => void;
 }
 
-export default function SharedLiabilitiesForm({ onContinue }: SharedLiabilitiesFormProps = {}) {
+export default function SharedLiabilitiesForm({
+  onContinue,
+}: SharedLiabilitiesFormProps = {}) {
+  const dispatch = useDispatch<AppDispatch>();
   const user = useSelector((state: RootState) => state.auth.user);
   const caseId = useSelector((state: RootState) => state.auth.caseId);
-  const isOwner = user?.endUserType === "user1";
+  const currentCase = useSelector((state: RootState) => state.cases);
+
+  const myId: string | undefined = user?._id;
+
+  const ownerId = currentCase?.owner?._id ? String(currentCase.owner._id) : null;
+  const isOwner = !!myId && ownerId === myId;
+
+  const jointStatus = currentCase?.status?.jointInformation ?? {
+    submitted: false,
+    submittedBy: null,
+    locked: false,
+  };
+  const approval = currentCase?.approval ?? {
+    user1Approved: false,
+    user2Approved: false,
+    disapprovedBy: null,
+    disapprovalReason: null,
+  };
+
+  const submittedById = jointStatus.submittedBy ? String(jointStatus.submittedBy) : null;
+  const hasBeenSubmittedBefore = submittedById !== null;
+
+  const canEditForm =
+    !jointStatus.locked &&
+    !jointStatus.submitted &&
+    (submittedById === null ? isOwner : submittedById === myId);
+
+  const iAmWaitingForReview =
+    !jointStatus.locked && jointStatus.submitted && submittedById === myId;
+
+  const isMyTurnToApprove =
+    !jointStatus.locked &&
+    jointStatus.submitted &&
+    submittedById !== myId &&
+    hasBeenSubmittedBefore;
+
+  const isWaitingOnPartnerToAct =
+    !jointStatus.locked && !jointStatus.submitted && submittedById !== myId;
+
+  const editingAfterMyOwnDisapproval =
+    canEditForm &&
+    (approval as any)?.disapprovedBy &&
+    String((approval as any).disapprovedBy) === myId;
 
   const [hasSharedDebts, setHasSharedDebts] = useState<YesNo>("No");
   const [sharedDebts, setSharedDebts] = useState<SharedDebtRow[]>([]);
-  const [submitted, setSubmitted] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
-  const [approved, setApproved] = useState(false);
-  const [approveError, setApproveError] = useState("");
+  const [isDisapproving, setIsDisapproving] = useState(false);
+  const [disapproveReason, setDisapproveReason] = useState("");
+  const [actionError, setActionError] = useState<string | null>(null);
 
-  const handleToggle = makeToggleHandler(setHasSharedDebts, setSharedDebts, makeSharedDebtRow);
+  const handleToggle = makeToggleHandler(
+    setHasSharedDebts,
+    setSharedDebts,
+    makeSharedDebtRow,
+  );
+
+  useEffect(() => {
+    const jointLiabilities = (currentCase?.jointInformation as any)?.jointLiabilitiesAndDebts;
+    if (jointLiabilities) {
+      setHasSharedDebts(jointLiabilities?.hasSharedDebts ?? "No");
+      setSharedDebts(
+        Array.isArray(jointLiabilities?.sharedDebts) ? jointLiabilities?.sharedDebts : [],
+      );
+    }
+  }, [currentCase?.jointInformation]);
+
+  const refreshCase = async () => {
+    if (caseId) {
+      await dispatch(getCasesDetails(caseId));
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    const payload = {
-      hasSharedDebts,
-      sharedDebts,
-    };
-
+    setIsSubmitting(true);
+    setActionError(null);
     try {
-      const { data } = await Axios.post(
+      await Axios.post(
         `/cases/${caseId}/questionnaire/joint-liabilities-and-debts`,
-        payload
+        { hasSharedDebts, sharedDebts },
       );
-
-      setSubmitted(true);
+      await refreshCase();
       onContinue?.();
     } catch (error) {
       console.error("Error saving shared liabilities:", error);
+      setActionError("Something went wrong saving your changes. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleApprove = async () => {
     setIsApproving(true);
-    setApproveError("");
+    setActionError(null);
     try {
-      await Axios.post(`/cases/${caseId}/approve-and-generate`);
-      setApproved(true);
+      await Axios.post(`/cases/${caseId}/approve`);
+      
+      await Axios.post(`/agreement/${caseId}/document/generate`); 
+      dispatch(
+        updateApproval(
+          isOwner ? { user1Approved: true } : { user2Approved: true },
+        ),
+      );
+
+      await refreshCase();
     } catch (error) {
-      console.error("Error approving agreement:", error);
-      setApproveError("Something went wrong while approving. Please try again.");
+      console.error("Error approving:", error);
+      setActionError("Couldn't approve right now. Please try again.");
     } finally {
       setIsApproving(false);
     }
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const {
-          data: { data },
-        } = await Axios.get(`/cases/${caseId}/section/jointInformation`);
+  const handleDisapprove = async () => {
+    setIsDisapproving(true);
+    setActionError(null);
+    try {
+      await Axios.post(`/cases/${caseId}/reject`, { reason: disapproveReason });
 
-        const jointLiabilities = data?.jointLiabilitiesAndDebts;
-        if (!jointLiabilities) return;
+      // Ball now sits with ME, the rejecter — I'm the one who edits next.
+      dispatch(
+        updateJointInformationStatus({
+          submitted: false,
+          submittedBy: myId ?? null,
+        }),
+      );
+      dispatch(
+        updateApproval({
+          user1Approved: false,
+          user2Approved: false,
+          disapprovedBy: myId ?? null,
+          disapprovalReason: disapproveReason || null,
+        } as any),
+      );
 
-        setHasSharedDebts(jointLiabilities.hasSharedDebts ?? "No");
-        setSharedDebts(
-          Array.isArray(jointLiabilities.sharedDebts) ? jointLiabilities.sharedDebts : []
-        );
-      } catch (error) {
-        console.error("Error fetching shared liabilities:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (caseId) {
-      fetchData();
-    } else {
-      setIsLoading(false);
+      setDisapproveReason("");
+      await refreshCase();
+    } catch (error) {
+      console.error("Error disapproving:", error);
+      setActionError("Couldn't disapprove right now. Please try again.");
+    } finally {
+      setIsDisapproving(false);
     }
-  }, [caseId]);
+  };
 
-  if (isLoading) {
+  if (!currentCase || currentCase.isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-100">
         <p className="text-sm font-medium text-slate-500">Loading your information...</p>
@@ -137,8 +219,9 @@ export default function SharedLiabilitiesForm({ onContinue }: SharedLiabilitiesF
       </PartHeader>
       <div className="mb-4">
         <label className="mb-2 block text-[0.95rem] font-semibold text-slate-800">
-          Do you and your partner jointly hold any liabilities, including mortgages, loans, credit cards,
-          finance agreements or other financial obligations?
+          Do you and your partner jointly hold any liabilities, including
+          mortgages, loans, credit cards, finance agreements or other financial
+          obligations?
         </label>
         <YesNoToggle name="has_shared_debts" value={hasSharedDebts} onChange={handleToggle} />
       </div>
@@ -201,6 +284,44 @@ export default function SharedLiabilitiesForm({ onContinue }: SharedLiabilitiesF
     </>
   );
 
+  const statusBanner = () => {
+    if (jointStatus.locked) {
+      return (
+        <p className="mb-6 rounded-lg bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+          Both parties have approved. This section is now locked.
+        </p>
+      );
+    }
+
+    if (iAmWaitingForReview) {
+      return (
+        <p className="mb-6 rounded-lg bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700">
+          Submitted. Waiting for your partner to review and approve.
+        </p>
+      );
+    }
+
+    if (editingAfterMyOwnDisapproval) {
+      return (
+        <p className="mb-6 rounded-lg bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+          You disapproved this section. Update the details below and submit it for your partner's approval.
+        </p>
+      );
+    }
+
+    if (isWaitingOnPartnerToAct) {
+      return (
+        <p className="mb-6 rounded-lg bg-slate-50 px-4 py-3 text-sm font-medium text-slate-600">
+          {jointStatus.submittedBy === null
+            ? "Waiting for the case owner to submit this section."
+            : "Your partner disapproved this section and is updating it now. Waiting for their resubmission."}
+        </p>
+      );
+    }
+
+    return null;
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 px-5 py-10">
       <div className="mx-auto max-w-4xl">
@@ -209,51 +330,64 @@ export default function SharedLiabilitiesForm({ onContinue }: SharedLiabilitiesF
             Shared Liabilities & Outstanding Debts
           </h2>
           <p className="mb-8 text-[0.95rem] leading-relaxed text-slate-500">
-            {isOwner
-              ? "Please declare any liabilities, loans or financial obligations that you and your partner hold jointly and specify how they should be treated under your prenuptial agreement."
-              : "Your partner has declared the following joint liabilities. Please review and approve to finalize your agreement."}
+            Please declare any liabilities, loans or financial obligations that
+            you and your partner hold jointly and specify how they should be
+            treated under your prenuptial agreement.
           </p>
 
-          {isOwner ? (
+          {statusBanner()}
+          {actionError && (
+            <p className="mb-4 text-sm font-medium text-red-500">{actionError}</p>
+          )}
+
+          {canEditForm ? (
             <form onSubmit={handleSubmit} noValidate>
               {formBody}
-
               <div className="flex justify-end">
                 <button
                   type="submit"
-                  className="mt-8 rounded-[10px] bg-indigo-600 px-10 py-3.5 font-semibold text-white shadow-[0_4px_12px_rgba(79,70,229,0.2)] transition hover:bg-indigo-700"
+                  disabled={isSubmitting}
+                  className="mt-8 rounded-[10px] bg-indigo-600 px-10 py-3.5 font-semibold text-white shadow-[0_4px_12px_rgba(79,70,229,0.2)] transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  Save and send approval
+                  {isSubmitting ? "Submitting..." : editingAfterMyOwnDisapproval ? "Resubmit" : "Submit"}
                 </button>
               </div>
             </form>
           ) : (
-            <div>
-              <fieldset disabled className="border-0 p-0 m-0">
-                {formBody}
-              </fieldset>
+            <fieldset disabled className="border-0 p-0 m-0">
+              {formBody}
+            </fieldset>
+          )}
 
-              <div className="mt-8 flex flex-col items-end gap-3">
-                {approveError && (
-                  <p className="text-sm font-medium text-red-500">{approveError}</p>
-                )}
+          {isMyTurnToApprove && (
+            <div className="mt-8 flex flex-col items-end gap-3">
+              <textarea
+                value={disapproveReason}
+                onChange={(e) => setDisapproveReason(e.target.value)}
+                placeholder="Optional: let your partner know what to change"
+                rows={2}
+                className={`${inputClasses} w-full`}
+              />
+              <div className="flex gap-4">
                 <button
                   type="button"
-                  disabled={isApproving || approved}
+                  disabled={isApproving || isDisapproving}
                   onClick={handleApprove}
-                  className={`rounded-[10px] px-10 py-3.5 font-semibold text-white shadow-[0_4px_12px_rgba(79,70,229,0.2)] transition ${
-                    approved
-                      ? "cursor-not-allowed bg-emerald-600"
-                      : "bg-indigo-600 hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-70"
-                  }`}
+                  className="rounded-[10px] bg-indigo-600 px-10 py-3.5 font-semibold text-white shadow-[0_4px_12px_rgba(79,70,229,0.2)] transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  {approved ? "Approved ✓" : isApproving ? "Approving..." : "Approve Agreement"}
+                  {isApproving ? "Approving..." : "Approve"}
+                </button>
+                <button
+                  type="button"
+                  disabled={isApproving || isDisapproving}
+                  onClick={handleDisapprove}
+                  className="rounded-[10px] bg-red-600 px-10 py-3.5 font-semibold text-white shadow-[0_4px_12px_rgba(220,38,38,0.2)] transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isDisapproving ? "Disapproving..." : "Disapprove"}
                 </button>
               </div>
             </div>
           )}
-
-          {submitted && <p className="mt-4 text-right text-sm text-emerald-600">Saved. Ready for the next module.</p>}
         </div>
       </div>
     </div>
