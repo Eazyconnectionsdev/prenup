@@ -1,16 +1,8 @@
 'use client';
 
 import React from 'react';
-import { AgreementOption } from '@/types/onboarding';
-
-interface ServiceOverviewProps {
-  selectedOption: AgreementOption;
-  resideChecked: boolean;
-  understandChecked: boolean;
-  onResideChange: (checked: boolean) => void;
-  onUnderstandChange: (checked: boolean) => void;
-  onContinue: () => void;
-}
+import type { AgreementOption } from "@/types/onboarding";
+import type { ServiceOverviewProps } from "@/types/onboarding/service-overview";
 
 export const ServiceOverview: React.FC<ServiceOverviewProps> = ({
   selectedOption,

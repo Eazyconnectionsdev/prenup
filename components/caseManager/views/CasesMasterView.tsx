@@ -4,28 +4,9 @@ import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Eye, RotateCcw, Filter } from "lucide-react";
 import Axios from "@/lib/ApiConfig";
-import { FilterState } from "@/types/case-manager";
 import { useRouter } from "next/navigation";
-
-interface CasesMasterViewProps {
-  filters: FilterState;
-  onFilterChange: (
-    key: keyof FilterState,
-    val: string
-  ) => void;
-  onResetFilters: () => void;
-  onSelectCase: (caseId: string) => void;
-}
-
-interface RowCase {
-  id: string;
-  p1: string;
-  p2: string;
-  cmView: string;
-  owner: string;
-  priority: string;
-  daysInStatus: number;
-}
+import type { FilterState } from "@/types/case-manager";
+import type { CasesMasterViewProps, RowCase } from "@/types/case-manager/cases-master-view";
 
 export const CasesMasterView: React.FC<CasesMasterViewProps> = ({
   filters,

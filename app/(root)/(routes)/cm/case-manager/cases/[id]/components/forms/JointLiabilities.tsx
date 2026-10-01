@@ -2,33 +2,7 @@
 
 import React from "react";
 import { Plus, Trash2 } from "lucide-react";
-
-interface Props {
-  data: any;
-  isEditing: boolean;
-  onChange: (field: string, value: any) => void;
-}
-
-type YesNo = "Yes" | "No";
-
-type Treatment =
-  | ""
-  | "KeepSeparate"
-  | "ShareEqually"
-  | "Contribution"
-  | "Percentage"
-  | "Custom";
-
-interface LiabilityRow {
-  id: string;
-  lenderName: string;
-  liabilityType: string;
-  outstandingBalance: string;
-  treatment: Treatment;
-  contributionText: string;
-  percentageValue: string;
-  customText: string;
-}
+import type { LiabilityRow, Props, Treatment, YesNo } from "@/types/case-detail/forms/joint-liabilities";
 
 const liabilityTypes = [
   "Mortgage",

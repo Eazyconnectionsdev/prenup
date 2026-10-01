@@ -3,19 +3,7 @@
 
 import React from "react";
 import { Plus, Trash2 } from "lucide-react";
-
-interface Child {
-  id: string;
-  fullName: string;
-  dob: string;
-  parentalRelationship: string;
-}
-
-interface Props {
-  data: any;
-  isEditing: boolean;
-  onChange: (field: string, value: any) => void;
-}
+import type { Child, Props } from "@/types/case-detail/forms/family-dependents";
 
 export default function FamilyDependents({
   data = {},

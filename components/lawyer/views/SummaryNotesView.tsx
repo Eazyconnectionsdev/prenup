@@ -2,13 +2,8 @@
 
 import React, { useMemo, useState } from 'react';
 import { Eye, ShieldAlert } from 'lucide-react';
-import { LawyerCase, LawyerPersona } from '../../../types/lawyer-portal';
-
-interface SummaryNotesViewProps {
-  cases: LawyerCase[];
-  activePersona: LawyerPersona;
-  onSelectCase: (caseId: string) => void;
-}
+import type { LawyerCase, LawyerPersona } from "@/types/lawyer";
+import type { SummaryNotesViewProps } from "@/types/lawyer/summary-notes-view";
 
 export const SummaryNotesView: React.FC<SummaryNotesViewProps> = ({
   cases,

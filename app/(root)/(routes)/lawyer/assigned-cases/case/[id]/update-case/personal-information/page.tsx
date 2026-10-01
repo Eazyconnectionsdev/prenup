@@ -4,23 +4,7 @@ import React, { useState, ChangeEvent, FormEvent } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
 import Axios from "@/lib/ApiConfig";
-
-
-interface FormData {
-  firstName: string;
-  middleName: string;
-  lastName: string;
-  dateOfBirth: string;
-  languageFluency: string;
-  nationality: string;
-  domicileStatus: string;
-  currentProfession: string;
-  street1: string;
-  city: string;
-  county: string;
-  postcode: string;
-  marriageDate: string;
-}
+import type { FormData } from "@/types/case-detail/update-case/personal-information";
 
 const initialFormData: FormData = {
   firstName: "",

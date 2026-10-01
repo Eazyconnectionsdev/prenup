@@ -3,33 +3,7 @@
 
 import React from "react";
 import { Plus, Trash2 } from "lucide-react";
-
-interface Props {
-  data: any;
-  isEditing: boolean;
-  onChange: (field: string, value: any) => void;
-}
-
-type Treatment =
-  | ""
-  | "KeepSeparate"
-  | "ShareEqually"
-  | "Contribution"
-  | "Percentage"
-  | "Custom";
-
-interface TreatmentFields {
-  treatment?: Treatment;
-  contributionText?: string;
-  percentageValue?: string;
-  customText?: string;
-}
-
-interface IncomeRow extends TreatmentFields {
-  id: string;
-  description: string;
-  amount: string;
-}
+import type { IncomeRow, Props, Treatment, TreatmentFields } from "@/types/case-detail/forms/income-revenue";
 
 const treatmentOptions: {
   value: Treatment;

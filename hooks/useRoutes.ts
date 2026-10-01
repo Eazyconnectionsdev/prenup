@@ -8,22 +8,7 @@ import { IoIosCard, IoMdHelpCircle } from "react-icons/io";
 import { FaCircleUser } from "react-icons/fa6";
 import { MouseEventHandler } from "react";
 import { GoHomeFill } from "react-icons/go";
-
-type RouteType = {
-  label: string;
-  href: string | null;
-  icon?: any;
-  disbaled?: boolean;
-  isActive?: boolean;
-  onclick?: MouseEventHandler<HTMLButtonElement>;
-  subMenu?: Array<{
-    label: string;
-    isCompleted?: boolean;
-    href: string;
-    disbaled?: boolean;
-    isActive: boolean;
-  }> | null;
-};
+import type { RouteType } from "@/types/hooks/use-routes";
 
 export const useRoutes = () => {
   const pathname = usePathname();

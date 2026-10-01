@@ -2,8 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import {
-  YesNo,
-  TreatmentFields,
   emptyTreatment,
   makeId,
   inputClasses,
@@ -12,7 +10,6 @@ import {
   MatrixBox,
   RowItem,
   TreatmentSelect,
-  Treatment,
   makeToggleHandler,
   updateRow,
   removeRow,
@@ -20,8 +17,14 @@ import {
 import { useSelector, useDispatch } from "react-redux";
 import { RootState, AppDispatch } from "@/store/store";
 import Axios from "@/lib/ApiConfig";
+import { toast } from "react-toastify";
+import { getErrorMessage } from "@/lib/api/http-error";
 import { getCasesDetails } from "@/store/asyncThunk/casesThunk";
 import { updateApproval, updateJointInformationStatus } from "@/store/slices/casesSlice";
+import { useJointSectionStatus } from "@/hooks/useJointSectionStatus";
+import { JointStatusBanner } from "@/components/joint/JointStatusBanner";
+import type { Treatment, YesNo } from "@/types/forms/form-primitives";
+import type { SharedDebtRow, SharedLiabilitiesFormProps } from "@/types/dashboard/joint-liabilities-debts";
 
 const sharedTreatmentOptions: { value: Treatment; label: string }[] = [
   { value: "ShareEqually", label: "Share Equally (50/50)" },
@@ -29,13 +32,6 @@ const sharedTreatmentOptions: { value: Treatment; label: string }[] = [
   { value: "Percentage", label: "Share by Percentage" },
   { value: "Custom", label: "Custom Arrangement" },
 ];
-
-interface SharedDebtRow extends TreatmentFields {
-  id: string;
-  lenderName: string;
-  liabilityType: string;
-  outstandingBalance: string;
-}
 
 function makeSharedDebtRow(): SharedDebtRow {
   return {
@@ -47,59 +43,21 @@ function makeSharedDebtRow(): SharedDebtRow {
   };
 }
 
-interface SharedLiabilitiesFormProps {
-  onContinue?: () => void;
-}
-
 export default function SharedLiabilitiesForm({
   onContinue,
 }: SharedLiabilitiesFormProps = {}) {
   const dispatch = useDispatch<AppDispatch>();
-  const user = useSelector((state: RootState) => state.auth.user);
   const caseId = useSelector((state: RootState) => state.auth.caseId);
   const currentCase = useSelector((state: RootState) => state.cases);
 
-  const myId: string | undefined = user?._id;
-
-  const ownerId = currentCase?.owner?._id ? String(currentCase.owner._id) : null;
-  const isOwner = !!myId && ownerId === myId;
-
-  const jointStatus = currentCase?.status?.jointInformation ?? {
-    submitted: false,
-    submittedBy: null,
-    locked: false,
-  };
-  const approval = currentCase?.approval ?? {
-    user1Approved: false,
-    user2Approved: false,
-    disapprovedBy: null,
-    disapprovalReason: null,
-  };
-
-  const submittedById = jointStatus.submittedBy ? String(jointStatus.submittedBy) : null;
-  const hasBeenSubmittedBefore = submittedById !== null;
-
-  const canEditForm =
-    !jointStatus.locked &&
-    !jointStatus.submitted &&
-    (submittedById === null ? isOwner : submittedById === myId);
-
-  const iAmWaitingForReview =
-    !jointStatus.locked && jointStatus.submitted && submittedById === myId;
-
-  const isMyTurnToApprove =
-    !jointStatus.locked &&
-    jointStatus.submitted &&
-    submittedById !== myId &&
-    hasBeenSubmittedBefore;
-
-  const isWaitingOnPartnerToAct =
-    !jointStatus.locked && !jointStatus.submitted && submittedById !== myId;
-
-  const editingAfterMyOwnDisapproval =
-    canEditForm &&
-    (approval as any)?.disapprovedBy &&
-    String((approval as any).disapprovedBy) === myId;
+  // Review only starts once all three joint forms are submitted (see hook)
+  const {
+    myId,
+    isOwner,
+    canEdit: canEditForm,
+    isMyTurnToApprove,
+    iDisapproved: editingAfterMyOwnDisapproval,
+  } = useJointSectionStatus();
 
   const [hasSharedDebts, setHasSharedDebts] = useState<YesNo>("No");
   const [sharedDebts, setSharedDebts] = useState<SharedDebtRow[]>([]);
@@ -131,7 +89,7 @@ export default function SharedLiabilitiesForm({
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
     setActionError(null);
@@ -155,19 +113,24 @@ export default function SharedLiabilitiesForm({
     setActionError(null);
     try {
       await Axios.post(`/cases/${caseId}/approve`);
-      
-      await Axios.post(`/agreement/${caseId}/document/generate`); 
-      dispatch(
-        updateApproval(
-          isOwner ? { user1Approved: true } : { user2Approved: true },
-        ),
-      );
-
-      await refreshCase();
     } catch (error) {
-      console.error("Error approving:", error);
-      setActionError("Couldn't approve right now. Please try again.");
+      setActionError(getErrorMessage(error, "Couldn't approve right now. Please try again."));
+      setIsApproving(false);
+      return;
+    }
+
+    // The approval is saved at this point; a failed document generation must not
+    // leave the Approve button on screen (a second approve would be rejected)
+    dispatch(updateApproval(isOwner ? { user1Approved: true } : { user2Approved: true }));
+    try {
+      await Axios.post(`/agreement/${caseId}/document/generate`);
+      toast.success("Approved. Your agreement draft has been generated.");
+    } catch (error) {
+      toast.error(
+        getErrorMessage(error, "Approved, but the agreement document couldn't be generated."),
+      );
     } finally {
+      await refreshCase();
       setIsApproving(false);
     }
   };
@@ -178,7 +141,6 @@ export default function SharedLiabilitiesForm({
     try {
       await Axios.post(`/cases/${caseId}/reject`, { reason: disapproveReason });
 
-      // Ball now sits with ME, the rejecter — I'm the one who edits next.
       dispatch(
         updateJointInformationStatus({
           submitted: false,
@@ -284,44 +246,6 @@ export default function SharedLiabilitiesForm({
     </>
   );
 
-  const statusBanner = () => {
-    if (jointStatus.locked) {
-      return (
-        <p className="mb-6 rounded-lg bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
-          Both parties have approved. This section is now locked.
-        </p>
-      );
-    }
-
-    if (iAmWaitingForReview) {
-      return (
-        <p className="mb-6 rounded-lg bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700">
-          Submitted. Waiting for your partner to review and approve.
-        </p>
-      );
-    }
-
-    if (editingAfterMyOwnDisapproval) {
-      return (
-        <p className="mb-6 rounded-lg bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
-          You disapproved this section. Update the details below and submit it for your partner's approval.
-        </p>
-      );
-    }
-
-    if (isWaitingOnPartnerToAct) {
-      return (
-        <p className="mb-6 rounded-lg bg-slate-50 px-4 py-3 text-sm font-medium text-slate-600">
-          {jointStatus.submittedBy === null
-            ? "Waiting for the case owner to submit this section."
-            : "Your partner disapproved this section and is updating it now. Waiting for their resubmission."}
-        </p>
-      );
-    }
-
-    return null;
-  };
-
   return (
     <div className="min-h-screen bg-slate-100 px-5 py-10">
       <div className="mx-auto max-w-4xl">
@@ -335,7 +259,7 @@ export default function SharedLiabilitiesForm({
             treated under your prenuptial agreement.
           </p>
 
-          {statusBanner()}
+          <JointStatusBanner isReviewPage />
           {actionError && (
             <p className="mb-4 text-sm font-medium text-red-500">{actionError}</p>
           )}

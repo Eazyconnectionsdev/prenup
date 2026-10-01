@@ -2,15 +2,6 @@
 
 import React, { useState, useMemo, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import {
-  NavView,
-  CaseItem,
-  FilterState,
-  AuditLog,
-  RuleEntry,
-  ApiLogEntry,
-  ToastItem,
-} from "@/types/case-manager";
 import { CaseManagerSidebar } from "@/components/caseManager/CaseManagerSidebar";
 import { CaseManagerTopBar } from "@/components/caseManager/CaseManagerTopBar";
 import DashboardLedgerView from "@/components/caseManager/views/DashboardLedgerView";
@@ -21,7 +12,7 @@ import { CaseSlideDrawer } from "@/components/caseManager/drawer/CaseSlideDrawer
 import { ScorecardModal } from "@/components/caseManager/modals/ScorecardModal";
 import { CaseManagerAccountModal } from "@/components/caseManager/modals/CaseManagerAccountModal";
 import { ToastContainer } from "@/components/caseManager/ui/ToastContainer";
-
+import type { ApiLogEntry, AuditLog, CaseItem, FilterState, NavView, RuleEntry, ToastItem } from "@/types/case-manager";
 
 const MOCK_CASES: CaseItem[] = [
   // ── Existing cases (unchanged, just tagged with caseType) ──────────────

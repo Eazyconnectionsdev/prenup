@@ -3,41 +3,7 @@
 
 import React from "react";
 import { Plus, Trash2 } from "lucide-react";
-
-interface Props {
-  data: any;
-  isEditing: boolean;
-  onChange: (field: string, value: any) => void;
-}
-
-type Treatment =
-  | ""
-  | "KeepSeparate"
-  | "ShareEqually"
-  | "Contribution"
-  | "Percentage"
-  | "Custom";
-
-interface TreatmentFields {
-  treatment?: Treatment;
-  contributionText?: string;
-  percentageValue?: string;
-  customText?: string;
-}
-
-interface DebtRow extends TreatmentFields {
-  id: string;
-  lenderName: string;
-  debtType: string;
-  outstandingBalance: string;
-}
-
-interface MaintenanceRow extends TreatmentFields {
-  id: string;
-  dependentLink: string;
-  monthlyPayment: string;
-  projectedEndDate: string;
-}
+import type { DebtRow, MaintenanceRow, Props, Treatment, TreatmentFields, TreatmentSelectProps } from "@/types/case-detail/forms/liabilities-debts";
 
 const inputClass =
   "w-full rounded-[10px] border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 transition focus:border-indigo-600 focus:outline-none focus:ring-4 focus:ring-indigo-600/10 disabled:bg-slate-100 disabled:text-slate-500";
@@ -106,13 +72,6 @@ function makeMaintenanceRow(): MaintenanceRow {
 /* ---------------------------------------------------------------------- */
 /* Treatment component                                                     */
 /* ---------------------------------------------------------------------- */
-
-interface TreatmentSelectProps {
-  fields: TreatmentFields;
-  disabled?: boolean;
-  label?: string;
-  onChange: (fields: TreatmentFields) => void;
-}
 
 function TreatmentSelect({
   fields,

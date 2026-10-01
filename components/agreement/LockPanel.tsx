@@ -2,19 +2,8 @@
 
 import { Lock, Info } from "lucide-react";
 import { formatVersionDate } from "@/lib/utils";
-import type { LockStatus } from "@/types/types-agreement";
-
-interface LockPanelProps {
-  lockStatus: LockStatus | null;
-  lockStatusError: string | null;
-  onRetryLockStatus: () => void;
-  isCheckingOut: boolean;
-  checkOutError: string | null;
-  onCheckOut: () => void;
-  isCheckingIn: boolean;
-  checkInError: string | null;
-  onCheckIn: () => void;
-}
+import type { LockStatus } from "@/types/agreement";
+import type { LockPanelProps } from "@/types/agreement/lock-panel";
 
 export function LockPanel({
   lockStatus,

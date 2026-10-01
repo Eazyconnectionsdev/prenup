@@ -3,8 +3,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { LawyerSidebar } from "@/components/lawyer/LawyerSidebar";
 import { LawyerTopBar } from "@/components/lawyer/LawyerTopBar";
-import { LawyerCase } from "@/types/lawyer-portal";
 import Axios from "@/lib/ApiConfig";
+import type { LawyerCase } from "@/types/lawyer";
 
 const LawyerPage = () => {
   const [cases, setCases] = useState<LawyerCase[]>([]);

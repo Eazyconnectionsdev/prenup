@@ -1,12 +1,7 @@
 "use client";
 
 import React from "react";
-
-interface Props {
-  data: any;
-  isEditing: boolean;
-  onChange: (field: string, value: any) => void;
-}
+import type { Props } from "@/types/case-detail/forms/legal-declarations";
 
 const firstPersonRegex = /\b(I|me|my|myself|we|us|our)\b/i;
 

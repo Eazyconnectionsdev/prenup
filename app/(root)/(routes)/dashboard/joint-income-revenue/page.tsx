@@ -2,8 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import {
-  YesNo,
-  TreatmentFields,
   emptyTreatment,
   makeId,
   inputClasses,
@@ -12,14 +10,20 @@ import {
   MatrixBox,
   RowItem,
   TreatmentSelect,
-  Treatment,
   makeToggleHandler,
   updateRow,
   removeRow,
 } from "@/components/Formprimitives";
-import { useSelector } from "react-redux";
-import { RootState } from "@/store/store";
+import { useDispatch, useSelector } from "react-redux";
+import { toast } from "react-toastify";
+import { AppDispatch, RootState } from "@/store/store";
 import Axios from "@/lib/ApiConfig";
+import { getErrorMessage } from "@/lib/api/http-error";
+import { getCasesDetails } from "@/store/asyncThunk/casesThunk";
+import { useJointSectionStatus } from "@/hooks/useJointSectionStatus";
+import { JointStatusBanner } from "@/components/joint/JointStatusBanner";
+import type { Treatment, TreatmentFields, YesNo } from "@/types/forms/form-primitives";
+import type { SharedIncomeFormProps, SharedIncomeRow } from "@/types/dashboard/joint-income-revenue";
 
 const sharedTreatmentOptions: { value: Treatment; label: string }[] = [
   { value: "ShareEqually", label: "Share Equally (50/50)" },
@@ -28,23 +32,15 @@ const sharedTreatmentOptions: { value: Treatment; label: string }[] = [
   { value: "Custom", label: "Custom Arrangement" },
 ];
 
-interface SharedIncomeRow extends TreatmentFields {
-  id: string;
-  description: string;
-  source: string;
-  annualIncome: string;
-}
-
 function makeSharedIncomeRow(): SharedIncomeRow {
   return { id: makeId("sinc"), description: "", source: "", annualIncome: "", ...emptyTreatment };
 }
 
-interface SharedIncomeFormProps {
-  onContinue?: () => void;
-}
-
 export default function SharedIncomeForm({ onContinue }: SharedIncomeFormProps = {}) {
+  const dispatch = useDispatch<AppDispatch>();
   const caseId = useSelector((state: RootState) => state.auth.caseId);
+  // Read-only unless it's this user's turn to edit the joint section
+  const { canEdit } = useJointSectionStatus();
 
   const [hasSharedIncome, setHasSharedIncome] = useState<YesNo>("No");
   const [sharedIncomeRows, setSharedIncomeRows] = useState<SharedIncomeRow[]>([]);
@@ -53,7 +49,7 @@ export default function SharedIncomeForm({ onContinue }: SharedIncomeFormProps =
 
   const handleToggle = makeToggleHandler(setHasSharedIncome, setSharedIncomeRows, makeSharedIncomeRow);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     const payload = {
@@ -62,15 +58,14 @@ export default function SharedIncomeForm({ onContinue }: SharedIncomeFormProps =
     };
 
     try {
-      const { data } = await Axios.post(
-        `/cases/${caseId}/questionnaire/joint-income-and-revenue`,
-        payload
-      );
-
+      await Axios.post(`/cases/${caseId}/questionnaire/joint-income-and-revenue`, payload);
       setSubmitted(true);
+      toast.success("Joint income saved.");
+      // Refresh so the sidebar tick turns green
+      if (caseId) dispatch(getCasesDetails(caseId));
       onContinue?.();
     } catch (error) {
-      console.error("Error saving shared income:", error);
+      toast.error(getErrorMessage(error, "Couldn't save joint income."));
     }
   };
 
@@ -122,7 +117,10 @@ export default function SharedIncomeForm({ onContinue }: SharedIncomeFormProps =
             to be treated under your prenuptial agreement.
           </p>
 
+          <JointStatusBanner />
+
           <form onSubmit={handleSubmit} noValidate>
+            <fieldset disabled={!canEdit} className="m-0 min-w-0 border-0 p-0">
             <PartHeader tooltip="Declare any income that you and your partner receive jointly, such as rental income, business income, dividends, royalties, trust distributions or investment income.">
               Shared Income
             </PartHeader>
@@ -179,14 +177,18 @@ export default function SharedIncomeForm({ onContinue }: SharedIncomeFormProps =
               </MatrixBox>
             )}
 
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                className="mt-8 rounded-[10px] bg-indigo-600 px-10 py-3.5 font-semibold text-white shadow-[0_4px_12px_rgba(79,70,229,0.2)] transition hover:bg-indigo-700"
-              >
-                Save and Continue
-              </button>
-            </div>
+            </fieldset>
+
+            {canEdit && (
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  className="mt-8 rounded-[10px] bg-indigo-600 px-10 py-3.5 font-semibold text-white shadow-[0_4px_12px_rgba(79,70,229,0.2)] transition hover:bg-indigo-700"
+                >
+                  Save and Continue
+                </button>
+              </div>
+            )}
           </form>
 
           {submitted && <p className="mt-4 text-right text-sm text-emerald-600">Saved. Ready for Section 4c.</p>}

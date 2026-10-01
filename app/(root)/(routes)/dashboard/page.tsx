@@ -5,17 +5,7 @@ import { useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import { RootState } from "@/store/store";
 import { calculateOverallProgress } from "@/lib/progressCalculator";
-
-type StepId = "invite" | "questionnaire" | "disclosure";
-
-interface StepConfig {
-  id: StepId;
-  title: string;
-  description: string;
-  cta: string;
-  completedLabel: string;
-  icon: React.ReactNode;
-}
+import type { StepConfig, StepId } from "@/types/dashboard/dashboard-home";
 
 const steps: StepConfig[] = [
   {

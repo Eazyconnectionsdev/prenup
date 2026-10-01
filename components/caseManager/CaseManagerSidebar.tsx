@@ -1,15 +1,8 @@
 "use client";
 
 import React from 'react';
-import { NavView } from '@/types/case-manager';
-
-interface SidebarProps {
-  currentView: NavView;
-  onViewChange: (view: NavView) => void;
-  casesCount: number;
-  archivedCount: number;
-  onOpenAccountModal: () => void;
-}
+import type { NavView } from "@/types/case-manager";
+import type { SidebarProps } from "@/types/case-manager/case-manager-sidebar";
 
 export const CaseManagerSidebar: React.FC<SidebarProps> = ({
   currentView,

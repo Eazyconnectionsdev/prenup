@@ -2,8 +2,6 @@
 
 import React, { useState } from "react";
 import {
-  YesNo,
-  TreatmentFields,
   emptyTreatment,
   makeId,
   inputClasses,
@@ -12,11 +10,12 @@ import {
   MatrixBox,
   RowItem,
   TreatmentSelect,
-  Treatment,
   makeToggleHandler,
   updateRow,
   removeRow,
 } from "@/components/Formprimitives";
+import type { Treatment, TreatmentFields, YesNo } from "@/types/forms/form-primitives";
+import type { SharedDebtRow, SharedLiabilitiesFormProps } from "@/types/case-detail/update-case/joint-liabilities-debts";
 
 const sharedTreatmentOptions: { value: Treatment; label: string }[] = [
   { value: "ShareEqually", label: "Share Equally (50/50)" },
@@ -25,19 +24,8 @@ const sharedTreatmentOptions: { value: Treatment; label: string }[] = [
   { value: "Custom", label: "Custom Arrangement" },
 ];
 
-interface SharedDebtRow extends TreatmentFields {
-  id: string;
-  lenderName: string;
-  liabilityType: string;
-  outstandingBalance: string;
-}
-
 function makeSharedDebtRow(): SharedDebtRow {
   return { id: makeId("sdebt"), lenderName: "", liabilityType: "", outstandingBalance: "", ...emptyTreatment };
-}
-
-interface SharedLiabilitiesFormProps {
-  onContinue?: () => void;
 }
 
 export default function SharedLiabilitiesForm({ onContinue }: SharedLiabilitiesFormProps = {}) {

@@ -7,6 +7,7 @@ import { useParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
+import type { Inheritance } from "@/types/case-detail/update-case/future-assets";
 
 const HEADING = "Future Assets";
 const SUBTEXT =
@@ -26,13 +27,6 @@ export default function FutureAssetsPage() {
   const [answers, setAnswers] = useState<("yes" | "no" | null)[]>(() => Array(QUESTIONS.length).fill(null));
   const [willsHelp, setWillsHelp] = useState<"yes" | "no" | null>(null);
   
-
-  type Inheritance = {
-    originalAmount: string;
-    originalCurrency: string;
-    gbpEquivalent: string;
-    basisOfEstimate: string;
-  };
 
   const [inheritanceA, setInheritanceA] = useState<Inheritance>({
     originalAmount: "",

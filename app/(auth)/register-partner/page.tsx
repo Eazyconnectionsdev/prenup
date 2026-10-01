@@ -13,21 +13,7 @@ import EyeOff from "@/images/icons/eye-off.png";
 
 import { AppDispatch, RootState } from "@/store/store";
 import { acceptInvite } from "@/store/asyncThunk/authThunk";
-
-interface FormState {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  password: string;
-  confirmPassword: string;
-  acceptedTerms: boolean;
-}
-
-interface InviteData {
-  token: string;
-  caseId: string;
-}
+import type { FormState, InviteData } from "@/types/auth/register-partner";
 
 export default function RegisterPartnerPage() {
   const router = useRouter();

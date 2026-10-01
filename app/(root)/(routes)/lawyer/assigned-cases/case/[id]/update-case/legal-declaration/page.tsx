@@ -4,19 +4,7 @@ import React, { useState, ChangeEvent, FormEvent } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
 import Axios from "@/lib/ApiConfig";
-
-interface DeclarationsFormData {
-  agreementObjectives: string;
-  livingSituationFuture: string;
-  confirmPersonalEffects: boolean;
-  confirmHouseholdDivision: boolean;
-  acknowledgeCourtChildren: boolean;
-  confirmCostSharing: boolean;
-  confirmUndueInfluence: boolean;
-  confirmIla: boolean;
-  confirmPlatformDisclaimer: boolean;
-  confirmAccuracy: boolean;
-}
+import type { DeclarationsFormData, ToggleCardProps } from "@/types/case-detail/update-case/legal-declaration";
 
 const initialFormData: DeclarationsFormData = {
   agreementObjectives: "",
@@ -32,15 +20,6 @@ const initialFormData: DeclarationsFormData = {
 }
 
 const firstPersonRegex = /\b(I|me|my|myself|we|us|our)\b/i;
-
-interface ToggleCardProps {
-  id: string;
-  name: keyof DeclarationsFormData;
-  title: string;
-  description: string;
-  checked: boolean;
-  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
-}
 
 function ToggleCard({ id, name, title, description, checked, onChange }: ToggleCardProps) {
   return (

@@ -1,12 +1,7 @@
 "use client";
 
-import type { DiffParagraph, DiffWordPart } from "@/types/types-agreement";
-
-interface DiffViewerProps {
-  diff: DiffParagraph[];
-  leftLabel?: string;
-  rightLabel?: string;
-}
+import type { DiffParagraph, DiffWordPart } from "@/types/agreement";
+import type { DiffRow, DiffViewerProps } from "@/types/agreement/diff-viewer";
 
 function renderWords(words: DiffWordPart[], side: "left" | "right") {
   return words
@@ -28,18 +23,6 @@ function renderWords(words: DiffWordPart[], side: "left" | "right") {
         </span>
       );
     });
-}
-
-interface DiffRow {
-  key: string;
-  leftLineNo: number | null;
-  rightLineNo: number | null;
-  leftSign: "-" | null;
-  rightSign: "+" | null;
-  leftBg: string;
-  rightBg: string;
-  leftContent: React.ReactNode;
-  rightContent: React.ReactNode;
 }
 
 function buildRows(diff: DiffParagraph[]): DiffRow[] {

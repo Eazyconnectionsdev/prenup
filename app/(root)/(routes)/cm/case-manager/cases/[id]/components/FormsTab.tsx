@@ -28,12 +28,7 @@ import JointIncome from "./forms/JointIncome";
 import JointLiabilities from "./forms/JointLiabilities";
 
 import Axios from "@/lib/ApiConfig";
-
-interface Props {
-  caseData: any;
-  isCmEditing: boolean;
-  setIsCmEditing: (value: boolean) => void;
-}
+import type { ActiveJointSection, ActiveParty, ActiveSection, Props } from "@/types/case-detail/tabs/forms-tab";
 
 /**
  * Maps the UI form/route name to the structure used by
@@ -132,21 +127,6 @@ const STEP_MAP = {
 } as const;
 
 type StepKey = keyof typeof STEP_MAP;
-
-type ActiveParty = "user1" | "user2" | "joint";
-
-type ActiveSection =
-  | "personal"
-  | "legal"
-  | "family"
-  | "assets"
-  | "income"
-  | "liabilities";
-
-type ActiveJointSection =
-  | "assets"
-  | "income"
-  | "liabilities";
 
 export default function FormsViewTab({
   caseData,

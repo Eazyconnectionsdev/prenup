@@ -3,23 +3,7 @@ import React, { useState, ReactNode } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
 import Axios from "@/lib/ApiConfig";
-
-type YesNo = "Yes" | "No";
-
-type Treatment =
-  | ""
-  | "KeepSeparate"
-  | "ShareEqually"
-  | "Contribution"
-  | "Percentage"
-  | "Custom";
-
-interface TreatmentFields {
-  treatment: Treatment;
-  contributionText: string;
-  percentageValue: string;
-  customText: string;
-}
+import type { IncomeRow, Treatment, TreatmentFields, TreatmentSelectProps, YesNo, YesNoToggleProps } from "@/types/case-detail/update-case/income-revenue";
 
 const emptyTreatment: TreatmentFields = {
   treatment: "",
@@ -35,12 +19,6 @@ function makeId(prefix: string) {
 /* ---------------------------------------------------------------------- */
 /* Row types                                                                */
 /* ---------------------------------------------------------------------- */
-
-interface IncomeRow extends TreatmentFields {
-  id: string;
-  description: string;
-  amount: string;
-}
 
 function makeIncomeRow(): IncomeRow {
   return { id: makeId("row"), description: "", amount: "", ...emptyTreatment };
@@ -77,12 +55,6 @@ function PartHeader({ children, tooltip }: { children: ReactNode; tooltip?: stri
       {tooltip && <Tooltip text={tooltip} />}
     </div>
   );
-}
-
-interface YesNoToggleProps {
-  name: string;
-  value: YesNo;
-  onChange: (v: YesNo) => void;
 }
 
 function YesNoToggle({ name, value, onChange }: YesNoToggleProps) {
@@ -150,14 +122,6 @@ function RowItem({ children, onDelete }: { children: ReactNode; onDelete: () => 
       {children}
     </div>
   );
-}
-
-interface TreatmentSelectProps {
-  id: string;
-  fields: TreatmentFields;
-  onChange: (fields: TreatmentFields) => void;
-  label?: string;
-  options?: { value: Treatment; label: string }[];
 }
 
 const allTreatmentOptions: { value: Treatment; label: string }[] = [

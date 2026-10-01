@@ -1,16 +1,8 @@
 "use client";
 
 import React, { useMemo, useState } from 'react';
-import { LawyerCase, LawyerPersona, CaseStatus } from '../../../types/lawyer-portal';
-
-interface DashboardViewProps {
-  cases: LawyerCase[];
-  activePersona: LawyerPersona;
-  onSelectCase: (caseId: string) => void;
-  statusFilter: string;
-  onFilterChange: (filter: string) => void;
-  onCardClick: (filter: string) => void;
-}
+import type { CaseStatus, LawyerCase, LawyerPersona } from "@/types/lawyer";
+import type { DashboardViewProps } from "@/types/lawyer/dashboard-view";
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
   cases,

@@ -2,17 +2,9 @@
 
 import React from 'react';
 import { Search } from 'lucide-react';
-import { NavView } from '@/types/case-manager';
 import { useRouter } from 'next/navigation';
-
-interface TopBarProps {
-  currentView: NavView;
-  searchQuery: string;
-  onSearchChange: (query: string) => void;
-  onOpenScorecard: () => void;
-  onOpenAccountModal: () => void;
-  onViewChange?: (view: NavView) => void;
-}
+import type { NavView } from "@/types/case-manager";
+import type { TopBarProps } from "@/types/case-manager/case-manager-top-bar";
 
 const VIEW_TITLES: Record<NavView, string> = {
   dashboard: 'Dashboard Ledger',

@@ -3,24 +3,8 @@
 import { Minus, Plus, Maximize2, Copy } from "lucide-react";
 import PdfPreview from "./PdfPreview";
 import { formatVersionDate } from "@/lib/utils";
-import type { VersionDetail } from "@/types/types-agreement";
-
-interface DocumentViewerProps {
-  versionDetail: VersionDetail | null;
-  isLoading: boolean;
-  error: string | null;
-  onRetry: () => void;
-  showingPdf: boolean;
-  zoomLevel: number;
-  currentPage: number;
-  totalPages: number | null;
-  viewerRef: React.RefObject<HTMLDivElement | null>;
-  onZoomIn: () => void;
-  onZoomOut: () => void;
-  onToggleFullscreen: () => void;
-  downloadError: string | null;
-  onPageInfoChange: (info: { current: number; total: number | null }) => void;
-}
+import type { VersionDetail } from "@/types/agreement";
+import type { DocumentViewerProps } from "@/types/agreement/document-viewer";
 
 export function DocumentViewer({
   versionDetail,

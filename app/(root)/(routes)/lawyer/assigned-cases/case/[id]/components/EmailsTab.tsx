@@ -1,10 +1,7 @@
 "use client";
 
 import { Mail } from "lucide-react";
-
-interface Props {
-  caseData: any;
-}
+import type { Props } from "@/types/case-detail/tabs/emails-tab";
 
 export default function EmailsTab({
   caseData,

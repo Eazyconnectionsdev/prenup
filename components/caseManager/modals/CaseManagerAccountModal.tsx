@@ -15,12 +15,7 @@ import {
   Sliders,
   Award,
 } from 'lucide-react';
-
-interface AccountModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onShowToast: (msg: string, type?: 'info' | 'success' | 'warning') => void;
-}
+import type { AccountModalProps } from "@/types/case-manager/case-manager-account-modal";
 
 export const CaseManagerAccountModal: React.FC<AccountModalProps> = ({
   isOpen,

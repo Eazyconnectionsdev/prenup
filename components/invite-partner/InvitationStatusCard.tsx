@@ -1,13 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { PartnerData } from '@/types/invite-partner';
-
-interface InvitationStatusCardProps {
-  partnerData: PartnerData;
-  onResend: () => void;
-  onEdit: () => void;
-}
+import type { PartnerData } from "@/types/invite-partner";
+import type { InvitationStatusCardProps } from "@/types/invite-partner/invitation-status-card";
 
 export const InvitationStatusCard: React.FC<InvitationStatusCardProps> = ({
   partnerData,
