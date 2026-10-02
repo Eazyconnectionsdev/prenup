@@ -40,34 +40,11 @@ import {
   XCircle,
   Square,
 } from "lucide-react";
-import {
-  CaseItem,
-  DrawerTabId,
-  AuditLog,
-  LawFirmOption,
-} from "@/types/case-manager";
 import AgreementTab from "../tabs/AgreementTab";
 import OverViewTab from "../tabs/OverViewTab";
 import FormsDisclosuresTab from "../tabs/FormsDisclosuresTab";
-
-interface CaseSlideDrawerProps {
-  caseObj: CaseItem | null;
-  isOpen: boolean;
-  onClose: () => void;
-  auditLogs: AuditLog[];
-  onApprove: () => void;
-  onReturnToDraft: () => void;
-  onAssignLawyers: () => void;
-  onReplaceLawyer: () => void;
-  onSendReminder: () => void;
-  onRegenPdf: () => void;
-  onEscalate: () => void;
-  onArchive: () => void;
-  onSaveNote: (note: string) => void;
-  onRbacProhibitedTest: (actionName: string) => void;
-  onUpdateCase?: (updatedCase: CaseItem) => void;
-  onOpenPaymentModal?: () => void;
-}
+import type { AuditLog, CaseItem, DrawerTabId, LawFirmOption } from "@/types/case-manager";
+import type { CaseSlideDrawerProps } from "@/types/case-manager/case-slide-drawer";
 
 // FULL FIRMS & ATTORNEYS ROSTER DIRECTORY
 const FIRM_DIRECTORY: LawFirmOption[] = [

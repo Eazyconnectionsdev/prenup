@@ -2,13 +2,8 @@
 
 import React, { useMemo, useState } from 'react';
 import { Eye, ShieldAlert } from 'lucide-react';
-import { LawyerCase, LawyerPersona } from '../../../types/lawyer-portal';
-
-interface IlaCertificatesViewProps {
-  cases: LawyerCase[];
-  activePersona: LawyerPersona;
-  onSelectCase: (caseId: string) => void;
-}
+import type { LawyerCase, LawyerPersona } from "@/types/lawyer";
+import type { IlaCertificatesViewProps } from "@/types/lawyer/ila-certificates-view";
 
 export const IlaCertificatesView: React.FC<IlaCertificatesViewProps> = ({
   cases,

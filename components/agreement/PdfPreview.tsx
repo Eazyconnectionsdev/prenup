@@ -9,11 +9,6 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url,
 ).toString();
 
-interface PageInfo {
-  current: number;
-  total: number | null;
-}
-
 export default function PdfPreview({
   fileUrl,
   zoomLevel,

@@ -1,13 +1,8 @@
 "use client";
 
 import { formatVersionDate } from "@/lib/utils";
-import type { CaseDetails, VersionEntry } from "@/types/types-agreement";
-
-interface SummaryStripProps {
-  caseDetails: CaseDetails | null;
-  currentVersion: VersionEntry | undefined;
-  error: string | null;
-}
+import type { CaseDetails, VersionEntry } from "@/types/agreement";
+import type { SummaryStripProps } from "@/types/agreement/summary-strip";
 
 export function SummaryStrip({ caseDetails, currentVersion, error }: SummaryStripProps) {
   const cells = [

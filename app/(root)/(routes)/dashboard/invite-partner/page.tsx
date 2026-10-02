@@ -5,11 +5,11 @@ import { PartnerHeader } from "@/components/invite-partner/PartnerHeader";
 import { PartnerDetailsForm } from "@/components/invite-partner/PartnerDetailsForm";
 import { InvitationStatusCard } from "@/components/invite-partner/InvitationStatusCard";
 import { CaseTimeline } from "@/components/invite-partner/CaseTimeline";
-import { PartnerData, TimelineEvent } from "@/types/invite-partner";
 import Axios from "@/lib/ApiConfig";
 
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/store/store";
+import type { PartnerData, TimelineEvent } from "@/types/invite-partner";
 
 export default function InvitePartnerPage() {
   const { user } = useSelector((state: RootState) => state.auth);

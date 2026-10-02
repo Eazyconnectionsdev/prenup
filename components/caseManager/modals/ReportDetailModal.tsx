@@ -2,14 +2,8 @@
 
 import React from 'react';
 import { X, Lock, ShieldCheck, FileSpreadsheet } from 'lucide-react';
-import { ReportRowData } from '@/types/case-manager';
-
-interface ReportDetailModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  row: ReportRowData | null;
-  reportTitle: string;
-}
+import type { ReportRowData } from "@/types/case-manager";
+import type { ReportDetailModalProps } from "@/types/case-manager/report-detail-modal";
 
 export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
   isOpen,

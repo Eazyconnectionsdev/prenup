@@ -2,15 +2,7 @@
 
 import { createSlice } from "@reduxjs/toolkit";
 import { emailVerification, getFreshProfile, LoginUser, logOutUser, registerUser } from "@/store/asyncThunk/authThunk";
-
-interface authState {
-  isLoading: boolean;
-  isAuthenticated : boolean;
-  caseId: string | any;
-  user: { [key: string]: any };
-  message: string | null;
-  submitError: string | null;
-}
+import type { authState } from "@/types/store/auth-slice";
 
 const initialState: authState = {
   isLoading: false,

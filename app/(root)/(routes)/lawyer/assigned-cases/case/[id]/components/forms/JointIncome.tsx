@@ -2,33 +2,7 @@
 
 import React from "react";
 import { Plus, Trash2 } from "lucide-react";
-
-interface Props {
-  data: any;
-  isEditing: boolean;
-  onChange: (field: string, value: any) => void;
-}
-
-type YesNo = "Yes" | "No";
-
-type Treatment =
-  | ""
-  | "KeepSeparate"
-  | "ShareEqually"
-  | "Contribution"
-  | "Percentage"
-  | "Custom";
-
-interface IncomeRow {
-  id: string;
-  description: string;
-  source: string;
-  annualIncome: string;
-  treatment: Treatment;
-  contributionText: string;
-  percentageValue: string;
-  customText: string;
-}
+import type { IncomeRow, Props, Treatment, YesNo } from "@/types/case-detail/forms/joint-income";
 
 const TREATMENTS: {
   value: Treatment;

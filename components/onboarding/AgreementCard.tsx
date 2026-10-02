@@ -1,13 +1,8 @@
 'use client';
 
 import React from 'react';
-import { AgreementOption } from '@/types/onboarding';
-
-interface AgreementCardProps {
-  option: AgreementOption;
-  isSelected: boolean;
-  onSelect: (id: string) => void;
-}
+import type { AgreementOption } from "@/types/onboarding";
+import type { AgreementCardProps } from "@/types/onboarding/agreement-card";
 
 export const AgreementCard: React.FC<AgreementCardProps> = ({
   option,

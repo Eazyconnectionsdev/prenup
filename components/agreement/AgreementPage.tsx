@@ -22,16 +22,9 @@ import {
   compareDocumentVersions,
   fetchCaseDetails,
 } from "@/lib/api/agreement";
-
-import type {
-  CaseDetails,
-  VersionEntry,
-  VersionDetail,
-  LockStatus,
-  DiffParagraph,
-} from "@/types/types-agreement";
 import { Modal } from "../Modal";
 import { useParams } from "next/navigation";
+import type { CaseDetails, DiffParagraph, LockStatus, VersionDetail, VersionEntry } from "@/types/agreement";
 
 const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
 const DOCX_MIME =

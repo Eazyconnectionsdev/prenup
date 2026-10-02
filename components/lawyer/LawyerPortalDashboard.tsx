@@ -1,16 +1,6 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import {
-  LawyerCase,
-  NavView,
-  LawyerPersona,
-  AgreementVersion,
-  SummaryNote,
-  Appendix,
-  CaseStatus,
-  LawyerActionsWorkflowState,
-} from "../../types/lawyer-portal";
 import { LawyerSidebar } from "./LawyerSidebar";
 import { LawyerTopBar } from "./LawyerTopBar";
 import { DashboardView } from "./views/DashboardView";
@@ -24,6 +14,7 @@ import { AppendicesView } from "./views/AppendicesView";
 import { IlaCertificatesView } from "./views/IlaCertificatesView";
 import { LawyerCaseDrawer } from "./drawer/LawyerCaseDrawer";
 import { ScorecardModal } from "./modals/ScorecardModal";
+import type { AgreementVersion, Appendix, CaseStatus, LawyerActionsWorkflowState, LawyerCase, LawyerPersona, NavView, SummaryNote } from "@/types/lawyer";
 
 // Static client form templates
 const P1_FORM_MOCK = {

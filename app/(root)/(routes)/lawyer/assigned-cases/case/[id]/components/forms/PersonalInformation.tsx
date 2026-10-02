@@ -1,12 +1,7 @@
 "use client";
 
 import React from "react";
-
-interface Props {
-  data: any;
-  isEditing: boolean;
-  onChange: (field: string, value: any) => void;
-}
+import type { Props } from "@/types/case-detail/forms/personal-information";
 
 function calculateAge(dobValue: string): number | null {
   if (!dobValue) return null;

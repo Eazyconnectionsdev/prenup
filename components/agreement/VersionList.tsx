@@ -2,20 +2,8 @@
 
 import { SlidersHorizontal } from "lucide-react";
 import { formatVersionDate } from "@/lib/utils";
-import type { VersionEntry } from "@/types/types-agreement";
-
-interface VersionListProps {
-  versions: VersionEntry[];
-  selectedId: string | null;
-  onSelect: (id: string) => void;
-  error: string | null;
-  onRetry: () => void;
-  compareMode: boolean;
-  selectedForCompare: string[];
-  onToggleCompareSelect: (id: string) => void;
-  onCompareClick: () => void;
-  isComparing: boolean;
-}
+import type { VersionEntry } from "@/types/agreement";
+import type { VersionListProps } from "@/types/agreement/version-list";
 
 export function VersionList({
   versions,

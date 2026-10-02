@@ -2,11 +2,7 @@
 
 import React from 'react';
 import { X, Award, Clock, ShieldCheck, Activity, FolderCheck } from 'lucide-react';
-
-interface ScorecardModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
+import type { ScorecardModalProps } from "@/types/case-manager/scorecard-modal";
 
 export const ScorecardModal: React.FC<ScorecardModalProps> = ({
   isOpen,

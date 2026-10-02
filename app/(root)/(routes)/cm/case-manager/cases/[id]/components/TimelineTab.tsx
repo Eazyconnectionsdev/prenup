@@ -4,29 +4,7 @@
 import { useEffect, useState } from "react";
 import Axios from "@/lib/ApiConfig";
 import { Card, CardContent } from "@/components/ui/card";
-
-interface PerformedBy {
-  _id?: string;
-  email?: string;
-  firstName?: string;
-  middleName?: string;
-  lastName?: string;
-  suffix?: string | null;
-}
-
-interface TimelineItem {
-  _id?: string;
-  caseId?: string;
-  action?: string;
-  notes?: string;
-  performedBy?: PerformedBy | string | null;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-interface Props {
-  caseData: any;
-}
+import type { Props, TimelineItem } from "@/types/case-detail/tabs/timeline-tab";
 
 export default function TimelineTab({ caseData }: Props) {
   const caseId = caseData?._id;

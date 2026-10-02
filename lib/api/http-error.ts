@@ -1,17 +1,4 @@
-/**
- * Duck-types an Axios-style error without importing axios's runtime code,
- * so this file has zero dependencies beyond the shape it checks for.
- */
-interface AxiosErrorLike {
-  isAxiosError: true;
-  code?: string;
-  response?: {
-    status?: number;
-    data?: {
-      message?: string | string[];
-    };
-  };
-}
+import type { AxiosErrorLike } from "@/types/api/http-error";
 
 function isAxiosErrorLike(error: unknown): error is AxiosErrorLike {
   return (

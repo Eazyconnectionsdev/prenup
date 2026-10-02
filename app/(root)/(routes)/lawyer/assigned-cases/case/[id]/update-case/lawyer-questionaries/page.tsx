@@ -4,38 +4,7 @@ import React, { useState } from "react";
 import Axios from "@/lib/ApiConfig";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
-
-
-interface QuestionnaireData {
-  complianceParticipation: string;
-  compliancePurpose: string;
-  complianceFreeWill: string;
-  complianceLegalOpportunity: string;
-  weddingTimingAssessment: string;
-
-  complianceRadmacherUnderstanding: string;
-  complianceCourtDiscretion: string;
-  complianceFinancialImpact: string;
-  compliancePodeUtilization: string;
-
-  userAge: string;
-  partnerAge: string;
-  relationshipDuration: string;
-  medicalExists: string;
-  medicalDetails: string;
-  housingNeeds: string;
-  incomeNeeds: string;
-  pensionNeeds: string;
-
-  complianceDisclosureScope: string;
-  complianceDigitalAssets: string;
-  complianceDigitalAssetsDetails: string;
-  complianceCorporateRestrictions: string;
-  complianceCorporateRestrictionsDetails: string;
-  complianceWorldwideScope: string;
-  complianceDataAccuracy: string;
-  finalDeclarationSignature: boolean;
-}
+import type { LawyerQuestionnaireFormProps, QuestionnaireData, SelectFieldProps } from "@/types/case-detail/update-case/lawyer-questionaries";
 
 const initialData: QuestionnaireData = {
   complianceParticipation: "",
@@ -116,20 +85,6 @@ function QuestionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-interface SelectOption {
-  value: string;
-  label: string;
-}
-
-interface SelectFieldProps {
-  name: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: SelectOption[];
-  placeholder?: string;
-  required?: boolean;
-}
-
 function SelectField({
   name,
   value,
@@ -195,10 +150,6 @@ function ContextCaption({ children }: { children: React.ReactNode }) {
 /* ---------------------------------------------------------------------- */
 /* Main component                                                          */
 /* ---------------------------------------------------------------------- */
-
-interface LawyerQuestionnaireFormProps {
-  onContinue?: () => void;
-}
 
 export default function LawyerQuestionnaire({
   onContinue,

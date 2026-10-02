@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import {
-  TreatmentFields,
   emptyTreatment,
   makeId,
   inputClasses,
@@ -13,7 +12,6 @@ import {
   RowItem,
   ValueWithUnsure,
   TreatmentSelect,
-  Treatment,
   makeToggleHandler,
   updateRow,
   removeRow,
@@ -21,6 +19,8 @@ import {
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
 import Axios from "@/lib/ApiConfig";
+import type { Treatment, TreatmentFields } from "@/types/forms/form-primitives";
+import type { LivingArrangement, SharedAssetsFormProps, SharedBusinessRow, SharedChattelRow, SharedIPRow, SharedOtherAssetRow, SharedRealEstateRow, SharedSavingsRow, YesNo } from "@/types/case-detail/update-case/joint-assets-copy";
 
 const sharedTreatmentOptions: { value: Treatment; label: string }[] = [
   { value: "ShareEqually", label: "Share Equally (50/50)" },
@@ -28,22 +28,9 @@ const sharedTreatmentOptions: { value: Treatment; label: string }[] = [
   { value: "Percentage", label: "Share by Percentage" },
   { value: "Custom", label: "Custom Arrangement" },
 ];
-
-type YesNo = "Yes" | "No";
-
 /* ---------------------------------------------------------------------- */
 /* Living arrangements                                                     */
 /* ---------------------------------------------------------------------- */
-
-type LivingArrangement =
-  | ""
-  | "Separate"
-  | "Rent"
-  | "OneOwner"
-  | "Joint"
-  | "ThirdParty"
-  | "Other";
-
 const livingArrangementOptions: { value: LivingArrangement; label: string }[] =
   [
     { value: "Separate", label: "We currently live separately" },
@@ -114,62 +101,6 @@ function InfoBanner({ children }: { children: React.ReactNode }) {
 /* ---------------------------------------------------------------------- */
 /* Row types                                                                */
 /* ---------------------------------------------------------------------- */
-
-interface SharedRealEstateRow extends TreatmentFields {
-  id: string;
-  addressLine1: string;
-  addressLine2: string;
-  postcode: string;
-  propertyType: string;
-  value: string;
-  valueUnknown: boolean;
-  mortgageBalance: string;
-  earlyPenalty: string;
-  ownershipPercentage: string;
-  thirdPartyInterest: string;
-  thirdPartyDetail: string;
-}
-interface SharedSavingsRow extends TreatmentFields {
-  id: string;
-  accountHolder: string;
-  institution: string;
-  accountType: string;
-  balance: string;
-}
-interface SharedBusinessRow extends TreatmentFields {
-  id: string;
-  name: string;
-  entityType: string;
-  turnover: string;
-  netProfit: string;
-  ownershipPercent: string;
-  valueOfStake: string;
-  valueUnknown: boolean;
-  justification: string;
-  directorLoanBalance: string;
-}
-interface SharedIPRow extends TreatmentFields {
-  id: string;
-  name: string;
-  ipType: string;
-  value: string;
-  valueUnknown: boolean;
-  registrationNumber: string;
-  description: string;
-}
-interface SharedChattelRow extends TreatmentFields {
-  id: string;
-  description: string;
-  category: string;
-  value: string;
-  valueUnknown: boolean;
-}
-interface SharedOtherAssetRow extends TreatmentFields {
-  id: string;
-  description: string;
-  value: string;
-  valueUnknown: boolean;
-}
 
 function makeSharedRealEstateRow(): SharedRealEstateRow {
   return {
@@ -248,10 +179,6 @@ function makeSharedOtherAssetRow(): SharedOtherAssetRow {
 /* ---------------------------------------------------------------------- */
 /* Main component                                                          */
 /* ---------------------------------------------------------------------- */
-
-interface SharedAssetsFormProps {
-  onContinue?: () => void;
-}
 
 export default function SharedAssetsForm({
   onContinue,

@@ -1,13 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AgreementOption } from '@/types/onboarding';
-
-interface Step2PaymentProps {
-  selectedOption: AgreementOption;
-  onBack: () => void;
-  onPaymentSuccess: () => void;
-}
+import type { AgreementOption } from "@/types/onboarding";
+import type { Step2PaymentProps } from "@/types/onboarding/step2-payment";
 
 export const Step2Payment: React.FC<Step2PaymentProps> = ({
   selectedOption,

@@ -4,25 +4,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, RotateCcw, Filter, Search } from "lucide-react";
 import Axios from "@/lib/ApiConfig";
-import { CaseStatus } from "@/types/lawyer-portal";
-
-export interface LawyerFilterState {
-  status: string;
-  priority: string;
-  search: string;
-}
-
-export interface LawyerRowCase {
-  id: string;
-  p1Name: string;
-  p2Name: string;
-  service: string;
-  status: string;
-  priority: string;
-  daysInStatus: number;
-  lastActivity: string;
-  certificateExpiryDate: string | null;
-}
+import type { CaseStatus } from "@/types/lawyer";
+import type { LawyerFilterState, LawyerRowCase } from "@/types/lawyer/pages/assigned-cases";
 
 const DEFAULT_FILTERS: LawyerFilterState = {
   status: "ALL",

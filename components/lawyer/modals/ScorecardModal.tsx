@@ -2,11 +2,7 @@
 
 import React from 'react';
 import { X, ShieldCheck, CheckCircle } from 'lucide-react';
-
-interface ScorecardModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
+import type { ScorecardModalProps } from "@/types/lawyer/scorecard-modal";
 
 export const ScorecardModal: React.FC<ScorecardModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;

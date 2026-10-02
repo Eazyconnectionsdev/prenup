@@ -3,10 +3,7 @@
 import { useEffect, useState } from "react";
 import Axios from "@/lib/ApiConfig";
 import { Card, CardContent } from "@/components/ui/card";
-
-interface Props {
-  caseData: any;
-}
+import type { Props } from "@/types/case-detail/tabs/timeline-tab";
 
 export default function TimelineTab({
   caseData,

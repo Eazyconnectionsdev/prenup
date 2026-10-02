@@ -6,7 +6,7 @@ const Sidebar = ({children} : {children : React.ReactNode}) => {
     <div className="flex h-full">
       <AppSidebar />
       
-      <main className="h-screen overflow-y-auto flex-1">
+      <main className="relative h-screen flex-1 overflow-y-auto">
        {children}
       </main>
     </div>
