@@ -1,15 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import VerificationInput from "react-verification-input";
 import Logo from "@/images/logo.png";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
-import { emailVerification } from "@/store/asyncThunk/authThunk";
+import { emailVerification, resendOtp } from "@/store/asyncThunk/authThunk";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+import { getErrorMessage } from "@/lib/getErrorMessage";
+
+const RESEND_COOLDOWN_SECONDS = 60;
 
 export default function EmailVerification() {
   const router = useRouter();
@@ -17,6 +20,33 @@ export default function EmailVerification() {
   const { isLoading, user : {email} } = useSelector((state: RootState) => state.auth);
 
   const dispatch = useDispatch<AppDispatch>();
+  const [cooldown, setCooldown] = useState(0);
+  const [isResending, setIsResending] = useState(false);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
+
+  const handleResend = async () => {
+    if (!email) {
+      toast.error("Session expired. Please register or sign in again.");
+      router.push("/register");
+      return;
+    }
+    setIsResending(true);
+    try {
+      await dispatch(resendOtp(email)).unwrap();
+      setCode("");
+      setCooldown(RESEND_COOLDOWN_SECONDS);
+      toast.success("A new verification code has been sent to your email");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Unable to resend the code"));
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,11 +59,13 @@ export default function EmailVerification() {
       if (result.success) {
         router.push("/onboarding");
       }
-    } catch (error: any) {
-      console.log("Error while email verification", error.message);
-      if (error.message) {
-        toast.error(error.message || "Error while email verification");
-      }
+    } catch (error) {
+      const message = getErrorMessage(error, "Error while email verification");
+      toast.error(
+        /expired/i.test(message)
+          ? "This code has expired. Click Resend to get a new one."
+          : message,
+      );
     }
   };
 
@@ -94,12 +126,18 @@ export default function EmailVerification() {
 
           <div className="mt-6 text-center text-sm text-gray-600">
             Didn&apos;t receive the code?{" "}
-            <Link
-              href="/login"
-              className="text-indigo-600 font-medium hover:underline"
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={isResending || cooldown > 0}
+              className="text-indigo-600 font-medium hover:underline disabled:opacity-50 disabled:no-underline disabled:cursor-not-allowed"
             >
-              Resend
-            </Link>
+              {isResending
+                ? "Sending..."
+                : cooldown > 0
+                  ? `Resend in ${cooldown}s`
+                  : "Resend"}
+            </button>
           </div>
         </div>
       </main>

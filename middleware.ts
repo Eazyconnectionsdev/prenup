@@ -23,6 +23,11 @@ const ROLE_HOME: Record<string, string> = {
   end_user: "/dashboard",
 };
 
+// Extra pages a role may visit besides its home path.
+const ROLE_EXTRA_PATHS: Record<string, string[]> = {
+  end_user: ["/onboarding"],
+};
+
 async function getRoleFromToken(token: string | undefined): Promise<string | null> {
   if (!token) return null;
   try {
@@ -71,7 +76,15 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL(homePath, nextUrl));
   }
 
-  if (isLoggedIn && homePath && !nextUrl.pathname.startsWith(homePath)) {
+  const extraPaths = role ? (ROLE_EXTRA_PATHS[role] ?? []) : [];
+  const isExtraPath = extraPaths.some((p) => nextUrl.pathname.startsWith(p));
+
+  if (
+    isLoggedIn &&
+    homePath &&
+    !isExtraPath &&
+    !nextUrl.pathname.startsWith(homePath)
+  ) {
     return NextResponse.redirect(new URL(homePath, nextUrl));
   }
 

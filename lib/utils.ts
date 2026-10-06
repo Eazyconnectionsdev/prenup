@@ -19,3 +19,12 @@ export function formatVersionDate(iso: string): string {
     minute: "2-digit",
   });
 }
+// Strips spaces, dashes, dots and brackets: "(416) 555-0192" -> "4165550192".
+export const normalizePhone = (value: string) =>
+  value.trim().replace(/[\s\-().]/g, "");
+
+// Empty is allowed (phone is optional); otherwise 7-15 digits, optional leading +.
+export const isValidPhone = (value: string) => {
+  const phone = normalizePhone(value);
+  return phone === "" || /^\+?[0-9]{7,15}$/.test(phone);
+};

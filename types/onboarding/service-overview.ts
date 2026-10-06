@@ -7,4 +7,5 @@ export interface ServiceOverviewProps {
   onResideChange: (checked: boolean) => void;
   onUnderstandChange: (checked: boolean) => void;
   onContinue: () => void;
+  isSubmitting?: boolean;
 }

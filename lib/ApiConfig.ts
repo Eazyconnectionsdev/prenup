@@ -6,6 +6,7 @@ const Axios = axios.create({
     "Content-Type": "application/json",
   },
   withCredentials: true,
+  timeout: 20000,
 });
 
 export default Axios;

@@ -1,11 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useDispatch, useSelector } from 'react-redux';
+import { toast } from 'react-toastify';
+import type { AppDispatch, RootState } from '@/store/store';
+import { completeOnboarding, getOnboarding } from '@/store/asyncThunk/casesThunk';
+import { getErrorMessage } from '@/lib/getErrorMessage';
 import { AgreementCard } from '@/components/onboarding/AgreementCard';
 
 import { ServiceOverview } from '@/components/onboarding/ServiceOverview';
 import { Step3Success } from '@/components/onboarding/Step3Success';
-import { Step2Payment } from '@/components/onboarding/Step2Payment';
 import type { AgreementOption } from "@/types/onboarding";
 
 export const AGREEMENT_OPTIONS: AgreementOption[] = [
@@ -61,38 +66,77 @@ export const AGREEMENT_OPTIONS: AgreementOption[] = [
 ];
 
 export default function OnboardingPage () {
+  const router = useRouter();
+  const dispatch = useDispatch<AppDispatch>();
+  const { user } = useSelector((state: RootState) => state.auth);
+
+  // Steps: 1 = choose service, 3 = confirmation. (Payment is added later,
+  // from the dashboard, so there is no payment step here.)
   const [step, setStep] = useState<number>(1);
   const [selectedId, setSelectedId] = useState<string>('prenup-marriage');
   const [resideChecked, setResideChecked] = useState<boolean>(false);
   const [understandChecked, setUnderstandChecked] = useState<boolean>(false);
-  const [userName, setUserName] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isChecking, setIsChecking] = useState<boolean>(true);
 
+  const caseId: string | undefined = user?.inviteCaseId;
+  const userName: string = user?.firstName || 'there';
   const selectedOption = AGREEMENT_OPTIONS.find((o) => o.id === selectedId) || AGREEMENT_OPTIONS[0];
 
-  const handleStep1Continue = () => {
-    setStep(2);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Onboarding is for user 1 only. Partners (user 2) and users who already
+  // completed it go straight to the dashboard.
+  useEffect(() => {
+    if (user?.endUserType === 'user2') {
+      router.replace('/dashboard');
+      return;
+    }
+    if (!caseId) return;
+    dispatch(getOnboarding(caseId))
+      .unwrap()
+      .then((res) => {
+        if (res.completed) {
+          router.replace('/dashboard');
+          return;
+        }
+        setIsChecking(false);
+      })
+      .catch(() => setIsChecking(false));
+  }, [user?.endUserType, caseId, dispatch, router]);
+
+  const handleStep1Continue = async () => {
+    if (!caseId) {
+      toast.error('We could not find your case. Please sign in again.');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await dispatch(
+        completeOnboarding({
+          caseId,
+          agreementType: selectedId,
+          residesInUK: resideChecked,
+          understandsService: understandChecked,
+        })
+      ).unwrap();
+      toast.success('Your service selection has been saved');
+      setStep(3);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'Unable to save your selection. Please try again.'));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleFormSubmit = (name: string) => {
-    setUserName(name);
-    setStep(3);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-   const handlePaymentSuccess = () => {
-    setUserName('Valued Client');
-    setStep(3);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleRestart = () => {
-    setResideChecked(false);
-    setUnderstandChecked(false);
-    setUserName('');
-    setStep(1);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  // With no case id there is nothing to check, so show the form (saving will
+  // then ask the user to sign in again).
+  if (isChecking && (caseId || user?.endUserType === 'user2')) {
+    return (
+      <main className="min-h-screen flex items-center justify-center text-sm text-[#64748B]">
+        Loading...
+      </main>
+    );
+  }
 
   return (
     <>
@@ -130,8 +174,7 @@ export default function OnboardingPage () {
           <section className="lg:col-span-7 space-y-6">
             <div className="space-y-2 mb-8">
               <h1 className="text-3xl md:text-4xl font-serif-legal font-semibold tracking-wide text-[#0F172A]">
-                Welcome to Lets Prenup
-                Welcome to Let's Prenup
+                Welcome to Let&apos;s Prenup
               </h1>
               <p className="text-[#5A6578] text-sm md:text-base font-normal">
                 Select the agreement that best reflects your current circumstances.
@@ -157,16 +200,9 @@ export default function OnboardingPage () {
             onResideChange={setResideChecked}
             onUnderstandChange={setUnderstandChecked}
             onContinue={handleStep1Continue}
+            isSubmitting={isSubmitting}
           />
         </main>
-      )}
-
-      {step === 2 && (
-        <Step2Payment
-         selectedOption={selectedOption}
-          onBack={() => setStep(1)}
-          onPaymentSuccess={handlePaymentSuccess}
-        />
       )}
 
       {step === 3 && (
