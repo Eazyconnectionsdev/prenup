@@ -19,10 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import Axios from "@/lib/ApiConfig";
-
-interface Props {
-  caseData: any;
-}
+import type { Props } from "@/types/case-detail/tabs/cm-actions-tabs";
 
 const NOTE_CATEGORIES = [
   {

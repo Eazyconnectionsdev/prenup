@@ -1,14 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { PartnerData, RelationshipStatus } from '@/types/invite-partner';
-
-interface PartnerDetailsFormProps {
-  partnerData: PartnerData;
-  onChange: (updated: Partial<PartnerData>) => void;
-  onSaveDraft: () => void;
-  onSendInvitation: () => void;
-}
+import type { PartnerData, RelationshipStatus } from "@/types/invite-partner";
+import type { PartnerDetailsFormProps } from "@/types/invite-partner/partner-details-form";
 
 export const PartnerDetailsForm: React.FC<PartnerDetailsFormProps> = ({
   partnerData,

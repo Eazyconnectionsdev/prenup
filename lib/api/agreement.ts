@@ -1,14 +1,6 @@
 import Axios from "@/lib/ApiConfig";
 import { getErrorMessage } from "./http-error";
-import type {
-  ApiResult,
-  VersionEntry,
-  VersionDetail,
-  LockStatus,
-  CheckOutResult,
-  CheckInResult,
-  DiffParagraph,
-} from "@/types/types-agreement";
+import type { ApiResult, CheckInResult, CheckOutResult, DiffParagraph, LockStatus, VersionDetail, VersionEntry } from "@/types/agreement";
 
 export async function fetchCaseDetails(
   caseId: string,

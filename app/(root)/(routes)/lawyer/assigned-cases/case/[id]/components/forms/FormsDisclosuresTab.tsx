@@ -15,29 +15,7 @@ import LiabilitiesDebts from "./LiabilitiesDebts";
 import JointAssets from "./JointAssets";
 import JointIncome from "./JointIncome";
 import JointLiabilities from "./JointLiabilities";
-
-interface Props {
-  caseData: any;
-  isCmEditing: boolean;
-  setIsCmEditing: (value: boolean) => void;
-  onSave: (payload: any) => Promise<void> | void;
-  onCreateDocument?: (payload: any) => Promise<void> | void;
-}
-
-type ActiveParty = "user1" | "user2" | "joint";
-
-type ActiveSection =
-  | "personal"
-  | "legal"
-  | "family"
-  | "assets"
-  | "income"
-  | "liabilities";
-
-type ActiveJointSection =
-  | "assets"
-  | "income"
-  | "liabilities";
+import type { ActiveJointSection, ActiveParty, ActiveSection, Props } from "@/types/case-detail/forms/forms-disclosures-tab";
 
 export default function FormsDisclosuresTab({
   caseData,

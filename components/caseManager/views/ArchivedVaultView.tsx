@@ -2,12 +2,8 @@
 
 import React from 'react';
 import { Eye, Archive, ShieldCheck } from 'lucide-react';
-import { CaseItem } from '@/types/case-manager';
-
-interface ArchivedVaultViewProps {
-  archivedCases: CaseItem[];
-  onSelectCase: (caseId: string) => void;
-}
+import type { CaseItem } from "@/types/case-manager";
+import type { ArchivedVaultViewProps } from "@/types/case-manager/archived-vault-view";
 
 export const ArchivedVaultView: React.FC<ArchivedVaultViewProps> = ({
   archivedCases,

@@ -1,11 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-
-interface Step3SuccessProps {
-  userName: string;
-  serviceTitle: string;
-}
+import type { Step3SuccessProps } from "@/types/onboarding/step3-success";
 
 export const Step3Success: React.FC<Step3SuccessProps> = ({
   userName,

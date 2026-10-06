@@ -2,13 +2,8 @@
 
 import React, { useMemo, useState } from 'react';
 import { Eye } from 'lucide-react';
-import { LawyerCase, LawyerPersona } from '../../../types/lawyer-portal';
-
-interface AgreementVersionsViewProps {
-  cases: LawyerCase[];
-  activePersona: LawyerPersona;
-  onSelectCase: (caseId: string) => void;
-}
+import type { LawyerCase, LawyerPersona } from "@/types/lawyer";
+import type { AgreementVersionsViewProps } from "@/types/lawyer/agreement-versions-view";
 
 export const AgreementVersionsView: React.FC<AgreementVersionsViewProps> = ({
   cases,

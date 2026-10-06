@@ -1,14 +1,9 @@
 "use client";
 
 import React from 'react';
-import { LawyerPersona } from '../../../types/lawyer-portal';
 import { Shield, Building, Award, CheckCircle, LogOut } from 'lucide-react';
-
-interface ProfileViewProps {
-  activePersona: LawyerPersona;
-  onPersonaChange?: (persona: LawyerPersona) => void;
-  onLogout?: () => void;
-}
+import type { LawyerPersona } from "@/types/lawyer";
+import type { ProfileViewProps } from "@/types/lawyer/profile-view";
 
 export const ProfileView: React.FC<ProfileViewProps> = ({ activePersona, onPersonaChange, onLogout }) => {
   const getPersonaDetails = (persona: LawyerPersona) => {

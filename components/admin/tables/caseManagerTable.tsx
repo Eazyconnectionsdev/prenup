@@ -66,7 +66,7 @@ function deriveStatusFromPayload(c: any) {
   // c.status is an object with step1..stepN submitted flags in your payload example
   const s = c.status;
   if (!s || typeof s !== "object") return c.status || "Open";
-  const steps = Object.keys(s).filter((k) => k.startsWith("step"));
+  const steps = Object.keys(s).filter((k) => k?.startsWith("step"));
   if (steps.length === 0) return "Open";
   const submittedCount = steps.reduce(
     (acc, step) => acc + (s[step]?.submitted ? 1 : 0),

@@ -2,14 +2,8 @@
 
 import React, { useMemo, useState } from 'react';
 import { Eye } from 'lucide-react';
-import { LawyerCase, LawyerPersona } from '@/types/lawyer-portal';
-
-interface CompletedCasesViewProps {
-  cases: LawyerCase[];
-  activePersona: LawyerPersona;
-  onSelectCase: (caseId: string) => void;
-  searchQuery: string;
-}
+import type { LawyerCase, LawyerPersona } from "@/types/lawyer";
+import type { CompletedCasesViewProps } from "@/types/lawyer/pages/completed-case";
 
 // Static client form templates
 const P1_FORM_MOCK = {

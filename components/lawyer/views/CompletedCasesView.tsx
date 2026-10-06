@@ -2,14 +2,8 @@
 
 import React, { useMemo } from 'react';
 import { Eye } from 'lucide-react';
-import { LawyerCase, LawyerPersona, CaseStatus } from '../../../types/lawyer-portal';
-
-interface CompletedCasesViewProps {
-  cases: LawyerCase[];
-  activePersona: LawyerPersona;
-  onSelectCase: (caseId: string) => void;
-  searchQuery: string;
-}
+import type { CaseStatus, LawyerCase, LawyerPersona } from "@/types/lawyer";
+import type { CompletedCasesViewProps } from "@/types/lawyer/completed-cases-view";
 
 export const CompletedCasesView: React.FC<CompletedCasesViewProps> = ({
   cases,

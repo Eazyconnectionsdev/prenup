@@ -2,13 +2,8 @@
 
 import React, { useState } from 'react';
 import { Shield, CheckCircle, Info, Terminal, Play, Code, Check, Sliders, Bell, Globe } from 'lucide-react';
-import { RuleEntry, ApiLogEntry } from '@/types/case-manager';
-
-interface RulesApiConsoleViewProps {
-  rules: RuleEntry[];
-  apiLogs: ApiLogEntry[];
-  onTriggerApiEndpoint: (endpoint: string, method: string, mockPayload: any) => void;
-}
+import type { ApiLogEntry, RuleEntry } from "@/types/case-manager";
+import type { RulesApiConsoleViewProps } from "@/types/case-manager/rules-api-console-view";
 
 export const RulesApiConsoleView: React.FC<RulesApiConsoleViewProps> = ({
   rules: initialRules,

@@ -2,8 +2,6 @@
 
 import React, { useState } from "react";
 import {
-  YesNo,
-  TreatmentFields,
   emptyTreatment,
   makeId,
   inputClasses,
@@ -20,19 +18,8 @@ import {
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
 import Axios from "@/lib/ApiConfig";
-interface DebtRow extends TreatmentFields {
-  id: string;
-  lenderName: string;
-  debtType: string;
-  outstandingBalance: string;
-}
-
-interface MaintenanceRow extends TreatmentFields {
-  id: string;
-  dependentLink: string;
-  monthlyPayment: string;
-  projectedEndDate: string;
-}
+import type { TreatmentFields, YesNo } from "@/types/forms/form-primitives";
+import type { DebtRow, LiabilitiesFormProps, MaintenanceRow } from "@/types/case-detail/update-case/liabilities-debts";
 
 function makeDebtRow(): DebtRow {
   return { id: makeId("debt"), lenderName: "", debtType: "", outstandingBalance: "", ...emptyTreatment };
@@ -44,10 +31,6 @@ function makeMaintenanceRow(): MaintenanceRow {
 /* ---------------------------------------------------------------------- */
 /* Main component                                                          */
 /* ---------------------------------------------------------------------- */
-
-interface LiabilitiesFormProps {
-  onContinue?: () => void;
-}
 
 export default function LiabilitiesForm({ onContinue }: LiabilitiesFormProps = {}) {
   const [hasDebts, setHasDebts] = useState<YesNo>("No");

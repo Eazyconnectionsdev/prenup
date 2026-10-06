@@ -2,13 +2,8 @@
 
 import React, { useMemo, useState } from 'react';
 import { Eye } from 'lucide-react';
-import { LawyerCase, LawyerPersona } from '../../../types/lawyer-portal';
-
-interface AppendicesViewProps {
-  cases: LawyerCase[];
-  activePersona: LawyerPersona;
-  onSelectCase: (caseId: string) => void;
-}
+import type { LawyerCase, LawyerPersona } from "@/types/lawyer";
+import type { AppendicesViewProps } from "@/types/lawyer/appendices-view";
 
 export const AppendicesView: React.FC<AppendicesViewProps> = ({
   cases,

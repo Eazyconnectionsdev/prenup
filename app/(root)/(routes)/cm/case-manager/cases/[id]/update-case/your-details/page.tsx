@@ -7,21 +7,9 @@ import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import { toDateInputValue } from "@/lib/utils";
 import { useParams } from "next/navigation";
+import type { ChildEntry, YesNo } from "@/types/case-detail/update-case/your-details";
 
 // ---------------- Types ----------------
-type YesNo = "yes" | "no" | "";
-
-type ChildEntry = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  dob: string;
-  specialNeeds: YesNo;
-  fromCurrentRelationship: YesNo;
-  livesWithYou: YesNo;
-  maintenanceAndCustody: string;
-};
-
 // ---------------- Helpers ----------------
 const makeChild = (): ChildEntry => ({
   id:

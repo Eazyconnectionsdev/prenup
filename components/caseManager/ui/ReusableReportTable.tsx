@@ -2,14 +2,8 @@
 
 import React from 'react';
 import { Eye, FileText } from 'lucide-react';
-import { ReportColumnDef, ReportRowData } from '@/types/case-manager';
-
-interface ReusableReportTableProps {
-  columns: ReportColumnDef[];
-  data: ReportRowData[];
-  onViewRow: (row: ReportRowData) => void;
-  reportTitle: string;
-}
+import type { ReportColumnDef, ReportRowData } from "@/types/case-manager";
+import type { ReusableReportTableProps } from "@/types/case-manager/reusable-report-table";
 
 export const ReusableReportTable: React.FC<ReusableReportTableProps> = ({
   columns,

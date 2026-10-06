@@ -6,10 +6,7 @@ import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
 import { logOutUser } from "@/store/asyncThunk/authThunk";
-
-interface TopBarProps {
-  caseId?: string;
-}
+import type { TopBarProps } from "@/types/layout/top-bar";
 
 const TopBar = ({ caseId }: TopBarProps) => {
   const { user } = useSelector((state: RootState) => state.auth);

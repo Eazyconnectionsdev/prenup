@@ -13,25 +13,11 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import Axios from "@/lib/ApiConfig";
-
-export interface InitializeLawyerStageResult {
-  success: boolean;
-  fileName: string;
-  s3Key: string;
-  url: string;
-  pdfUrl: string | null;
-  majorVersion: number;
-  minorVersion: number;
-  versionId: string;
-}
+import type { InitializeLawyerStageResult } from "@/types/case-manager/agreement-tab";
 
 const caseId = "6a99454fb23e05b06008526a";
 
 const VERSIONS = ["v1.0", "v1.1", "v1.2", "v1.3", "v1.4", "v1.5", "v2.0"];
-
-interface AgreementTabProps {
-  caseId: string;
-}
 
 export default function AgreementTab() {
   const [selectedVersions, setSelectedVersions] = useState<any>([]);

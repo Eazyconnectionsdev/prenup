@@ -1,20 +1,9 @@
-interface CaseData {
-  myInformation: Record<string, any>;
-  partnerInformation: Record<string, any>;
-  jointInformation: Record<string, any>;
-}
+import type { CaseData, ProgressResult } from "@/types/lib/progress-calculator";
 
 const hasData = (obj: unknown): boolean => {
   if (!obj || typeof obj !== 'object') return false;
   return Object.keys(obj).length > 0;
 };
-
-export interface ProgressResult {
-  completed: number;
-  total: number;
-  percentage: number;
-}
-
 const MY_PARTNER_KEYS = [
   'personalInformation',
   'legalDeclaration',

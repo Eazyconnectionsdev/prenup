@@ -2,16 +2,8 @@
 
 import React, { useMemo, useState } from 'react';
 import { Eye, RotateCcw, Filter } from 'lucide-react';
-import { LawyerCase, LawyerPersona, CaseStatus } from '../../../types/lawyer-portal';
-
-interface CasesListViewProps {
-  cases: LawyerCase[];
-  activePersona: LawyerPersona;
-  onSelectCase: (caseId: string) => void;
-  searchQuery: string;
-  statusFilter: string;
-  onFilterChange: (filter: string) => void;
-}
+import type { CaseStatus, LawyerCase, LawyerPersona } from "@/types/lawyer";
+import type { CasesListViewProps } from "@/types/lawyer/cases-list-view";
 
 export const CasesListView: React.FC<CasesListViewProps> = ({
   cases,

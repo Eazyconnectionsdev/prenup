@@ -1,13 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-
-interface SecurePaymentModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onPaymentSuccess?: () => void;
-  serviceTitle?: string;
-}
+import type { SecurePaymentModalProps } from "@/types/case-manager/secure-payment-modal";
 
 export const SecurePaymentModal: React.FC<SecurePaymentModalProps> = ({
   isOpen,

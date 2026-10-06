@@ -1,10 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { CaseItem } from "@/types/case-manager";
 import {
-  YesNo,
-  TreatmentFields,
   emptyTreatment,
   makeId,
   inputClasses,
@@ -14,8 +11,7 @@ import {
   MatrixBox,
   RowItem,
   ValueWithUnsure,
-  TreatmentSelect,
-  Treatment,
+  TreatmentSelect
 } from "@/components/Formprimitives";
 import {
   User,
@@ -32,13 +28,9 @@ import {
   Heart,
   Users,
 } from "lucide-react";
-
-interface FormsDisclosuresTabProps {
-  caseObj: CaseItem;
-  isCmEditing: boolean;
-  setIsCmEditing: (v: boolean) => void;
-  onSave: () => void;
-}
+import type { CaseItem } from "@/types/case-manager";
+import type { Treatment, TreatmentFields, YesNo } from "@/types/forms/form-primitives";
+import type { FormsDisclosuresTabProps } from "@/types/case-manager/forms-disclosures-tab";
 
 export default function FormsDisclosuresTab({
   caseObj,

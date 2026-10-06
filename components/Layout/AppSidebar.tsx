@@ -1,38 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
 import { getCasesDetails } from "@/store/asyncThunk/casesThunk";
-
-type SectionKey = "section1" | "section2" | "section3" | "section4";
-type SubgroupKey = "myFinancial" | "partnerFinancial" | "jointFinancial";
-
-interface LeafProps {
-  id: string;
-  icon: IconName;
-  label: string;
-  done?: boolean;
-  activeLeaf: string;
-  onSelect: (id: string) => void;
-  readOnly?: boolean;
-  lockReason?: string;
-  isPartner?: boolean;
-}
-
-type IconName =
-  | "workspace"
-  | "person"
-  | "personalInfo"
-  | "legal"
-  | "family"
-  | "folder"
-  | "assets"
-  | "income"
-  | "liabilities"
-  | "joint"
-  | "seal";
+import type { IconName, LeafProps, SectionKey, SubgroupKey } from "@/types/layout/app-sidebar";
 
 const LEAF_TO_KEY: Record<string, string> = {
   "personal-info": "personalInformation",
@@ -207,7 +181,6 @@ function Leaf({
   label,
   done,
   activeLeaf,
-  onSelect,
   readOnly,
   lockReason,
   isPartner,
@@ -250,7 +223,6 @@ function Leaf({
   return (
     <Link
       href={`/dashboard/${routeId}`}
-      onClick={() => onSelect(routeId)}
       className={`relative flex items-center gap-[9px] rounded-[7px] px-[9px] py-2 my-0.5 cursor-pointer hover:bg-[#F4F4FA] ${
         isActive ? "bg-[#EDE9FE]" : ""
       }`}
@@ -265,7 +237,9 @@ export default function AgreementSidebar() {
   const { status, myInformation, partnerInformation, jointInformation } = useSelector((state: RootState) => state.cases);
   const user = useSelector((state: RootState) => state.auth.user);
 
-  const [activeLeaf, setActiveLeaf] = useState("/");
+  // Highlight follows the URL, so it also updates after a form auto-advances
+  const pathname = usePathname();
+  const activeLeaf = pathname.replace(/^\/dashboard\/?/, "");
   const [openSection, setOpenSection] = useState<SectionKey | null>("section1");
   const [openSubgroup, setOpenSubgroup] = useState<SubgroupKey | null>(
     "myFinancial",
@@ -283,8 +257,10 @@ export default function AgreementSidebar() {
   const isLeafDone = (leafId: string, info?: Record<string, any>) =>
     hasData(info?.[LEAF_TO_KEY[leafId]]);
 
+  // Joint leaves live in jointInformation, the rest in the user's own section
+  const jointLeafIds = JOINT_ASSETS_LEAFS.map((leaf) => leaf.id);
   const completedCount = Object.keys(LEAF_TO_KEY).filter((id) =>
-    isLeafDone(id, myData),
+    isLeafDone(id, jointLeafIds.includes(id) ? jointInformation : myData),
   ).length;
 
   const toggleSection = (key: SectionKey) =>
@@ -295,9 +271,11 @@ export default function AgreementSidebar() {
   const isLocked = (leafId: string) =>
     !isPaymentDone && leafId !== "personal-info";
 
+  // Forms re-fetch the case after saving, which turns the matching tick green
+  const inviteCaseId = user?.inviteCaseId;
   useEffect(() => {
-    dispatch(getCasesDetails(user?.inviteCaseId));
-  }, []);
+    if (inviteCaseId) dispatch(getCasesDetails(inviteCaseId));
+  }, [dispatch, inviteCaseId]);
 
   return (
     <div className="w-[340px] h-screen overflow-y-auto no-scrollbar border border-[#E7E7F2] bg-white shadow-[0_20px_50px_rgba(30,27,60,0.10)] font-sans">
@@ -364,7 +342,6 @@ export default function AgreementSidebar() {
                   {...leaf}
                   done={isLeafDone(leaf.id, myData)}
                   activeLeaf={activeLeaf}
-                  onSelect={setActiveLeaf}
                   readOnly={isLocked(leaf.id)}
                   lockReason={
                     isLocked(leaf.id) ? "Complete payment to unlock" : undefined
@@ -393,7 +370,6 @@ export default function AgreementSidebar() {
                         {...leaf}
                         done={isLeafDone(leaf.id, myData)}
                         activeLeaf={activeLeaf}
-                        onSelect={setActiveLeaf}
                         readOnly={isLocked(leaf.id)}
                         lockReason={
                           isLocked(leaf.id)
@@ -442,7 +418,6 @@ export default function AgreementSidebar() {
                   {...leaf}
                   done={isLeafDone(leaf.id, partnerData)}
                   activeLeaf={activeLeaf}
-                  onSelect={setActiveLeaf}
                   readOnly={isLocked(leaf.id)}
                   lockReason={
                     isLocked(leaf.id) ? "Complete payment to unlock" : undefined
@@ -472,7 +447,6 @@ export default function AgreementSidebar() {
                         {...leaf}
                         done={isLeafDone(leaf.id, partnerData)}
                         activeLeaf={activeLeaf}
-                        onSelect={setActiveLeaf}
                         readOnly={isLocked(leaf.id)}
                         lockReason={
                           isLocked(leaf.id)
@@ -534,7 +508,6 @@ export default function AgreementSidebar() {
                         {...leaf}
                         done={isLeafDone(leaf.id, jointInformation)}
                         activeLeaf={activeLeaf}
-                        onSelect={setActiveLeaf}
                         readOnly={isLocked(leaf.id)}
                         lockReason={
                           isLocked(leaf.id)
@@ -580,7 +553,6 @@ export default function AgreementSidebar() {
                 label="Solicitor Details"
                 done={Boolean(status?.independentLegalAdvice?.submitted)}
                 activeLeaf={activeLeaf}
-                onSelect={setActiveLeaf}
               />
               <Leaf
                 id="lawyer-questionaries"
@@ -588,14 +560,12 @@ export default function AgreementSidebar() {
                 label="Lawyer Questionnaire"
                 done={Boolean(status?.independentLegalAdvice?.submitted)}
                 activeLeaf={activeLeaf}
-                onSelect={setActiveLeaf}
               />
               <Leaf
                 id="review-and-sign"
                 icon="family"
                 label="Review and Sign"
                 activeLeaf={activeLeaf}
-                onSelect={setActiveLeaf}
               />
             </div>
           )}

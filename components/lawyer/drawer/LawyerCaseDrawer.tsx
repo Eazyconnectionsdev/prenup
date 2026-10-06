@@ -5,25 +5,9 @@ import {
   X, Lock, Download, FileText, Upload, CheckCircle2, AlertTriangle, ShieldCheck,
   Clock, Mail, MessageSquare, Plus, FileCode, Check, Eye, Edit, Trash2
 } from 'lucide-react';
-import { LawyerCase, LawyerPersona, CaseTabId, CaseStatus, AgreementVersion, SummaryNote, Appendix, IlaCertDetails, LawyerActionsWorkflowState } from '../../../types/lawyer-portal';
 import AgreementPage from '@/components/agreement/AgreementPage';
-
-interface CaseDrawerProps {
-  isOpen: boolean;
-  onClose: () => void;
-  caseObj: LawyerCase | null;
-  activePersona: LawyerPersona;
-  onUploadVersion: (caseId: string, versionNum: string, desc: string) => void;
-  onUploadCleanMaster: (caseId: string) => void;
-  onApproveCleanMaster: (caseId: string) => void;
-  onClientApprove: (caseId: string, party: 'p1' | 'p2') => void;
-  onIssueIla: (caseId: string, party: 'p1' | 'p2') => void;
-  onSignAgreement: (caseId: string) => void;
-  onSaveNote: (caseId: string, notes: string) => void;
-  onUploadAppendix: (caseId: string, section: 'A' | 'B' | 'C', title: string, desc: string, fileName: string) => void;
-  onUpdateWorkflowState?: (caseId: string, workflowStateUpdate: Partial<LawyerActionsWorkflowState>) => void;
-  isInline?: boolean;
-}
+import type { AgreementVersion, Appendix, CaseStatus, CaseTabId, IlaCertDetails, LawyerActionsWorkflowState, LawyerCase, LawyerPersona, SummaryNote } from "@/types/lawyer";
+import type { CaseDrawerProps } from "@/types/lawyer/lawyer-case-drawer";
 
 export const LawyerCaseDrawer: React.FC<CaseDrawerProps> = ({
   isOpen,

@@ -1,8 +1,6 @@
 "use client";
 
-interface Props {
-  caseData: any;
-}
+import type { Props } from "@/types/case-detail/tabs/overview-tab";
 
 export default function OverviewTab({
   caseData,

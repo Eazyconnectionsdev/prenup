@@ -7,6 +7,7 @@ import { useParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
+import type { Entry, FieldDef } from "@/types/case-detail/update-case/your-finances";
 
 /** Info box (NOT a question) */
 const INFO =
@@ -23,16 +24,6 @@ const QUESTIONS: string[] = [
   `Do you have any chattels you’d like to keep separate from your partner?`,
   `Do you have any other assets you’d like to keep separate from your partner?`,
 ];
-
-/** Field descriptor for dynamic forms */
-type FieldDef = {
-  key: string;
-  label: string;
-  type?: "text" | "number" | "textarea" | "select";
-  options?: string[]; // for select
-  placeholder?: string;
-};
-
 const QUESTION_FIELDS: FieldDef[][] = [
   [
     {
@@ -115,11 +106,6 @@ const QUESTION_FIELDS: FieldDef[][] = [
     },
   ],
 ];
-
-type Entry = {
-  id: string;
-  values: Record<string, string | number>;
-};
 
 export default function QuestionsPage() {
 

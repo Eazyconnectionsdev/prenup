@@ -1,8 +1,6 @@
 "use client";
 
-interface Props {
-  caseData: any;
-}
+import type { Props } from "@/types/case-detail/tabs/audit-tab";
 
 export default function AuditTab({
   caseData,

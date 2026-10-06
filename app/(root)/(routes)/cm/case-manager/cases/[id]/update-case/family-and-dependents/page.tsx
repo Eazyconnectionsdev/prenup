@@ -4,37 +4,7 @@ import React, { useState, ChangeEvent, FormEvent } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
 import Axios from "@/lib/ApiConfig";
-
-type PriorMarriageStatus =
-  | "No, never married"
-  | "Yes, previously divorced"
-  | "Yes, widowed"
-  | "";
-
-type YesNo = "Yes" | "No" | "";
-
-type ParentalIntention = "Yes" | "No" | "Undecided" | "";
-
-type ParentalRelationship =
-  | "My child from a prior relationship"
-  | "My partner's child from a prior relationship"
-  | "Our mutual child (born or adopted within our relationship)"
-  | "";
-
-interface ChildRow {
-  id: string;
-  fullName: string;
-  dob: string;
-  parentalRelationship: ParentalRelationship;
-}
-
-interface FamilyFormData {
-  priorMarriageStatus: PriorMarriageStatus;
-  isLegallySeparated: boolean;
-  hasLivingChildren: YesNo;
-  futureParentalIntentions: ParentalIntention;
-  hasFamilyPets: YesNo;
-}
+import type { ChildRow, FamilyFormData, ParentalIntention, ParentalRelationship, PriorMarriageStatus, RadioCardProps, YesNo } from "@/types/case-detail/update-case/family-and-dependents";
 
 const initialFormData: FamilyFormData = {
   priorMarriageStatus: "",
@@ -57,15 +27,6 @@ function makeChildRow(): ChildRow {
     dob: "",
     parentalRelationship: "",
   };
-}
-
-interface RadioCardProps {
-  id: string;
-  name: string;
-  value: string;
-  label: string;
-  checked: boolean;
-  onChange: () => void;
 }
 
 function RadioCard({ id, name, value, label, checked, onChange }: RadioCardProps) {

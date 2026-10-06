@@ -4,23 +4,7 @@ import React, { useState, ReactNode } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
 import Axios from "@/lib/ApiConfig";
-
-type YesNo = "Yes" | "No";
-
-type Treatment =
-  | ""
-  | "KeepSeparate"
-  | "ShareEqually"
-  | "Contribution"
-  | "Percentage"
-  | "Custom";
-
-interface TreatmentFields {
-  treatment: Treatment;
-  contributionText: string;
-  percentageValue: string;
-  customText: string;
-}
+import type { BusinessRow, ChattelRow, IPRow, OtherAssetRow, PensionRow, RealEstateRow, SavingsRow, Treatment, TreatmentFields, TreatmentSelectProps, ValueWithUnsureProps, YesNo, YesNoToggleProps } from "@/types/case-detail/update-case/individual-assets";
 
 const emptyTreatment: TreatmentFields = {
   treatment: "",
@@ -36,74 +20,6 @@ function makeId(prefix: string) {
 /* ---------------------------------------------------------------------- */
 /* Row types per asset category                                            */
 /* ---------------------------------------------------------------------- */
-
-interface RealEstateRow extends TreatmentFields {
-  id: string;
-  addressLine1: string;
-  addressLine2: string;
-  postcode: string;
-  propertyType: string;
-  value: string;
-  valueUnknown: boolean;
-  mortgageBalance: string;
-  earlyPenalty: string;
-  ownershipShare: string;
-  ownershipMode: string;
-  coOwnerDetails: string;
-  thirdPartyInterest: string;
-  thirdPartyDetail: string;
-}
-
-interface SavingsRow extends TreatmentFields {
-  id: string;
-  institution: string;
-  accountType: string;
-  balance: string;
-}
-
-interface PensionRow extends TreatmentFields {
-  id: string;
-  provider: string;
-  value: string;
-  valueUnknown: boolean;
-}
-
-interface BusinessRow extends TreatmentFields {
-  id: string;
-  name: string;
-  entityType: string;
-  turnover: string;
-  netProfit: string;
-  ownershipPercent: string;
-  valueOfStake: string;
-  valueUnknown: boolean;
-  justification: string;
-}
-
-interface ChattelRow extends TreatmentFields {
-  id: string;
-  description: string;
-  category: string;
-  value: string;
-  valueUnknown: boolean;
-}
-
-interface IPRow extends TreatmentFields {
-  id: string;
-  name: string;
-  ipType: string;
-  value: string;
-  valueUnknown: boolean;
-  registrationNumber: string;
-  description: string;
-}
-
-interface OtherAssetRow extends TreatmentFields {
-  id: string;
-  description: string;
-  value: string;
-  valueUnknown: boolean;
-}
 
 function makeRealEstateRow(): RealEstateRow {
   return {
@@ -196,12 +112,6 @@ function PartHeader({ children, tooltip }: { children: ReactNode; tooltip?: stri
   );
 }
 
-interface YesNoToggleProps {
-  name: string;
-  value: YesNo;
-  onChange: (v: YesNo) => void;
-}
-
 function YesNoToggle({ name, value, onChange }: YesNoToggleProps) {
   return (
     <div className="mb-3 grid grid-cols-2 gap-3">
@@ -269,15 +179,6 @@ function RowItem({ children, onDelete }: { children: ReactNode; onDelete: () => 
   );
 }
 
-interface ValueWithUnsureProps {
-  id: string;
-  value: string;
-  unknown: boolean;
-  onValueChange: (v: string) => void;
-  onUnknownChange: (v: boolean) => void;
-  placeholder: string;
-}
-
 function ValueWithUnsure({ id, value, unknown, onValueChange, onUnknownChange, placeholder }: ValueWithUnsureProps) {
   return (
     <div>
@@ -306,14 +207,6 @@ function ValueWithUnsure({ id, value, unknown, onValueChange, onUnknownChange, p
       </small>
     </div>
   );
-}
-
-interface TreatmentSelectProps {
-  id: string;
-  fields: TreatmentFields;
-  onChange: (fields: TreatmentFields) => void;
-  label?: string;
-  options?: { value: Treatment; label: string }[];
 }
 
 const allTreatmentOptions: { value: Treatment; label: string }[] = [

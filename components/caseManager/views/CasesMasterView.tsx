@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Eye, RotateCcw, Filter } from "lucide-react";
 import Axios from "@/lib/ApiConfig";
-import { FilterState } from "@/types/case-manager";
 import { useRouter } from "next/navigation";
 
 interface CasesMasterViewProps {
@@ -27,6 +26,7 @@ interface RowCase {
   priority: string;
   daysInStatus: number;
 }
+import type { FilterState } from "@/types/case-manager";
 
 export const CasesMasterView: React.FC<CasesMasterViewProps> = ({
   filters,

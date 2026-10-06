@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import {
-  TreatmentFields,
   emptyTreatment,
   makeId,
   inputClasses,
@@ -13,14 +12,20 @@ import {
   RowItem,
   ValueWithUnsure,
   TreatmentSelect,
-  Treatment,
   makeToggleHandler,
   updateRow,
   removeRow,
 } from "@/components/Formprimitives";
-import { useSelector } from "react-redux";
-import { RootState } from "@/store/store";
+import { useDispatch, useSelector } from "react-redux";
+import { toast } from "react-toastify";
+import { AppDispatch, RootState } from "@/store/store";
 import Axios from "@/lib/ApiConfig";
+import { getErrorMessage } from "@/lib/api/http-error";
+import { getCasesDetails } from "@/store/asyncThunk/casesThunk";
+import { useJointSectionStatus } from "@/hooks/useJointSectionStatus";
+import { JointStatusBanner } from "@/components/joint/JointStatusBanner";
+import type { Treatment, TreatmentFields } from "@/types/forms/form-primitives";
+import type { LivingArrangement, SharedBusinessRow, SharedChattelRow, SharedIPRow, SharedOtherAssetRow, SharedRealEstateRow, SharedSavingsRow, YesNo } from "@/types/dashboard/joint-assets";
 
 const sharedTreatmentOptions: { value: Treatment; label: string }[] = [
   { value: "ShareEqually", label: "Share Equally (50/50)" },
@@ -28,22 +33,9 @@ const sharedTreatmentOptions: { value: Treatment; label: string }[] = [
   { value: "Percentage", label: "Share by Percentage" },
   { value: "Custom", label: "Custom Arrangement" },
 ];
-
-type YesNo = "Yes" | "No";
-
 /* ---------------------------------------------------------------------- */
 /* Living arrangements                                                     */
 /* ---------------------------------------------------------------------- */
-
-type LivingArrangement =
-  | ""
-  | "Separate"
-  | "Rent"
-  | "OneOwner"
-  | "Joint"
-  | "ThirdParty"
-  | "Other";
-
 const livingArrangementOptions: { value: LivingArrangement; label: string }[] =
   [
     { value: "Separate", label: "We currently live separately" },
@@ -114,62 +106,6 @@ function InfoBanner({ children }: { children: React.ReactNode }) {
 /* ---------------------------------------------------------------------- */
 /* Row types                                                                */
 /* ---------------------------------------------------------------------- */
-
-interface SharedRealEstateRow extends TreatmentFields {
-  id: string;
-  addressLine1: string;
-  addressLine2: string;
-  postcode: string;
-  propertyType: string;
-  value: string;
-  valueUnknown: boolean;
-  mortgageBalance: string;
-  earlyPenalty: string;
-  ownershipPercentage: string;
-  thirdPartyInterest: string;
-  thirdPartyDetail: string;
-}
-interface SharedSavingsRow extends TreatmentFields {
-  id: string;
-  accountHolder: string;
-  institution: string;
-  accountType: string;
-  balance: string;
-}
-interface SharedBusinessRow extends TreatmentFields {
-  id: string;
-  name: string;
-  entityType: string;
-  turnover: string;
-  netProfit: string;
-  ownershipPercent: string;
-  valueOfStake: string;
-  valueUnknown: boolean;
-  justification: string;
-  directorLoanBalance: string;
-}
-interface SharedIPRow extends TreatmentFields {
-  id: string;
-  name: string;
-  ipType: string;
-  value: string;
-  valueUnknown: boolean;
-  registrationNumber: string;
-  description: string;
-}
-interface SharedChattelRow extends TreatmentFields {
-  id: string;
-  description: string;
-  category: string;
-  value: string;
-  valueUnknown: boolean;
-}
-interface SharedOtherAssetRow extends TreatmentFields {
-  id: string;
-  description: string;
-  value: string;
-  valueUnknown: boolean;
-}
 
 function makeSharedRealEstateRow(): SharedRealEstateRow {
   return {
@@ -250,9 +186,10 @@ function makeSharedOtherAssetRow(): SharedOtherAssetRow {
 /* ---------------------------------------------------------------------- */
 
 export default function SharedAssetsForm() {
-
-
+  const dispatch = useDispatch<AppDispatch>();
   const caseId = useSelector((state: RootState) => state.auth.caseId);
+  // Read-only unless it's this user's turn to edit the joint section
+  const { canEdit } = useJointSectionStatus();
   const [livingArrangement, setLivingArrangement] =
     useState<LivingArrangement>("");
   const [rentDuration, setRentDuration] = useState("");
@@ -317,9 +254,8 @@ export default function SharedAssetsForm() {
     makeSharedOtherAssetRow,
   );
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log("here in submit")
     const payload = {
       livingArrangement,
       rentDuration,
@@ -347,15 +283,13 @@ export default function SharedAssetsForm() {
     };
 
     try {
-      const { data } = await Axios.post(
-        `/cases/${caseId}/questionnaire/joint-assets`,
-        payload
-      );
-
+      await Axios.post(`/cases/${caseId}/questionnaire/joint-assets`, payload);
       setSubmitted(true);
-
+      toast.success("Joint assets saved.");
+      // Refresh so the sidebar tick turns green
+      if (caseId) dispatch(getCasesDetails(caseId));
     } catch (error) {
-      console.error("Error saving joint assets:", error);
+      toast.error(getErrorMessage(error, "Couldn't save joint assets."));
     }
   };
 
@@ -425,7 +359,10 @@ useEffect(() => {
             you would like them to be treated under your prenuptial agreement.
           </p>
 
+          <JointStatusBanner />
+
           <form onSubmit={handleSubmit} noValidate>
+            <fieldset disabled={!canEdit} className="m-0 min-w-0 border-0 p-0">
             {/* CURRENT LIVING ARRANGEMENTS */}
             <PartHeader tooltip="Tell us about your current living arrangements. This helps us understand your current circumstances. Property ownership and how it should be treated under your agreement will be collected separately.">
               Current Living Arrangements
@@ -1214,14 +1151,18 @@ useEffect(() => {
               </MatrixBox>
             )}
 
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                className="mt-8 rounded-[10px] bg-indigo-600 px-10 py-3.5 font-semibold text-white shadow-[0_4px_12px_rgba(79,70,229,0.2)] transition hover:bg-indigo-700"
-              >
-                Save and Continue
-              </button>
-            </div>
+            </fieldset>
+
+            {canEdit && (
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  className="mt-8 rounded-[10px] bg-indigo-600 px-10 py-3.5 font-semibold text-white shadow-[0_4px_12px_rgba(79,70,229,0.2)] transition hover:bg-indigo-700"
+                >
+                  Save and Continue
+                </button>
+              </div>
+            )}
           </form>
 
           {submitted && (

@@ -2,11 +2,8 @@
 
 import { ChevronDown } from "lucide-react";
 import { formatVersionDate } from "@/lib/utils";
-import type { VersionEntry } from "@/types/types-agreement";
-
-interface AmendmentHistoryProps {
-  versions: VersionEntry[];
-}
+import type { VersionEntry } from "@/types/agreement";
+import type { AmendmentHistoryProps } from "@/types/agreement/amendment-history";
 
 export function AmendmentHistory({ versions }: AmendmentHistoryProps) {
   return (

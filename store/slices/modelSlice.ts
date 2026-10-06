@@ -1,13 +1,7 @@
 "use client";
 
 import { createSlice } from "@reduxjs/toolkit";
-
-type ModelType = "invite-partner";
-
-interface modelState {
-  type: ModelType | null;
-  isOpen: boolean;
-}
+import type { modelState } from "@/types/store/model-slice";
 
 const initialState: modelState = {
   type: null,
