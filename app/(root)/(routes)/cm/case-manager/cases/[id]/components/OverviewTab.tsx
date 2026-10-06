@@ -31,7 +31,7 @@ export default function OverviewTab({
           </span>
 
           <span className="font-mono text-xs font-bold text-slate-900">
-            {caseData._id}
+            {caseData.caseNumber || caseData._id}
           </span>
 
           <span className="text-xs text-slate-600 font-semibold">

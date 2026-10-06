@@ -91,11 +91,7 @@ export default function CaseDetailPage() {
     {
       id: "audit",
       label: "7. Audit Logs",
-    },
-    {
-      id: "notes",
-      label: "8. CM Notes",
-    },
+    }
   ];
 
   if (loading) {
@@ -124,7 +120,7 @@ export default function CaseDetailPage() {
             </h1>
 
             <p className="text-sm text-slate-500">
-              {caseData._id}
+              {caseData.caseNumber || caseData._id}
             </p>
           </div>
 

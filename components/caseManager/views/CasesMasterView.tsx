@@ -19,6 +19,7 @@ interface CasesMasterViewProps {
 
 interface RowCase {
   id: string;
+  caseNumber: string;
   p1: string;
   p2: string;
   cmView: string;
@@ -59,6 +60,7 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = ({
         const formattedCases: RowCase[] = response.data.map(
           (item: any) => ({
             id: item._id,
+            caseNumber: item.caseNumber || item._id,
 
             p1: item.owner
               ? `${item.owner.firstName ?? ""} ${
@@ -160,7 +162,7 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = ({
                   className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer"
                 >
                   <td className="p-4 pl-6 font-mono">
-                    {c.id}
+                    {c.caseNumber}
                   </td>
 
                   <td className="p-4 font-semibold">

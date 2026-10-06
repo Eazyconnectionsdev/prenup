@@ -14,6 +14,7 @@ export interface LawyerFilterState {
 
 export interface LawyerRowCase {
   id: string;
+  caseNumber: string;
   p1Name: string;
   p2Name: string;
   service: string;
@@ -110,6 +111,7 @@ const LawyerCasesPage = () => {
 
         const formattedCases: LawyerRowCase[] = response.data.map((item: any) => ({
           id: item._id,
+          caseNumber: item.caseNumber || item._id,
 
           p1Name: item.owner
             ? `${item.owner.firstName ?? ""} ${item.owner.lastName ?? ""}`.trim() || "Unknown"
@@ -197,7 +199,7 @@ const LawyerCasesPage = () => {
 
       if (filters.search.trim()) {
         const q = filters.search.toLowerCase();
-        const haystack = `${c.id} ${c.p1Name} ${c.p2Name} ${c.service}`.toLowerCase();
+        const haystack = `${c.caseNumber} ${c.id} ${c.p1Name} ${c.p2Name} ${c.service}`.toLowerCase();
         if (!haystack.includes(q)) return false;
       }
 
@@ -313,7 +315,7 @@ const LawyerCasesPage = () => {
                     onClick={() => handleCaseClick(c.id)}
                     className="border-b border-slate-100 hover:bg-slate-50 transition-all cursor-pointer text-slate-700"
                   >
-                    <td className="p-4 pl-6 font-mono font-bold text-slate-900">{c.id}</td>
+                    <td className="p-4 pl-6 font-mono font-bold text-slate-900">{c.caseNumber}</td>
                     <td className="p-4 font-semibold text-slate-900">{c.p1Name}</td>
                     <td className="p-4">{c.p2Name}</td>
                     <td className="p-4">

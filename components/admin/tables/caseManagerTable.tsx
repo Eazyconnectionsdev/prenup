@@ -150,6 +150,7 @@ export default function CasesTable({
 
       const q = search.toLowerCase();
       return (
+        (c.raw?.caseNumber || "").toLowerCase().includes(q) ||
         c.title.toLowerCase().includes(q) ||
         c.client.toLowerCase().includes(q) ||
         c.lawyer.toLowerCase().includes(q) ||
@@ -251,7 +252,7 @@ export default function CasesTable({
                 >
                   {/* Case ID */}
                   <div>
-                    <div className="font-medium">{idx + 1}</div>
+                    <div className="font-medium">{c.raw?.caseNumber || idx + 1}</div>
                     <div className="text-xs text-slate-400">
                       {c.raw?.type || ""}
                     </div>
