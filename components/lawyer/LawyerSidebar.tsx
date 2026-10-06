@@ -49,6 +49,26 @@ export const LawyerSidebar: React.FC = () => {
     router.push("/login");
   };
 
+  useEffect(() => {
+    let cancelled = false;
+    const loadCounts = async () => {
+      try {
+        const response = await Axios.get("/case-manager/cases");
+        if (cancelled) return;
+        const list: any[] = Array.isArray(response.data) ? response.data : [];
+        const completed = list.filter((c) => isCompleted(c.workflowStatus)).length;
+        setCompletedCount(completed);
+        setAssignedCount(list.length - completed);
+      } catch (err) {
+        console.error("Failed to load sidebar counts", err);
+      }
+    };
+    loadCounts();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const counts: Record<string, number> = {
     assigned: assignedCount,
     completed: completedCount,
@@ -73,7 +93,10 @@ export const LawyerSidebar: React.FC = () => {
 
         <nav className="flex flex-col gap-1.5">
           {MENU_ITEMS.map((item) => {
-            const isActive = pathname === item.path;
+            const isActive =
+              item.path === "/lawyer"
+                ? pathname === item.path
+                : pathname === item.path || pathname.startsWith(`${item.path}/`);
             const count = item.countKey ? counts[item.countKey] : undefined;
 
             return (

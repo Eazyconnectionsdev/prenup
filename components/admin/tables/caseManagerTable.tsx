@@ -360,7 +360,7 @@ export default function CasesTable({
         {openMenu && (
           <div
             ref={dropdownRef}
-            className="fixed z-[1000] w-40 bg-white shadow-lg rounded-md border"
+            className="fixed z-1000 w-40 bg-white shadow-lg rounded-md border"
             style={{
               top: menuPosition.top,
               left: menuPosition.left,

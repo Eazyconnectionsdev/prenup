@@ -33,9 +33,8 @@ const sharedTreatmentOptions: { value: Treatment; label: string }[] = [
   { value: "Percentage", label: "Share by Percentage" },
   { value: "Custom", label: "Custom Arrangement" },
 ];
-/* ---------------------------------------------------------------------- */
-/* Living arrangements                                                     */
-/* ---------------------------------------------------------------------- */
+
+
 const livingArrangementOptions: { value: LivingArrangement; label: string }[] =
   [
     { value: "Separate", label: "We currently live separately" },
@@ -74,7 +73,7 @@ function LivingArrangementRadio({
               className="sr-only"
             />
             <span
-              className={`relative h-4 w-4 flex-shrink-0 rounded-full border-2 ${checked
+              className={`relative h-4 w-4 shrink-0 rounded-full border-2 ${checked
                 ? "border-indigo-600 bg-indigo-600"
                 : "border-slate-300 bg-white"
                 }`}

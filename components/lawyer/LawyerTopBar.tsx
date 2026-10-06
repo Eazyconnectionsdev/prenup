@@ -7,13 +7,14 @@ import { RootState, AppDispatch } from "@/store/store";
 import { LogOut } from "lucide-react";
 import { logOutUser } from "@/store/asyncThunk/authThunk";
 
-const PATH_TITLES: Record<string, string> = {
-  "/lawyer": "Lawyer Dashboard",
-  "/lawyer/assigned-cases": "Assigned Matters",
-  "/lawyer/completed": "Completed Cases",
-  "/lawyer/settings": "Portal Settings",
-  "/lawyer/lawyer-profile": "Lawyer Profile",
-};
+// Ordered most-specific first; matched by prefix so nested routes keep a title.
+const PATH_TITLES: [string, string][] = [
+  ["/lawyer/assigned-cases", "Assigned Matters"],
+  ["/lawyer/completed-case", "Completed Cases"],
+  ["/lawyer/settings", "Portal Settings"],
+  ["/lawyer/lawyer-profile", "Lawyer Profile"],
+  ["/lawyer", "Lawyer Dashboard"],
+];
 
 export const LawyerTopBar = () => {
   const router = useRouter();
@@ -45,10 +46,13 @@ export const LawyerTopBar = () => {
     router.push("/login");
   };
 
-  const pageTitle = PATH_TITLES[pathname] ?? "Lawyer Portal";
+  const pageTitle =
+    PATH_TITLES.find(
+      ([path]) => pathname === path || pathname.startsWith(`${path}/`),
+    )?.[1] ?? "Lawyer Portal";
 
   return (
-    <header className="h-[76px] bg-[#0d1527] border-r border-[#1e293b] flex items-center justify-between px-8 pt-4 pb-2 border-b border-slate-200">
+    <header className="sticky top-0 z-40 h-[76px] bg-[#0d1527] border-r border-[#1e293b] flex items-center justify-between px-8 pt-4 pb-2 border-b border-slate-200">
       <div className="flex flex-col">
         <h1 className="text-xl font-bold font-sans text-white tracking-tight leading-tight">
           {pageTitle}

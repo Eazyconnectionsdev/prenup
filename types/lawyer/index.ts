@@ -1,24 +1,3 @@
-export type NavView =
-  | 'dashboard'
-  | 'assigned_cases'
-  | 'versions'
-  | 'notes'
-  | 'appendices'
-  | 'ila'
-  | 'completed'
-  | 'profile'
-  | 'settings';
-
-export type CaseTabId =
-  | 'overview'
-  | 'client_details'
-  | 'versions'
-  | 'notes'
-  | 'appendices'
-  | 'ila'
-  | 'timeline'
-  | 'emails';
-
 export type LawyerPersona = 'L1' | 'L2' | 'L3';
 
 export type CaseStatus =
@@ -61,17 +40,6 @@ export interface Appendix {
   uploadedBy: string;
   createdDate: string;
   s3Path: string;
-}
-
-export interface AuditLog {
-  id: string;
-  actor: string;
-  action: string;
-  module: string;
-  ipAddress: string;
-  timestamp: string;
-  before: string;
-  after: string;
 }
 
 export interface LawyerCase {

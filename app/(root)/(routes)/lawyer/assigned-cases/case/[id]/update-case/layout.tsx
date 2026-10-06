@@ -3,9 +3,9 @@ import React, { ReactNode } from 'react'
 
 const UpdateCaseLayout = ({children} : {children : ReactNode}) => {
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-[calc(100vh-76px)]">
       <UpdateCaseSidebar />
-      <main className="flex-1 p-8 bg-gray-50">{children}</main>
+      <div className="flex-1 min-w-0 p-8 bg-gray-50">{children}</div>
     </div>
   )
 }
