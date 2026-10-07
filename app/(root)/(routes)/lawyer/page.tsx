@@ -1,8 +1,6 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { LawyerSidebar } from "@/components/lawyer/LawyerSidebar";
-import { LawyerTopBar } from "@/components/lawyer/LawyerTopBar";
 import Axios from "@/lib/ApiConfig";
 import type { LawyerCase } from "@/types/lawyer";
 
@@ -12,6 +10,29 @@ const LawyerPage = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+
+  useEffect(() => {
+    const fetchCases = async () => {
+      try {
+        const response = await Axios.get("/case-manager/cases");
+        const list: any[] = Array.isArray(response.data) ? response.data : [];
+        setCases(
+          list.map((item) => ({
+            id: item._id,
+            status:
+              typeof item.workflowStatus === "string"
+                ? item.workflowStatus
+                : "UNKNOWN",
+            certificateExpiryDate: item.certificateExpiryDate ?? null,
+          })) as unknown as LawyerCase[],
+        );
+      } catch (err) {
+        console.error("Failed to fetch cases", err);
+        setCases([]);
+      }
+    };
+    fetchCases();
+  }, []);
 
   const isExpiringSoon = (expiryDate?: string | null) => {
     if (!expiryDate) return false;
@@ -78,7 +99,7 @@ const LawyerPage = () => {
   );
 
   return (
-    <main className="flex-1 p-8">
+    <div className="p-8">
       <div className="flex flex-col gap-6 max-w-[1280px]">
         <div className="flex flex-col gap-4">
           <h2 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider font-sans">
@@ -181,7 +202,7 @@ const LawyerPage = () => {
           )}
         </div>
       </div>
-    </main>
+    </div>
   );
 };
 

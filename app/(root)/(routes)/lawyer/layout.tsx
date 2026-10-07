@@ -6,7 +6,7 @@ export const metadata = {
   title: "Lawyer Portal",
 };
 
-export default function AdminLayout({
+export default function LawyerLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -15,10 +15,10 @@ export default function AdminLayout({
     <div className="min-h-screen bg-[#f7f4ee]">
       <LawyerSidebar />
 
-      <div className="ml-[220px] flex flex-col min-h-screen">
+      <div className="ml-[220px] flex flex-col min-h-screen min-w-0">
         <LawyerTopBar />
 
-        <main className="flex-1">
+        <main className="flex-1 min-w-0">
           {children}
         </main>
       </div>

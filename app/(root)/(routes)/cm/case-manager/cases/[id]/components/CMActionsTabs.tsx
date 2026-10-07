@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import Axios from "@/lib/ApiConfig";
+import { toast } from "react-toastify";
+import { getErrorMessage } from "@/lib/api/http-error";
 import type { Props } from "@/types/case-detail/tabs/cm-actions-tabs";
 
 const NOTE_CATEGORIES = [
@@ -238,12 +240,10 @@ export default function CMActionsTab({
           }
         );
 
-
-        alert(
-          "Lawyers assigned successfully",
-        );
+        // The backend also initializes the lawyer stage document
+        toast.success("Lawyers assigned. The agreement is now ready for lawyer review.");
       } catch (error) {
-        console.error(error);
+        toast.error(getErrorMessage(error, "Couldn't assign lawyers."));
       } finally {
         setLoading(false);
       }

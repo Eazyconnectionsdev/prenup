@@ -2,15 +2,12 @@
 
 import React, { useState, useMemo, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { CaseManagerSidebar } from "@/components/caseManager/CaseManagerSidebar";
-import { CaseManagerTopBar } from "@/components/caseManager/CaseManagerTopBar";
 import DashboardLedgerView from "@/components/caseManager/views/DashboardLedgerView";
 import { CasesMasterView } from "@/components/caseManager/views/CasesMasterView";
 import { ArchivedVaultView } from "@/components/caseManager/views/ArchivedVaultView";
 import { ReportsView } from "@/components/caseManager/views/ReportsView";
 import { CaseSlideDrawer } from "@/components/caseManager/drawer/CaseSlideDrawer";
 import { ScorecardModal } from "@/components/caseManager/modals/ScorecardModal";
-import { CaseManagerAccountModal } from "@/components/caseManager/modals/CaseManagerAccountModal";
 import { ToastContainer } from "@/components/caseManager/ui/ToastContainer";
 import type { ApiLogEntry, AuditLog, CaseItem, FilterState, NavView, RuleEntry, ToastItem } from "@/types/case-manager";
 
@@ -669,7 +666,7 @@ function CaseManagerContent({ initialView = "dashboard" }: { initialView?: NavVi
   const urlCaseId = searchParams.get("caseId");
 
   const [currentView, setCurrentView] = useState<NavView>(initialView);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery] = useState("");
   const [filterState, setFilterState] = useState<FilterState>({
     status: "ALL",
     health: "ALL",
@@ -682,7 +679,6 @@ function CaseManagerContent({ initialView = "dashboard" }: { initialView?: NavVi
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isScorecardOpen, setIsScorecardOpen] = useState(false);
-  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
   const [toasts, setToasts] = useState<ToastItem[]>([]);
@@ -1075,59 +1071,36 @@ function CaseManagerContent({ initialView = "dashboard" }: { initialView?: NavVi
   };
 
   return (
-    <div className="min-h-screen bg-[#f7f4ee] text-slate-800 flex font-sans">
-      <CaseManagerSidebar
-        currentView={currentView}
-        onViewChange={handleViewChange}
-        casesCount={cases.filter((c) => c.backendState !== "ARCHIVED").length}
-        archivedCount={
-          cases.filter((c) => c.backendState === "ARCHIVED").length
-        }
-        onOpenAccountModal={() => setIsAccountModalOpen(true)}
-      />
+    <div className="p-8">
+      {currentView === "dashboard" && (
+        <DashboardLedgerView />
+      )}
 
-      <div className="pl-[240px] flex-1 flex flex-col min-w-0">
-        <CaseManagerTopBar
-          currentView={currentView}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          onOpenScorecard={() => setIsScorecardOpen(true)}
-          onOpenAccountModal={() => setIsAccountModalOpen(true)}
-          onViewChange={handleViewChange}
+      {currentView === "cases" && (
+        <CasesMasterView
+          filters={filterState}
+          onFilterChange={handleFilterChange}
+          onResetFilters={handleResetFilters}
+          onSelectCase={handleOpenDrawer}
         />
+      )}
 
-        <main className="p-8 flex-1">
-          {currentView === "dashboard" && (
-            <DashboardLedgerView />
-          )}
+      {currentView === "archived" && (
+        <ArchivedVaultView
+          archivedCases={archivedCases}
+          onSelectCase={handleOpenDrawer}
+        />
+      )}
 
-          {currentView === "cases" && (
-            <CasesMasterView
-              filters={filterState}
-              onFilterChange={handleFilterChange}
-              onResetFilters={handleResetFilters}
-              onSelectCase={handleOpenDrawer}
-            />
-          )}
-
-          {currentView === "archived" && (
-            <ArchivedVaultView
-              archivedCases={archivedCases}
-              onSelectCase={handleOpenDrawer}
-            />
-          )}
-
-          {currentView === "reports" && (
-            <ReportsView
-              cases={cases}
-              onLogApiCall={(ep, method, payload) => {
-                logApi(ep, method, payload);
-                showToast(`Report Endpoint: ${method} ${ep}`, "info");
-              }}
-            />
-          )}
-        </main>
-      </div>
+      {currentView === "reports" && (
+        <ReportsView
+          cases={cases}
+          onLogApiCall={(ep, method, payload) => {
+            logApi(ep, method, payload);
+            showToast(`Report Endpoint: ${method} ${ep}`, "info");
+          }}
+        />
+      )}
 
       <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
     </div>
