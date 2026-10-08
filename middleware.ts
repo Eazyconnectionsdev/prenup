@@ -43,7 +43,7 @@ export default async function middleware(req: NextRequest) {
   const { nextUrl } = req;
 
   // Let proxied API calls go straight to the rewrite (backend handles its own auth)
-  if (nextUrl.pathname === "/backend" || nextUrl.pathname.startsWith("/backend/")) {
+  if (nextUrl.pathname === "/api" || nextUrl.pathname.startsWith("/api/")) {
     return NextResponse.next();
   }
 
@@ -93,7 +93,7 @@ export default async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next|backend(?:/|$)|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|jpg|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    "/((?!_next|api(?:/|$)|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|jpg|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
     "/",
   ],
 };
