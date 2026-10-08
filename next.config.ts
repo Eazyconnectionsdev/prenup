@@ -19,7 +19,7 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
-        source: "/backend/:path*",
+        source: "/api/:path*",
         destination: `${BACKEND_URL}/:path*`,
       },
     ];
