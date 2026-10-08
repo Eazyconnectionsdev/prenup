@@ -1,26 +1,9 @@
 import React, { ReactNode } from "react";
+import type { Treatment, TreatmentFields, TreatmentSelectProps, ValueWithUnsureProps, YesNo, YesNoToggleProps } from "@/types/forms/form-primitives";
 
 /* ---------------------------------------------------------------------- */
 /* Shared types                                                            */
 /* ---------------------------------------------------------------------- */
-
-export type YesNo = "Yes" | "No";
-
-export type Treatment =
-  | ""
-  | "KeepSeparate"
-  | "ShareEqually"
-  | "Contribution"
-  | "Percentage"
-  | "Custom";
-
-export interface TreatmentFields {
-  treatment: Treatment;
-  contributionText: string;
-  percentageValue: string;
-  customText: string;
-}
-
 export const emptyTreatment: TreatmentFields = {
   treatment: "",
   contributionText: "",
@@ -75,12 +58,6 @@ export function SysBanner({ children, tone = "info" }: { children: ReactNode; to
       {children}
     </div>
   );
-}
-
-interface YesNoToggleProps {
-  name: string;
-  value: YesNo;
-  onChange: (v: YesNo) => void;
 }
 
 export function YesNoToggle({ name, value, onChange }: YesNoToggleProps) {
@@ -164,15 +141,6 @@ export function RowItem({ children, onDelete }: { children: ReactNode; onDelete:
   );
 }
 
-export interface ValueWithUnsureProps {
-  id: string;
-  value: string;
-  unknown: boolean;
-  onValueChange: (v: string) => void;
-  onUnknownChange: (v: boolean) => void;
-  placeholder: string;
-}
-
 export function ValueWithUnsure({
   id,
   value,
@@ -204,14 +172,6 @@ export function ValueWithUnsure({
       </label>
     </div>
   );
-}
-
-export interface TreatmentSelectProps {
-  id: string;
-  fields: TreatmentFields;
-  onChange: (fields: TreatmentFields) => void;
-  label?: string;
-  options?: { value: Treatment; label: string }[];
 }
 
 export const allTreatmentOptions: { value: Treatment; label: string }[] = [

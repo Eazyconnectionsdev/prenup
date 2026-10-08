@@ -16,20 +16,10 @@ import {
   Building2,
   UserCheck
 } from 'lucide-react';
-import {
-  CaseItem,
-  ReportType,
-  ReportFilterState,
-  ReportColumnDef,
-  ReportRowData
-} from '@/types/case-manager';
 import { ReusableReportTable } from '../ui/ReusableReportTable';
 import { ReportDetailModal } from '../modals/ReportDetailModal';
-
-interface ReportsViewProps {
-  cases: CaseItem[];
-  onLogApiCall?: (endpoint: string, method: string, payload: any) => void;
-}
+import type { CaseItem, ReportColumnDef, ReportFilterState, ReportRowData, ReportType } from "@/types/case-manager";
+import type { ReportsViewProps } from "@/types/case-manager/reports-view";
 
 // 9 REPORT TYPE COLUMN DEFINITIONS
 const REPORT_COLUMNS: Record<ReportType, ReportColumnDef[]> = {

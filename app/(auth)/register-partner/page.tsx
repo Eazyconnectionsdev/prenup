@@ -12,22 +12,11 @@ import Eye from "@/images/icons/eye.png";
 import EyeOff from "@/images/icons/eye-off.png";
 
 import { AppDispatch, RootState } from "@/store/store";
-import { acceptInvite } from "@/store/asyncThunk/authThunk";
-
-interface FormState {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  password: string;
-  confirmPassword: string;
-  acceptedTerms: boolean;
-}
-
-interface InviteData {
-  token: string;
-  caseId: string;
-}
+import { acceptInvite, getInviteInfo } from "@/store/asyncThunk/authThunk";
+import { setUserProfileData } from "@/store/slices/authSlice";
+import { getErrorMessage } from "@/lib/getErrorMessage";
+import { isValidPhone, normalizePhone } from "@/lib/utils";
+import type { FormState, InviteData } from "@/types/auth/register-partner";
 
 export default function RegisterPartnerPage() {
   const router = useRouter();
@@ -62,22 +51,36 @@ export default function RegisterPartnerPage() {
   });
 
   useEffect(() => {
-    setInviteData({
-      token: searchParams.get("token") ?? "",
-      caseId: searchParams.get("caseId") ?? "",
-    });
+    const token = searchParams.get("token") ?? "";
+    const caseId = searchParams.get("caseId") ?? "";
+    setInviteData({ token, caseId });
 
-    
-setForm((prev) => ({
-  ...prev,
-  firstName: searchParams.get("firstName") ?? "",
-  lastName: searchParams.get("lastName") ?? "",
-  email: searchParams.get("email") ?? "",
-  phone: searchParams.get("mobileNumber") ?? "",
-}));
+    // Query params are only a fallback; the server is the source of truth and
+    // also records that the link was opened.
+    setForm((prev) => ({
+      ...prev,
+      firstName: searchParams.get("firstName") ?? "",
+      lastName: searchParams.get("lastName") ?? "",
+      email: searchParams.get("email") ?? "",
+      phone: searchParams.get("mobileNumber") ?? "",
+    }));
 
-
-  }, [searchParams]);
+    if (!token || !caseId) return;
+    dispatch(getInviteInfo({ caseId, token }))
+      .unwrap()
+      .then((info) => {
+        setForm((prev) => ({
+          ...prev,
+          firstName: info.firstName ?? prev.firstName,
+          lastName: info.lastName ?? prev.lastName,
+          email: info.email ?? prev.email,
+          phone: info.mobileNumber ?? prev.phone,
+        }));
+      })
+      .catch((error) => {
+        toast.error(getErrorMessage(error, "This invite link is not valid"));
+      });
+  }, [searchParams, dispatch]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement>
@@ -101,6 +104,21 @@ setForm((prev) => ({
     
 if (!inviteData.token || !inviteData.caseId) {
   toast.error("Invalid invite link");
+  return;
+}
+
+if (!form.firstName.trim() || !form.lastName.trim()) {
+  toast.error("First and last name are required");
+  return;
+}
+
+if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) {
+  toast.error("Enter a valid email address");
+  return;
+}
+
+if (!isValidPhone(form.phone)) {
+  toast.error("Enter a valid phone number, e.g. +14165550192");
   return;
 }
 
@@ -129,28 +147,31 @@ if (!form.acceptedTerms) {
 }
 
 try {
-  await dispatch(
+  const result = await dispatch(
     acceptInvite({
       token: inviteData.token,
       caseId: inviteData.caseId,
       password: form.password,
+      firstName: form.firstName.trim(),
+      lastName: form.lastName.trim(),
+      email: form.email.trim().toLowerCase(),
+      phone: normalizePhone(form.phone) || undefined,
     })
   ).unwrap();
 
-  toast.success(
-    "Account created successfully"
-  );
-
-  router.push("/auth/login");
+  if (result?.requiresEmailVerification) {
+    // Registered with a different email than invited: verify it first.
+    dispatch(setUserProfileData({ email: result.email }));
+    toast.success("Account created. Check your email for the verification code.");
+    router.push("/email-verification");
+  } else {
+    toast.success("Account created successfully");
+    router.push("/login");
+  }
 } catch (error: unknown) {
   console.error(error);
 
-  const errorMessage =
-    error instanceof Error
-      ? error.message
-      : "Failed to create account";
-
-  toast.error(errorMessage);
+  toast.error(getErrorMessage(error, "Failed to create account"));
 }
 
   };
@@ -177,7 +198,7 @@ try {
         </h1>
 
         <p className="mb-8 text-center text-[#7A7A7A]">
-          Create your password to accept the invitation.
+          Confirm your details and create a password to accept the invitation. You can use a different email if you prefer; we will verify it.
         </p>
 
         <form
@@ -188,37 +209,46 @@ try {
           <div className="flex gap-4">
             <input
               type="text"
+              name="firstName"
               value={form.firstName}
-              disabled
+              onChange={handleChange}
+              autoComplete="given-name"
               placeholder="First Name"
-              className="w-full rounded border border-gray-300 bg-gray-100 px-4 py-3 text-gray-600"
+              className="w-full rounded border border-gray-300 px-4 py-3 outline-none focus:border-[#6A69FF]"
             />
 
             <input
               type="text"
+              name="lastName"
               value={form.lastName}
-              disabled
+              onChange={handleChange}
+              autoComplete="family-name"
               placeholder="Last Name"
-              className="w-full rounded border border-gray-300 bg-gray-100 px-4 py-3 text-gray-600"
+              className="w-full rounded border border-gray-300 px-4 py-3 outline-none focus:border-[#6A69FF]"
             />
           </div>
 
           {/* Email */}
           <input
             type="email"
+            name="email"
             value={form.email}
-            disabled
+            onChange={handleChange}
+            autoComplete="email"
             placeholder="Email"
-            className="w-full rounded border border-gray-300 bg-gray-100 px-4 py-3 text-gray-600"
+            className="w-full rounded border border-gray-300 px-4 py-3 outline-none focus:border-[#6A69FF]"
           />
 
           {/* Phone */}
           <input
-            type="text"
+            type="tel"
+            name="phone"
+            inputMode="tel"
+            autoComplete="tel"
             value={form.phone}
-            disabled
+            onChange={handleChange}
             placeholder="Phone Number"
-            className="w-full rounded border border-gray-300 bg-gray-100 px-4 py-3 text-gray-600"
+            className="w-full rounded border border-gray-300 px-4 py-3 outline-none focus:border-[#6A69FF]"
           />
 
           {/* Password */}

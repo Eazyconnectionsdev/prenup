@@ -2,8 +2,7 @@
 
 import React from 'react';
 import { Info, CheckCircle, AlertTriangle } from 'lucide-react';
-import { ToastContainerProps } from '@/types/case-manager';
-
+import type { ToastContainerProps } from "@/types/case-manager";
 
 export const ToastContainer: React.FC<ToastContainerProps> = ({
   toasts,

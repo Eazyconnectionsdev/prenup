@@ -20,13 +20,7 @@ import {
 import { logOutUser } from '@/store/asyncThunk/authThunk'
 import { useDispatch } from 'react-redux'
 import { AppDispatch } from '@/store/store'
-
-interface NavItem {
-  icon: React.ElementType
-  label: string
-  number?: number
-  href: string
-}
+import type { NavItem, SidebarProps } from "@/types/admin/sidebar-case-manager";
 
 const mainNavItems: NavItem[] = [
   { icon: Home, label: 'Dashboard', href: '/cm' }
@@ -41,12 +35,6 @@ const coreNavItems: NavItem[] = [
 const bottomNavItems: NavItem[] = [
   { icon: User, label: 'Account', href: '/account' }
 ]
-
-interface SidebarProps {
-  activeItem?: string
-}
-
-
 
 export default function Sidebar({ activeItem = '/management/admin' }: SidebarProps) {
   const [isExpanded, setIsExpanded] = useState(true)

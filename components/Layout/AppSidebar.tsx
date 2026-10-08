@@ -1,38 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
 import { getCasesDetails } from "@/store/asyncThunk/casesThunk";
-
-type SectionKey = "section1" | "section2" | "section3" | "section4";
-type SubgroupKey = "myFinancial" | "partnerFinancial" | "jointFinancial";
-
-interface LeafProps {
-  id: string;
-  icon: IconName;
-  label: string;
-  done?: boolean;
-  activeLeaf: string;
-  onSelect: (id: string) => void;
-  readOnly?: boolean;
-  lockReason?: string;
-  isPartner?: boolean;
-}
-
-type IconName =
-  | "workspace"
-  | "person"
-  | "personalInfo"
-  | "legal"
-  | "family"
-  | "folder"
-  | "assets"
-  | "income"
-  | "liabilities"
-  | "joint"
-  | "seal";
+import type { IconName, LeafProps, SectionKey, SubgroupKey } from "@/types/layout/app-sidebar";
 
 const LEAF_TO_KEY: Record<string, string> = {
   "personal-info": "personalInformation",
@@ -77,6 +51,34 @@ const JOINT_ASSETS_LEAFS: { id: string; icon: IconName; label: string }[] = [
 ];
 
 const TOTAL_LEAVES = Object.keys(LEAF_TO_KEY).length;
+
+const ILA_LEAFS = ["solicitor-details", "lawyer-questionaries", "review-and-sign"];
+
+// Which accordion section / subgroup holds the page at this URL, so it can be
+// opened automatically (e.g. after a refresh or a form auto-advancing).
+function locateLeaf(activeLeaf: string): {
+  section: SectionKey;
+  subgroup: SubgroupKey | null;
+} | null {
+  const isPartner = activeLeaf.startsWith("partner-");
+  const id = (isPartner ? activeLeaf.slice("partner-".length) : activeLeaf).split("/")[0];
+
+  if (!isPartner && ILA_LEAFS.includes(id)) {
+    return { section: "section4", subgroup: null };
+  }
+  if (!isPartner && JOINT_ASSETS_LEAFS.some((l) => l.id === id)) {
+    return { section: "section3", subgroup: "jointFinancial" };
+  }
+  if (PERSONAL_LEAFS.some((l) => l.id === id)) {
+    return { section: isPartner ? "section2" : "section1", subgroup: null };
+  }
+  if (FINANCIAL_LEAFS.some((l) => l.id === id)) {
+    return isPartner
+      ? { section: "section2", subgroup: "partnerFinancial" }
+      : { section: "section1", subgroup: "myFinancial" };
+  }
+  return null;
+}
 
 const iconPaths: Record<IconName, ReactNode> = {
   workspace: <path d="M3 7l9-4 9 4-9 4-9-4z M3 7v10l9 4 9-4V7" />,
@@ -207,14 +209,15 @@ function Leaf({
   label,
   done,
   activeLeaf,
-  onSelect,
   readOnly,
   lockReason,
   isPartner,
 }: LeafProps) {
   // Route id gets a "partner-" prefix only for the partner's section leaves.
   const routeId = isPartner ? `partner-${id}` : id;
-  const isActive = !readOnly && activeLeaf === routeId;
+  const isActive =
+    !readOnly &&
+    (activeLeaf === routeId || activeLeaf.startsWith(`${routeId}/`));
 
   const content = (
     <>
@@ -250,7 +253,6 @@ function Leaf({
   return (
     <Link
       href={`/dashboard/${routeId}`}
-      onClick={() => onSelect(routeId)}
       className={`relative flex items-center gap-[9px] rounded-[7px] px-[9px] py-2 my-0.5 cursor-pointer hover:bg-[#F4F4FA] ${
         isActive ? "bg-[#EDE9FE]" : ""
       }`}
@@ -262,15 +264,32 @@ function Leaf({
 
 export default function AgreementSidebar() {
   const dispatch = useDispatch<AppDispatch>();
-  const { status, myInformation, partnerInformation, jointInformation } =
-    useSelector((state: RootState) => state.cases);
+  const { status, myInformation, partnerInformation, jointInformation } = useSelector((state: RootState) => state.cases);
   const user = useSelector((state: RootState) => state.auth.user);
 
-  const [activeLeaf, setActiveLeaf] = useState("/");
-  const [openSection, setOpenSection] = useState<SectionKey | null>("section1");
-  const [openSubgroup, setOpenSubgroup] = useState<SubgroupKey | null>(
-    "myFinancial",
+  // Highlight follows the URL, so it also updates after a form auto-advances
+  const pathname = usePathname();
+  const activeLeaf = pathname.replace(/^\/dashboard\/?/, "").replace(/\/+$/, "");
+  const isDashboardHome = /^\/dashboard\/?$/.test(pathname);
+
+  const initial = locateLeaf(activeLeaf);
+  const [openSection, setOpenSection] = useState<SectionKey | null>(
+    initial?.section ?? "section1",
   );
+  const [openSubgroup, setOpenSubgroup] = useState<SubgroupKey | null>(
+    initial?.subgroup ?? "myFinancial",
+  );
+
+  // When the URL changes, open the section that contains the active page.
+  const [lastPath, setLastPath] = useState(pathname);
+  if (pathname !== lastPath) {
+    setLastPath(pathname);
+    const target = locateLeaf(activeLeaf);
+    if (target) {
+      setOpenSection(target.section);
+      if (target.subgroup) setOpenSubgroup(target.subgroup);
+    }
+  }
 
   const isFirstUser = user?.endUserType === "user1";
   const isPaymentDone = true;
@@ -284,8 +303,10 @@ export default function AgreementSidebar() {
   const isLeafDone = (leafId: string, info?: Record<string, any>) =>
     hasData(info?.[LEAF_TO_KEY[leafId]]);
 
+  // Joint leaves live in jointInformation, the rest in the user's own section
+  const jointLeafIds = JOINT_ASSETS_LEAFS.map((leaf) => leaf.id);
   const completedCount = Object.keys(LEAF_TO_KEY).filter((id) =>
-    isLeafDone(id, myData),
+    isLeafDone(id, jointLeafIds.includes(id) ? jointInformation : myData),
   ).length;
 
   const toggleSection = (key: SectionKey) =>
@@ -296,9 +317,11 @@ export default function AgreementSidebar() {
   const isLocked = (leafId: string) =>
     !isPaymentDone && leafId !== "personal-info";
 
+  // Forms re-fetch the case after saving, which turns the matching tick green
+  const inviteCaseId = user?.inviteCaseId;
   useEffect(() => {
-    dispatch(getCasesDetails(user?.inviteCaseId));
-  }, []);
+    if (inviteCaseId) dispatch(getCasesDetails(inviteCaseId));
+  }, [dispatch, inviteCaseId]);
 
   return (
     <div className="w-[340px] h-screen overflow-y-auto no-scrollbar border border-[#E7E7F2] bg-white shadow-[0_20px_50px_rgba(30,27,60,0.10)] font-sans">
@@ -318,8 +341,15 @@ export default function AgreementSidebar() {
 
       <div className="px-3 pt-2.5">
         <div className="mt-1">
-          <Link href="/dashboard">
-            <div className="flex cursor-pointer items-center gap-2.5 rounded-[9px] px-2.5 py-[11px] hover:bg-[#F4F4FA]">
+          <Link href="/dashboard" aria-current={isDashboardHome ? "page" : undefined}>
+            <div
+              className={`relative flex cursor-pointer items-center gap-2.5 rounded-[9px] px-2.5 py-[11px] hover:bg-[#F4F4FA] ${
+                isDashboardHome ? "bg-[#EDE9FE]" : ""
+              }`}
+            >
+              {isDashboardHome && (
+                <span className="absolute -left-[0px] top-2 bottom-2 w-0.5 rounded-full bg-[#6D28D9]" />
+              )}
               <span className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[7px] bg-[#EDE9FE] text-[#6D28D9]">
                 <Icon name="person" className="h-3.5 w-3.5" />
               </span>
@@ -365,7 +395,6 @@ export default function AgreementSidebar() {
                   {...leaf}
                   done={isLeafDone(leaf.id, myData)}
                   activeLeaf={activeLeaf}
-                  onSelect={setActiveLeaf}
                   readOnly={isLocked(leaf.id)}
                   lockReason={
                     isLocked(leaf.id) ? "Complete payment to unlock" : undefined
@@ -394,7 +423,6 @@ export default function AgreementSidebar() {
                         {...leaf}
                         done={isLeafDone(leaf.id, myData)}
                         activeLeaf={activeLeaf}
-                        onSelect={setActiveLeaf}
                         readOnly={isLocked(leaf.id)}
                         lockReason={
                           isLocked(leaf.id)
@@ -443,7 +471,6 @@ export default function AgreementSidebar() {
                   {...leaf}
                   done={isLeafDone(leaf.id, partnerData)}
                   activeLeaf={activeLeaf}
-                  onSelect={setActiveLeaf}
                   readOnly={isLocked(leaf.id)}
                   lockReason={
                     isLocked(leaf.id) ? "Complete payment to unlock" : undefined
@@ -473,7 +500,6 @@ export default function AgreementSidebar() {
                         {...leaf}
                         done={isLeafDone(leaf.id, partnerData)}
                         activeLeaf={activeLeaf}
-                        onSelect={setActiveLeaf}
                         readOnly={isLocked(leaf.id)}
                         lockReason={
                           isLocked(leaf.id)
@@ -535,7 +561,6 @@ export default function AgreementSidebar() {
                         {...leaf}
                         done={isLeafDone(leaf.id, jointInformation)}
                         activeLeaf={activeLeaf}
-                        onSelect={setActiveLeaf}
                         readOnly={isLocked(leaf.id)}
                         lockReason={
                           isLocked(leaf.id)
@@ -581,7 +606,6 @@ export default function AgreementSidebar() {
                 label="Solicitor Details"
                 done={Boolean(status?.independentLegalAdvice?.submitted)}
                 activeLeaf={activeLeaf}
-                onSelect={setActiveLeaf}
               />
               <Leaf
                 id="lawyer-questionaries"
@@ -589,14 +613,12 @@ export default function AgreementSidebar() {
                 label="Lawyer Questionnaire"
                 done={Boolean(status?.independentLegalAdvice?.submitted)}
                 activeLeaf={activeLeaf}
-                onSelect={setActiveLeaf}
               />
               <Leaf
                 id="review-and-sign"
                 icon="family"
                 label="Review and Sign"
                 activeLeaf={activeLeaf}
-                onSelect={setActiveLeaf}
               />
             </div>
           )}

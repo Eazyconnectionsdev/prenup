@@ -17,13 +17,7 @@ import {
   HelpCircle,
   User
 } from 'lucide-react'
-
-interface NavItem {
-  icon: React.ElementType
-  label: string
-  number?: number
-  href: string
-}
+import type { NavItem, SidebarProps } from "@/types/admin/sidebar-admin";
 
 const mainNavItems: NavItem[] = [
   { icon: Home, label: 'Dashboard', href: '/admin' }
@@ -43,10 +37,6 @@ const bottomNavItems: NavItem[] = [
   { icon: HelpCircle, label: 'Help', href: '/help' },
   { icon: User, label: 'Account', href: '/account' }
 ]
-
-interface SidebarProps {
-  activeItem?: string
-}
 
 export default function Sidebar({ activeItem = '/management/admin' }: SidebarProps) {
   const [isExpanded, setIsExpanded] = useState(true)

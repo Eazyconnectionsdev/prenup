@@ -1,16 +1,8 @@
 'use client';
 
 import React from 'react';
-import { AgreementOption } from '@/types/onboarding';
-
-interface ServiceOverviewProps {
-  selectedOption: AgreementOption;
-  resideChecked: boolean;
-  understandChecked: boolean;
-  onResideChange: (checked: boolean) => void;
-  onUnderstandChange: (checked: boolean) => void;
-  onContinue: () => void;
-}
+import type { AgreementOption } from "@/types/onboarding";
+import type { ServiceOverviewProps } from "@/types/onboarding/service-overview";
 
 export const ServiceOverview: React.FC<ServiceOverviewProps> = ({
   selectedOption,
@@ -19,8 +11,9 @@ export const ServiceOverview: React.FC<ServiceOverviewProps> = ({
   onResideChange,
   onUnderstandChange,
   onContinue,
+  isSubmitting = false,
 }) => {
-  const isReady = resideChecked && understandChecked;
+  const isReady = resideChecked && understandChecked && !isSubmitting;
 
   return (
     <aside className="lg:col-span-5 sticky top-24">
@@ -98,7 +91,7 @@ export const ServiceOverview: React.FC<ServiceOverviewProps> = ({
               : 'bg-primary/80 text-primary-foreground/40 cursor-not-allowed border border-primary/60'
           }`}
         >
-          <span>Continue &rarr;</span>
+          <span>{isSubmitting ? 'Saving...' : <>Continue &rarr;</>}</span>
         </button>
       </div>
     </aside>

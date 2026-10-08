@@ -66,7 +66,7 @@ function deriveStatusFromPayload(c: any) {
   // c.status is an object with step1..stepN submitted flags in your payload example
   const s = c.status;
   if (!s || typeof s !== "object") return c.status || "Open";
-  const steps = Object.keys(s).filter((k) => k.startsWith("step"));
+  const steps = Object.keys(s).filter((k) => k?.startsWith("step"));
   if (steps.length === 0) return "Open";
   const submittedCount = steps.reduce(
     (acc, step) => acc + (s[step]?.submitted ? 1 : 0),
@@ -107,8 +107,11 @@ export default function CasesTable({
 
   const normalized = useMemo(() => {
     return (cases || []).map((c: any, idx: number) => {
-      const id = c.id || c._id || String(idx);
-
+      const id =
+        c.id ||
+        (typeof c._id === "string" ? c._id : c._id?.$oid) ||
+        String(idx);
+      console.log("id issue", id)
       const client =
         c.client ||
         [c.step1?.firstName, c.step1?.middleNames, c.step1?.lastName]
@@ -147,6 +150,7 @@ export default function CasesTable({
 
       const q = search.toLowerCase();
       return (
+        (c.raw?.caseNumber || "").toLowerCase().includes(q) ||
         c.title.toLowerCase().includes(q) ||
         c.client.toLowerCase().includes(q) ||
         c.lawyer.toLowerCase().includes(q) ||
@@ -207,9 +211,8 @@ export default function CasesTable({
           <button
             key={t}
             onClick={() => setFilter(t as any)}
-            className={`text-sm px-3 py-1 rounded-md ${
-              filter === t ? "bg-indigo-600 text-white" : "bg-slate-100"
-            }`}
+            className={`text-sm px-3 py-1 rounded-md ${filter === t ? "bg-indigo-600 text-white" : "bg-slate-100"
+              }`}
           >
             {t}
           </button>
@@ -249,7 +252,7 @@ export default function CasesTable({
                 >
                   {/* Case ID */}
                   <div>
-                    <div className="font-medium">{idx + 1}</div>
+                    <div className="font-medium">{c.raw?.caseNumber || idx + 1}</div>
                     <div className="text-xs text-slate-400">
                       {c.raw?.type || ""}
                     </div>
@@ -259,11 +262,22 @@ export default function CasesTable({
 
                   <div
                     className="cursor-pointer"
-                    onClick={() => router.push(`/cm/case-manager/cases/${c.id}`)}
+                    onClick={() => {
+                      console.log("========== CASE CLICK ==========");
+                      console.log("CASE OBJECT:", c);
+                      console.log("CASE ID:", c.id);
+                      console.log(
+                        "TARGET URL:",
+                        `/cm/case-manager/cases/${c.id}`
+                      );
+                      console.log("================================");
+
+                      router.push(`/cm/case-manager/cases/${c.id}`);
+                    }}
                   >
                     <div className="font-semibold truncate">{c.title}</div>
                     <div className="text-xs text-slate-400 truncate">
-                      {c.description}
+                      {c.description} sdsds  sadasdasd
                     </div>
                   </div>
 
@@ -280,7 +294,7 @@ export default function CasesTable({
                     <div className="min-w-0">
                       <div className="truncate">{c.client}</div>
                       <div className="text-xs text-slate-400 truncate">
-                        {c.clientEmail}
+                        {c.clientEmail} sdadas
                       </div>
                     </div>
                   </div>
@@ -320,13 +334,17 @@ export default function CasesTable({
                   {/* Actions */}
                   <div className="relative">
                     <button
-                      onClick={(e) => {
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        setMenuPosition({
-                          top: rect.bottom + 8,
-                          left: rect.right - 160,
-                        });
-                        setOpenMenu(openMenu === c.id ? null : c.id);
+                      onClick={() => {
+                        console.log("========== CASE CLICK ==========");
+                        console.log("CASE OBJECT:", c);
+                        console.log("CASE ID:", c.id);
+                        console.log(
+                          "TARGET URL:",
+                          `/cm/case-manager/cases/${c.id}`
+                        );
+                        console.log("================================");
+
+                        router.push(`/cm/case-manager/cases/${c.id}`);
                       }}
                       className="px-3 py-1 border rounded-md text-sm bg-white hover:bg-slate-50"
                     >
@@ -343,7 +361,7 @@ export default function CasesTable({
         {openMenu && (
           <div
             ref={dropdownRef}
-            className="fixed z-[1000] w-40 bg-white shadow-lg rounded-md border"
+            className="fixed z-1000 w-40 bg-white shadow-lg rounded-md border"
             style={{
               top: menuPosition.top,
               left: menuPosition.left,

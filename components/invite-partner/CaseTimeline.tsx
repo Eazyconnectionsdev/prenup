@@ -1,11 +1,8 @@
 'use client';
 
 import React from 'react';
-import { TimelineEvent } from '@/types/invite-partner';
-
-interface CaseTimelineProps {
-  timelineEvents: TimelineEvent[];
-}
+import type { TimelineEvent } from "@/types/invite-partner";
+import type { CaseTimelineProps } from "@/types/invite-partner/case-timeline";
 
 export const CaseTimeline: React.FC<CaseTimelineProps> = ({ timelineEvents }) => {
   // Default fallback events matching user screenshot

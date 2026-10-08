@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter, Instrument_Serif } from "next/font/google";
 import { cn } from "@/lib/utils";
 
-import "./globals.css";
+import "@/app/globals.css";
 
 import { StoreProvider } from "@/providers/StoreProvider";
 import ToastContext from "@/providers/ToastProvider";

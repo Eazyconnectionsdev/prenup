@@ -5,17 +5,7 @@ import { useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import { RootState } from "@/store/store";
 import { calculateOverallProgress } from "@/lib/progressCalculator";
-
-type StepId = "invite" | "questionnaire" | "disclosure";
-
-interface StepConfig {
-  id: StepId;
-  title: string;
-  description: string;
-  cta: string;
-  completedLabel: string;
-  icon: React.ReactNode;
-}
+import type { StepConfig, StepId } from "@/types/dashboard/dashboard-home";
 
 const steps: StepConfig[] = [
   {
@@ -24,7 +14,7 @@ const steps: StepConfig[] = [
     description:
       "Your fiancé(e) will receive an email inviting them to create a prenup with you.",
     cta: "Invite fiancé",
-    completedLabel: "Invited",
+    completedLabel: "View invitation",
     icon: (
       <svg
         viewBox="0 0 24 24"
@@ -321,7 +311,6 @@ export default function PrenupDashboard() {
                     </div>
 
                     <button
-                      disabled={isLocked || isDone}
                       onClick={() => handleStepClick(step)}
                       className={`ml-4 flex-shrink-0 rounded-lg px-4 py-2 text-xs font-semibold transition-colors ${
                         isDone

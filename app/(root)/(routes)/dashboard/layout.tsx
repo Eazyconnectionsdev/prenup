@@ -1,5 +1,6 @@
 import Sidebar from "@/components/Layout/Sidebar";
 import TopBar from "@/components/Layout/TopBar";
+import OnboardingGate from "@/components/onboarding/OnboardingGate";
 
 export default function MainLayouyt({
   children,
@@ -8,10 +9,9 @@ export default function MainLayouyt({
 }) {
   return (
     <>
+      <OnboardingGate />
       <Sidebar>
         <TopBar />
-        <TopBar caseId="LP-2026-000123" />
-
         <div className="h-full">{children}</div>
       </Sidebar>
     </>

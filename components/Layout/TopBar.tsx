@@ -6,10 +6,7 @@ import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
 import { logOutUser } from "@/store/asyncThunk/authThunk";
-
-interface TopBarProps {
-  caseId?: string;
-}
+import type { TopBarProps } from "@/types/layout/top-bar";
 
 const TopBar = ({ caseId }: TopBarProps) => {
   const { user } = useSelector((state: RootState) => state.auth);
@@ -42,7 +39,7 @@ const TopBar = ({ caseId }: TopBarProps) => {
       <span className="text-sm font-semibold text-[#1E1B3C]">
         Case ID:{" "}
         <span className="font-mono font-normal text-[#5B5B75]">
-          {caseId || user?.inviteCaseId}
+          {user?.caseNumber || caseId || user?.inviteCaseId}
         </span>
       </span>
       <button

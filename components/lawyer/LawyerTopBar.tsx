@@ -1,108 +1,93 @@
 "use client";
 
-import React from 'react';
-import { useRouter } from 'next/navigation';
-import { Search, Shield, LogOut } from 'lucide-react';
-import { NavView, LawyerPersona } from '../../types/lawyer-portal';
+import React from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useSelector, useDispatch } from "react-redux";
+import { RootState, AppDispatch } from "@/store/store";
+import { LogOut } from "lucide-react";
+import { logOutUser } from "@/store/asyncThunk/authThunk";
 
-interface TopBarProps {
-  currentView: NavView;
-  searchQuery: string;
-  onSearchChange: (query: string) => void;
-  onOpenScorecard: () => void;
-  activePersona: LawyerPersona;
-  onPersonaChange: (persona: LawyerPersona) => void;
-  onOpenProfile: () => void;
-  onLogout?: () => void;
-  onViewChange?: (view: NavView) => void;
-}
+// Ordered most-specific first; matched by prefix so nested routes keep a title.
+const PATH_TITLES: [string, string][] = [
+  ["/lawyer/assigned-cases", "Assigned Matters"],
+  ["/lawyer/completed-case", "Completed Cases"],
+  ["/lawyer/settings", "Portal Settings"],
+  ["/lawyer/lawyer-profile", "Lawyer Profile"],
+  ["/lawyer", "Lawyer Dashboard"],
+];
 
-const VIEW_TITLES: Record<NavView, string> = {
-  dashboard: 'Lawyer Dashboard',
-  assigned_cases: 'Assigned Matters Master List',
-  versions: 'Agreement Versions Index',
-  notes: 'Confidential Summary Notes',
-  appendices: 'Disclosure Appendices Vault',
-  ila: 'Independent Legal Advice (ILA) Register',
-  completed: 'Completed Cases Registry',
-  profile: 'Lawyer Profile Information',
-  settings: 'Portal Configuration Settings',
-};
-
-export const LawyerTopBar: React.FC<TopBarProps> = ({
-  currentView,
-  searchQuery,
-  onSearchChange,
-  onOpenScorecard,
-  activePersona,
-  onPersonaChange,
-  onOpenProfile,
-  onLogout,
-  onViewChange,
-}) => {
+export const LawyerTopBar = () => {
   const router = useRouter();
+  const pathname = usePathname();
+  const dispatch = useDispatch<AppDispatch>();
 
-  const handleTitleClick = () => {
-    if (onViewChange) {
-      onViewChange('dashboard');
-    }
-    router.push('/lawyer/dashboard');
+  const user = useSelector((state: RootState) => state.auth.user);
+
+  const fullName =
+    [user?.firstName, user?.middleName, user?.lastName]
+      ?.filter(Boolean)
+      .join(" ")
+      .trim() || "Unknown Lawyer";
+
+  const initials = fullName
+      .split(" ")
+      ?.filter(Boolean)
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "?";
+
+  const title = user?.role
+    ? user.role.replace(/_/g, " ").replace(/\b\w/g, (c: any) => c.toUpperCase())
+    : "";
+
+  const handleLogout = () => {
+    dispatch(logOutUser());
+    router.push("/login");
   };
 
-  const handleProfileClick = () => {
-    if (onOpenProfile) {
-      onOpenProfile();
-    }
-    router.push('/lawyer/profile');
-  };
-
-  const getPersonaDetails = (persona: LawyerPersona) => {
-    switch (persona) {
-      case 'L1':
-        return { name: 'Robert Miller, Esq.', firm: 'Blake Cassels', role: 'L1 Lawyer (P1)' };
-      case 'L2':
-        return { name: 'Mark Sterling, Esq.', firm: 'Torys LLP', role: 'L2 Lawyer (P2)' };
-      case 'L3':
-      default:
-        return { name: 'Clara Conner, Esq.', firm: 'Osler Hoskin', role: 'Opposing Counsel' };
-    }
-  };
-
-  const lawyer = getPersonaDetails(activePersona);
+  const pageTitle =
+    PATH_TITLES.find(
+      ([path]) => pathname === path || pathname.startsWith(`${path}/`),
+    )?.[1] ?? "Lawyer Portal";
 
   return (
-    <header className="h-[76px] bg-white flex items-center justify-between px-8 pt-4 pb-2 border-b border-slate-200">
-      {/* Title */}
-      <div className="flex flex-col cursor-pointer" onClick={handleTitleClick}>
-        <h1 className="text-xl font-bold font-sans text-slate-900 tracking-tight leading-tight hover:text-slate-700 transition-colors">
-          {VIEW_TITLES[currentView] || 'Lawyer Dashboard'}
+    <header className="sticky top-0 z-40 h-[76px] bg-[#0d1527] border-r border-[#1e293b] flex items-center justify-between px-8 pt-4 pb-2 border-b border-slate-200">
+      <div className="flex flex-col">
+        <h1 className="text-xl font-bold font-sans text-white tracking-tight leading-tight">
+          {pageTitle}
         </h1>
-        <span className="text-[10px] text-slate-500 font-mono">
-          MODULE: LAWYER_PORTAL_V1.1
+        <span className="text-[10px] text-white font-mono">
+          LAWYER_PORTAL
         </span>
       </div>
 
-      {/* Top Actions: Interactive User Account Details & Logout */}
-      <div className="flex items-center gap-3">
-        {/* User profile details */}
-        <div
-          onClick={handleProfileClick}
+      <div className="flex items-center gap-4">
+        <button
+          onClick={() => router.push("/lawyer/lawyer-profile")}
           className="flex items-center gap-3 bg-white border border-slate-200 rounded-full px-3 py-1.5 shadow-xs cursor-pointer hover:border-slate-400 hover:bg-slate-50 transition-all"
         >
           <div className="w-7 h-7 rounded-full bg-slate-900 text-white font-bold text-[11px] font-sans flex items-center justify-center">
-            {activePersona}
+            {initials}
           </div>
           <div className="flex flex-col text-left pr-1 min-w-[100px]">
             <span className="text-xs font-bold font-sans text-slate-900 leading-tight truncate max-w-[110px]">
-              {lawyer.name}
+              {fullName}
             </span>
-            <span className="text-[10px] font-sans text-slate-500 leading-tight truncate">
-              {lawyer.role}
+            <span className="text-[10px] font-sans text-slate-900 leading-tight truncate">
+              {title}
             </span>
           </div>
-        </div>
+        </button>
+
+        <button
+          onClick={handleLogout}
+          className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 text-slate-500 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-all"
+          title="Log Out"
+        >
+          <LogOut className="w-3.5 h-3.5 text-white" />
+        </button>
       </div>
     </header>
   );
 };
-

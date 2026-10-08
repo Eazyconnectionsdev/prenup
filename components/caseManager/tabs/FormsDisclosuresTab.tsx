@@ -1,10 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { CaseItem } from "@/types/case-manager";
 import {
-  YesNo,
-  TreatmentFields,
   emptyTreatment,
   makeId,
   inputClasses,
@@ -14,8 +11,7 @@ import {
   MatrixBox,
   RowItem,
   ValueWithUnsure,
-  TreatmentSelect,
-  Treatment,
+  TreatmentSelect
 } from "@/components/Formprimitives";
 import {
   User,
@@ -32,13 +28,9 @@ import {
   Heart,
   Users,
 } from "lucide-react";
-
-interface FormsDisclosuresTabProps {
-  caseObj: CaseItem;
-  isCmEditing: boolean;
-  setIsCmEditing: (v: boolean) => void;
-  onSave: () => void;
-}
+import type { CaseItem } from "@/types/case-manager";
+import type { Treatment, TreatmentFields, YesNo } from "@/types/forms/form-primitives";
+import type { FormsDisclosuresTabProps } from "@/types/case-manager/forms-disclosures-tab";
 
 export default function FormsDisclosuresTab({
   caseObj,
@@ -340,7 +332,6 @@ export default function FormsDisclosuresTab({
     };
   }
 
-  // Partner 1 Form Data
   const [p1Data, setP1Data] = useState<any>({
     firstName: "Arthur",
     middleName: "",
@@ -467,7 +458,6 @@ export default function FormsDisclosuresTab({
     ],
   });
 
-  // Partner 2 Form Data
   const [p2Data, setP2Data] = useState<any>({
     firstName: "Sophia",
     middleName: "",
@@ -576,7 +566,6 @@ export default function FormsDisclosuresTab({
     debts: [],
   });
 
-  // Joint Form Data
   const [jointData, setJointData] = useState<any>({
     livingArrangement: "Joint",
     livingArrangementDetail: "140 King St W, Suite 2400, Toronto ON (50/50 Equity)",
