@@ -1,4 +1,9 @@
-export type StepId = "invite" | "questionnaire" | "disclosure";
+export type StepId =
+  | "invite"
+  | "questionnaire"
+  | "partner_questionnaire"
+  | "joint_questionnaire"
+  | "final_review";
 
 export interface StepConfig {
   id: StepId;
@@ -8,3 +13,4 @@ export interface StepConfig {
   completedLabel: string;
   icon: React.ReactNode;
 }
+
