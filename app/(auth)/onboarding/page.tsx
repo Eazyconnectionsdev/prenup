@@ -8,7 +8,7 @@ import type { AppDispatch, RootState } from '@/store/store';
 import { completeOnboarding, getOnboarding } from '@/store/asyncThunk/casesThunk';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import { AgreementCard } from '@/components/onboarding/AgreementCard';
-
+import { Step2Payment } from '@/components/onboarding/Step2Payment';
 import { ServiceOverview } from '@/components/onboarding/ServiceOverview';
 import { Step3Success } from '@/components/onboarding/Step3Success';
 import type { AgreementOption } from "@/types/onboarding";
@@ -18,6 +18,10 @@ export const AGREEMENT_OPTIONS: AgreementOption[] = [
     id: 'prenup-marriage',
     title: 'Prenuptial Agreement',
     badge: 'POPULAR',
+    tags: ['Prenup', 'Marriage'],
+    serviceName: 'Prenup',
+    serviceTag: 'PRENUP',
+    subTag: 'MARRIAGE',
     subtitle: 'I intend to get married and my wedding is more than 28 days away.',
     overviewTitle: 'Prenuptial Agreement (Marriage)',
     overviewDescription: 'A Prenuptial Agreement is designed for couples who intend to marry and wish to establish financial arrangements before their wedding.',
@@ -26,6 +30,10 @@ export const AGREEMENT_OPTIONS: AgreementOption[] = [
   {
     id: 'prenup-civil',
     title: 'Prenuptial Agreement (Civil Partnership)',
+    tags: ['Prenup', 'Civil Partnership'],
+    serviceName: 'Prenup',
+    serviceTag: 'PRENUP',
+    subTag: 'CIVIL PARTNERSHIP',
     subtitle: 'I intend to enter a civil partnership and my registration is > 28 days away.',
     overviewTitle: 'Prenuptial Agreement (Civil Partnership)',
     overviewDescription: 'Designed for partners planning a legal civil partnership in the UK to set out asset ownership and financial protection prior to registration.',
@@ -34,6 +42,10 @@ export const AGREEMENT_OPTIONS: AgreementOption[] = [
   {
     id: 'postnup-marriage',
     title: 'Postnuptial Agreement',
+    tags: ['Postnup', 'Marriage'],
+    serviceName: 'Postnup',
+    serviceTag: 'POSTNUP',
+    subTag: 'MARRIAGE',
     subtitle: 'I am already married, OR my wedding date is within the next 28 days.',
     overviewTitle: 'Postnuptial Agreement (Marriage)',
     overviewDescription: 'A Postnuptial Agreement is for currently married couples or those with a wedding date within 28 days who wish to establish clear financial arrangements.',
@@ -42,6 +54,10 @@ export const AGREEMENT_OPTIONS: AgreementOption[] = [
   {
     id: 'postnup-civil',
     title: 'Postnuptial Agreement (Civil Partnership)',
+    tags: ['Postnup', 'Civil Partnership'],
+    serviceName: 'Postnup',
+    serviceTag: 'POSTNUP',
+    subTag: 'CIVIL PARTNERSHIP',
     subtitle: 'I am already in a civil partnership, OR my registration is within 28 days.',
     overviewTitle: 'Postnuptial Agreement (Civil Partnership)',
     overviewDescription: 'For registered civil partners or couples registering within 28 days to outline financial rights and asset divisions.',
@@ -50,6 +66,10 @@ export const AGREEMENT_OPTIONS: AgreementOption[] = [
   {
     id: 'cohabitation',
     title: 'Cohabitation Agreement',
+    tags: ['Cohabitation', 'Cohabitation'],
+    serviceName: 'Cohabitation',
+    serviceTag: 'COHABITATION',
+    subTag: 'COHABITATION',
     subtitle: 'I live with or plan to live with my partner without marrying.',
     overviewTitle: 'Cohabitation Agreement',
     overviewDescription: 'Protects cohabiting couples who live together without marriage or civil partnership, detailing property ownership shares, bills, and joint financial responsibilities.',
@@ -58,6 +78,10 @@ export const AGREEMENT_OPTIONS: AgreementOption[] = [
   {
     id: 'help-choose',
     title: 'Help Me Choose',
+    tags: ['Guided', 'Consultation'],
+    serviceName: 'Help Me Choose',
+    serviceTag: 'GUIDED',
+    subTag: 'SELECTION',
     subtitle: 'I am unsure which agreement best reflects my situation.',
     overviewTitle: 'Guided Agreement Selection',
     overviewDescription: 'Our interactive guide will ask a few simple questions regarding your relationship status and timelines to recommend the correct legal agreement.',
@@ -70,8 +94,7 @@ export default function OnboardingPage () {
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
 
-  // Steps: 1 = choose service, 3 = confirmation. (Payment is added later,
-  // from the dashboard, so there is no payment step here.)
+  // Steps: 1 = choose service, 2 = payment, 3 = confirmation.
   const [step, setStep] = useState<number>(1);
   const [selectedId, setSelectedId] = useState<string>('prenup-marriage');
   const [resideChecked, setResideChecked] = useState<boolean>(false);
@@ -94,14 +117,17 @@ export default function OnboardingPage () {
     dispatch(getOnboarding(caseId))
       .unwrap()
       .then((res) => {
-        if (res.completed) {
+        if (res.completed && user?.paymentDone) {
           router.replace('/dashboard');
           return;
+        }
+        if (res.agreementType) {
+          setSelectedId(res.agreementType);
         }
         setIsChecking(false);
       })
       .catch(() => setIsChecking(false));
-  }, [user?.endUserType, caseId, dispatch, router]);
+  }, [user?.endUserType, user?.paymentDone, caseId, dispatch, router]);
 
   const handleStep1Continue = async () => {
     if (!caseId) {
@@ -119,13 +145,18 @@ export default function OnboardingPage () {
         })
       ).unwrap();
       toast.success('Your service selection has been saved');
-      setStep(3);
+      setStep(2);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error) {
       toast.error(getErrorMessage(error, 'Unable to save your selection. Please try again.'));
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handlePaymentSuccess = () => {
+    setStep(3);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // With no case id there is nothing to check, so show the form (saving will
@@ -205,10 +236,26 @@ export default function OnboardingPage () {
         </main>
       )}
 
+      {step === 2 && (
+        <Step2Payment
+          selectedOption={selectedOption}
+          isPaid={Boolean(user?.paymentDone)}
+          onBack={() => {
+            setStep(1);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onChooseService={() => {
+            setStep(1);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onPaymentSuccess={handlePaymentSuccess}
+        />
+      )}
+
       {step === 3 && (
         <Step3Success
           userName={userName}
-          serviceTitle={selectedOption.overviewTitle}
+          serviceTitle={selectedOption?.overviewTitle || 'Agreement Service'}
         />
       )}
 

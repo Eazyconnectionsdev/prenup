@@ -18,9 +18,19 @@ export const ServiceOverview: React.FC<ServiceOverviewProps> = ({
   return (
     <aside className="lg:col-span-5 sticky top-24">
       <div className="bg-primary border border-primary/80 rounded-xl p-4 md:p-6 space-y-4 shadow-2xl text-white">
-        {/* Category Tag */}
-        <div className="inline-block px-2.5 py-0.5 rounded bg-[#8B3A3A] text-white text-[0.6rem] font-bold tracking-[0.18em] uppercase">
-          Service Overview
+        {/* Category Tag & Service Tags */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="inline-block px-2.5 py-0.5 rounded bg-[#8B3A3A] text-white text-[0.6rem] font-bold tracking-[0.18em] uppercase">
+            Service Overview
+          </div>
+          {selectedOption.tags && selectedOption.tags.map((tag, idx) => (
+            <span
+              key={idx}
+              className="inline-block px-2 py-0.5 rounded bg-white/10 text-[#FAF8F5] border border-white/20 text-[0.6rem] font-bold tracking-wider uppercase"
+            >
+              {tag}
+            </span>
+          ))}
         </div>
 
         {/* Title */}

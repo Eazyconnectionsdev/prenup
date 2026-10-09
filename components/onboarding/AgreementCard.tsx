@@ -42,8 +42,8 @@ export const AgreementCard: React.FC<AgreementCardProps> = ({
         />
       </div>
 
-      <div className="flex-1 space-y-0.5">
-        <div className="flex items-center space-x-2">
+      <div className="flex-1 space-y-1">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           <span
             className={`font-bold text-xs md:text-sm leading-snug ${
               isSelected ? 'text-primary' : 'text-white'
@@ -51,15 +51,29 @@ export const AgreementCard: React.FC<AgreementCardProps> = ({
           >
             {option.title}
           </span>
-          {option.badge && (
-            <span
-              className={`text-[0.6rem] tracking-[0.08em] font-bold px-1.5 py-0.5 rounded uppercase text-white ${
-                isSelected ? 'bg-[#8B3A3A]' : 'bg-[#E26D6D]'
-              }`}
-            >
-              {option.badge}
-            </span>
-          )}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {option.badge && (
+              <span
+                className={`text-[0.6rem] tracking-[0.08em] font-bold px-1.5 py-0.5 rounded uppercase text-white ${
+                  isSelected ? 'bg-[#8B3A3A]' : 'bg-[#E26D6D]'
+                }`}
+              >
+                {option.badge}
+              </span>
+            )}
+            {option.tags && option.tags.map((tag, idx) => (
+              <span
+                key={idx}
+                className={`text-[0.6rem] font-bold tracking-wider px-2 py-0.5 rounded uppercase border transition-colors ${
+                  isSelected
+                    ? 'bg-[#8B3A3A]/10 text-[#8B3A3A] border-[#8B3A3A]/30'
+                    : 'bg-white/10 text-[#C5A880] border-white/20'
+                }`}
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
         </div>
         <p
           className={`text-[11px] md:text-xs leading-relaxed ${
