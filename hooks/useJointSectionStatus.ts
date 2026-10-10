@@ -6,10 +6,6 @@ import { RootState } from "@/store/store";
 const hasData = (value: unknown) =>
   !!value && typeof value === "object" && Object.keys(value as object).length > 0;
 
-// Workflow state for the joint information section (joint assets, joint income,
-// joint liabilities). The owner fills in all three forms; the section only goes
-// to the partner for approval once the last form (joint liabilities) is submitted.
-// Mirrors the backend rules in CasesService.updateQuestionnaireStep.
 export function useJointSectionStatus() {
   const user = useSelector((state: RootState) => state.auth.user);
   const cases = useSelector((state: RootState) => state.cases);

@@ -8,16 +8,19 @@ import Axios from "@/lib/ApiConfig";
 import { getErrorMessage } from "@/lib/api/http-error";
 import { AppDispatch, RootState } from "@/store/store";
 import { setUserProfileData } from "@/store/slices/authSlice";
-import type { FormErrors, ProfileForm } from "@/types/dashboard/profile-settings";
+import type {
+  FormErrors,
+  ProfileForm,
+} from "@/types/dashboard/profile-settings";
 
 const fieldClasses =
   "w-full rounded-[10px] border bg-slate-50 px-4 py-3 text-[0.95rem] text-slate-900 transition placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-4 disabled:cursor-not-allowed disabled:opacity-60";
-const fieldOk = "border-slate-300 focus:border-indigo-600 focus:ring-indigo-600/10";
+const fieldOk =
+  "border-slate-300 focus:border-indigo-600 focus:ring-indigo-600/10";
 const fieldError = "border-red-400 focus:border-red-500 focus:ring-red-500/10";
 
 const PHONE_PATTERN = /^\+?[0-9\s\-()]{7,20}$/;
 
-// Build form values from the user object stored in redux
 const toForm = (user: Record<string, any>): ProfileForm => ({
   firstName: user?.firstName ?? "",
   middleName: user?.middleName ?? "",
@@ -75,11 +78,19 @@ function Field({
   );
 }
 
-function SectionTitle({ children, description }: { children: React.ReactNode; description?: string }) {
+function SectionTitle({
+  children,
+  description,
+}: {
+  children: React.ReactNode;
+  description?: string;
+}) {
   return (
     <div className="mb-5">
       <h3 className="text-[1rem] font-bold text-slate-900">{children}</h3>
-      {description && <p className="mt-0.5 text-sm text-slate-500">{description}</p>}
+      {description && (
+        <p className="mt-0.5 text-sm text-slate-500">{description}</p>
+      )}
     </div>
   );
 }
@@ -101,7 +112,9 @@ function ProfileSettingsForm({ user }: { user: Record<string, any> }) {
     user?.email?.[0]?.toUpperCase() ||
     "?";
   const partnerLabel =
-    user?.endUserType === "user2" ? "Partner 2 (invited)" : "Partner 1 (case owner)";
+    user?.endUserType === "user2"
+      ? "Partner 2 (invited)"
+      : "Partner 1 (case owner)";
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -173,7 +186,9 @@ function ProfileSettingsForm({ user }: { user: Record<string, any> }) {
           <p className="mt-4 text-base font-semibold text-[#1E1B3C]">
             {fullName || "Your name"}
           </p>
-          <p className="mt-0.5 break-all text-sm text-[#5B5B75]">{user?.email}</p>
+          <p className="mt-0.5 break-all text-sm text-[#5B5B75]">
+            {user?.email}
+          </p>
         </div>
 
         <div className="mt-6 space-y-3 border-t border-[#E7E7F2] pt-5 text-sm">
@@ -189,7 +204,10 @@ function ProfileSettingsForm({ user }: { user: Record<string, any> }) {
             <div className="flex items-start gap-2.5 text-[#5B5B75]">
               <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#6D28D9]" />
               <span className="break-all">
-                Case <span className="font-mono text-xs">{String(user.inviteCaseId)}</span>
+                Case{" "}
+                <span className="font-mono text-xs">
+                  {String(user.inviteCaseId)}
+                </span>
               </span>
             </div>
           )}
@@ -207,7 +225,12 @@ function ProfileSettingsForm({ user }: { user: Record<string, any> }) {
         </SectionTitle>
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <Field label="First name" htmlFor="firstName" required error={errors.firstName}>
+          <Field
+            label="First name"
+            htmlFor="firstName"
+            required
+            error={errors.firstName}
+          >
             <input
               id="firstName"
               name="firstName"
@@ -231,7 +254,12 @@ function ProfileSettingsForm({ user }: { user: Record<string, any> }) {
             />
           </Field>
 
-          <Field label="Last name" htmlFor="lastName" required error={errors.lastName}>
+          <Field
+            label="Last name"
+            htmlFor="lastName"
+            required
+            error={errors.lastName}
+          >
             <input
               id="lastName"
               name="lastName"
@@ -255,7 +283,11 @@ function ProfileSettingsForm({ user }: { user: Record<string, any> }) {
             />
           </Field>
 
-          <Field label="Date of birth" htmlFor="dateOfBirth" error={errors.dateOfBirth}>
+          <Field
+            label="Date of birth"
+            htmlFor="dateOfBirth"
+            error={errors.dateOfBirth}
+          >
             <input
               id="dateOfBirth"
               name="dateOfBirth"
@@ -265,38 +297,6 @@ function ProfileSettingsForm({ user }: { user: Record<string, any> }) {
               value={form.dateOfBirth}
               onChange={handleChange}
               className={`${fieldClasses} ${errors.dateOfBirth ? fieldError : fieldOk}`}
-            />
-          </Field>
-        </div>
-
-        <div className="my-8 border-t border-[#E7E7F2]" />
-
-        <SectionTitle description="How we and your case manager can reach you.">
-          Contact details
-        </SectionTitle>
-
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <Field label="Email address" htmlFor="email" hint="Contact support to change your login email.">
-            <input
-              id="email"
-              type="email"
-              value={user?.email ?? ""}
-              disabled
-              readOnly
-              className={`${fieldClasses} ${fieldOk}`}
-            />
-          </Field>
-
-          <Field label="Phone number" htmlFor="phone" error={errors.phone}>
-            <input
-              id="phone"
-              name="phone"
-              type="tel"
-              autoComplete="tel"
-              placeholder="+44 7700 900123"
-              value={form.phone}
-              onChange={handleChange}
-              className={`${fieldClasses} ${errors.phone ? fieldError : fieldOk}`}
             />
           </Field>
         </div>
@@ -322,8 +322,8 @@ function ProfileSettingsForm({ user }: { user: Record<string, any> }) {
               Product updates and offers
             </span>
             <span className="block text-sm text-slate-500">
-              I'd like to receive occasional marketing emails from LetsPrenup. You can
-              unsubscribe at any time.
+              I'd like to receive occasional marketing emails from LetsPrenup.
+              You can unsubscribe at any time.
             </span>
           </span>
         </label>
