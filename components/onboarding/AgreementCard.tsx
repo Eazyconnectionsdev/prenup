@@ -1,87 +1,141 @@
 'use client';
 
 import React from 'react';
-import type { AgreementOption } from "@/types/onboarding";
+import { ChevronRight } from 'lucide-react';
 import type { AgreementCardProps } from "@/types/onboarding/agreement-card";
 
 export const AgreementCard: React.FC<AgreementCardProps> = ({
-  option,
-  isSelected,
+  serviceKey,
+  title,
+  badge,
+  serviceTag,
+  subtitle,
+  subOptionCountText,
+  isSelected: explicitIsSelected,
   onSelect,
+  // Alternative prop styles
+  service,
+  selectedId,
+  option,
 }) => {
+  // Resolve values whether passed directly or via service/option
+  const actualKey = serviceKey || service?.key || (option ? (option.id.startsWith('prenup') ? 'prenup' : option.id.startsWith('postnup') ? 'postnup' : 'cohabitation') : 'prenup');
+  const actualTitle = title || service?.title || option?.title || 'Agreement';
+  const actualBadge = badge || service?.badge || option?.badge;
+  const actualTag = serviceTag || service?.serviceTag || option?.serviceTag;
+  const actualSubtitle = subtitle || service?.subtitle || option?.subtitle;
+  const actualCountText = subOptionCountText || service?.subOptionCountText || (actualKey === 'cohabitation' ? '1 option' : '2 options');
+
+  const isSelected = explicitIsSelected !== undefined
+    ? explicitIsSelected
+    : selectedId
+      ? (selectedId.startsWith(actualKey) || (actualKey === 'cohabitation' && selectedId === 'cohabitation'))
+      : false;
+
+  const handleClick = () => {
+    if (onSelect) {
+      onSelect(actualKey);
+    }
+  };
+
   return (
     <div
       role="radio"
       aria-checked={isSelected}
       tabIndex={0}
-      onClick={() => onSelect(option.id)}
+      onClick={handleClick}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          onSelect(option.id);
+          handleClick();
         }
       }}
-      className={`p-3 md:p-4 rounded-xl cursor-pointer flex items-start space-x-3 transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+      className={`p-4 md:p-5 rounded-2xl cursor-pointer transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] relative flex items-start space-x-3.5 ${
         isSelected
-          ? 'bg-[#FAF8F5] border-2 border-[#8B3A3A] text-primary shadow-[0_6px_20px_rgba(139,58,58,0.14)]'
-          : 'bg-primary border border-primary/80 text-white shadow-[0_2px_8px_rgba(15,23,42,0.12)] hover:border-primary/60 hover:-translate-y-px hover:shadow-[0_4px_14px_rgba(15,23,42,0.25)]'
+          ? 'bg-[#FAF8F5] border-2 border-[#8B3A3A] text-primary shadow-[0_8px_24px_rgba(139,58,58,0.14)] ring-1 ring-[#8B3A3A]/20'
+          : 'bg-[#0F172A] border border-[#1E293B] text-white shadow-[0_2px_8px_rgba(15,23,42,0.12)] hover:border-[#C5A880]/60 hover:-translate-y-px hover:shadow-[0_4px_16px_rgba(15,23,42,0.25)]'
       }`}
     >
-      {/* Custom radio */}
+      {/* Radio Circle */}
       <div
-        className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
+        className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
           isSelected
             ? 'border-[#8B3A3A] bg-white'
-            : 'border-primary/60 bg-primary/80'
+            : 'border-[#475569] bg-[#1E293B]'
         }`}
       >
         <div
-          className={`w-2 h-2 rounded-full bg-[#8B3A3A] transition-all duration-200 ${
+          className={`w-2.5 h-2.5 rounded-full bg-[#8B3A3A] transition-all duration-200 ${
             isSelected ? 'opacity-100 scale-100' : 'opacity-0 scale-50'
           }`}
         />
       </div>
 
-      <div className="flex-1 space-y-1">
+      {/* Main Content */}
+      <div className="flex-1 space-y-1.5">
         <div className="flex items-center justify-between gap-2 flex-wrap">
-          <span
-            className={`font-bold text-xs md:text-sm leading-snug ${
+          <h3
+            className={`font-serif-legal font-bold text-sm md:text-base leading-snug tracking-wide ${
               isSelected ? 'text-primary' : 'text-white'
             }`}
           >
-            {option.title}
-          </span>
+            {actualTitle}
+          </h3>
+
           <div className="flex items-center gap-1.5 flex-wrap">
-            {option.badge && (
+            {actualBadge && (
               <span
-                className={`text-[0.6rem] tracking-[0.08em] font-bold px-1.5 py-0.5 rounded uppercase text-white ${
-                  isSelected ? 'bg-[#8B3A3A]' : 'bg-[#E26D6D]'
+                className={`text-[0.6rem] tracking-[0.08em] font-extrabold px-2 py-0.5 rounded uppercase ${
+                  isSelected
+                    ? 'bg-[#8B3A3A] text-white'
+                    : 'bg-[#E26D6D] text-white'
                 }`}
               >
-                {option.badge}
+                {actualBadge}
               </span>
             )}
-            {option.tags && option.tags.map((tag, idx) => (
+            {actualTag && (
               <span
-                key={idx}
                 className={`text-[0.6rem] font-bold tracking-wider px-2 py-0.5 rounded uppercase border transition-colors ${
                   isSelected
                     ? 'bg-[#8B3A3A]/10 text-[#8B3A3A] border-[#8B3A3A]/30'
                     : 'bg-white/10 text-[#C5A880] border-white/20'
                 }`}
               >
-                {tag}
+                {actualTag}
               </span>
-            ))}
+            )}
           </div>
         </div>
-        <p
-          className={`text-[11px] md:text-xs leading-relaxed ${
-            isSelected ? 'text-primary/70' : 'text-primary-foreground/60'
-          }`}
-        >
-          {option.subtitle}
-        </p>
+
+        {actualSubtitle && (
+          <p
+            className={`text-[11px] md:text-xs leading-relaxed ${
+              isSelected ? 'text-primary/70' : 'text-primary-foreground/60'
+            }`}
+          >
+            {actualSubtitle}
+          </p>
+        )}
+
+        <div className="flex items-center justify-between pt-1">
+          <span
+            className={`text-[0.62rem] font-bold tracking-wider uppercase ${
+              isSelected ? 'text-[#8B3A3A]' : 'text-[#94A3B8]'
+            }`}
+          >
+            {actualCountText}
+          </span>
+
+          <div
+            className={`flex items-center text-xs font-semibold ${
+              isSelected ? 'text-[#8B3A3A]' : 'text-[#64748B]'
+            }`}
+          >
+            <span className="hidden sm:inline text-[0.65rem] mr-1">Configure</span>
+            <ChevronRight className={`w-3.5 h-3.5 transition-transform ${isSelected ? 'translate-x-0.5' : ''}`} />
+          </div>
+        </div>
       </div>
     </div>
   );
