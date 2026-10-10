@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   emptyTreatment,
   makeId,
@@ -46,6 +47,7 @@ function makeSharedDebtRow(): SharedDebtRow {
 export default function SharedLiabilitiesForm({
   onContinue,
 }: SharedLiabilitiesFormProps = {}) {
+  const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const caseId = useSelector((state: RootState) => state.auth.caseId);
   const currentCase = useSelector((state: RootState) => state.cases);
@@ -99,7 +101,12 @@ export default function SharedLiabilitiesForm({
         { hasSharedDebts, sharedDebts },
       );
       await refreshCase();
-      onContinue?.();
+      toast.success("Joint liabilities saved.");
+      if (onContinue) {
+        onContinue();
+      } else {
+        router.push("/dashboard/matrimonial-agreement");
+      }
     } catch (error) {
       console.error("Error saving shared liabilities:", error);
       setActionError("Something went wrong saving your changes. Please try again.");
@@ -273,41 +280,22 @@ export default function SharedLiabilitiesForm({
                   disabled={isSubmitting}
                   className="mt-8 rounded-[10px] bg-indigo-600 px-10 py-3.5 font-semibold text-white shadow-[0_4px_12px_rgba(79,70,229,0.2)] transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  {isSubmitting ? "Submitting..." : editingAfterMyOwnDisapproval ? "Resubmit" : "Submit"}
+                  {isSubmitting ? "Saving..." : "Next: Matrimonial Agreement & Review →"}
                 </button>
               </div>
             </form>
           ) : (
-            <fieldset disabled className="border-0 p-0 m-0">
-              {formBody}
-            </fieldset>
-          )}
-
-          {isMyTurnToApprove && (
-            <div className="mt-8 flex flex-col items-end gap-3">
-              <textarea
-                value={disapproveReason}
-                onChange={(e) => setDisapproveReason(e.target.value)}
-                placeholder="Optional: let your partner know what to change"
-                rows={2}
-                className={`${inputClasses} w-full`}
-              />
-              <div className="flex gap-4">
+            <div>
+              <fieldset disabled className="border-0 p-0 m-0">
+                {formBody}
+              </fieldset>
+              <div className="mt-8 flex justify-end">
                 <button
                   type="button"
-                  disabled={isApproving || isDisapproving}
-                  onClick={handleApprove}
-                  className="rounded-[10px] bg-indigo-600 px-10 py-3.5 font-semibold text-white shadow-[0_4px_12px_rgba(79,70,229,0.2)] transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-70"
+                  onClick={() => router.push("/dashboard/matrimonial-agreement")}
+                  className="rounded-[10px] bg-indigo-600 px-10 py-3.5 font-semibold text-white shadow-[0_4px_12px_rgba(79,70,229,0.2)] transition hover:bg-indigo-700"
                 >
-                  {isApproving ? "Approving..." : "Approve"}
-                </button>
-                <button
-                  type="button"
-                  disabled={isApproving || isDisapproving}
-                  onClick={handleDisapprove}
-                  className="rounded-[10px] bg-red-600 px-10 py-3.5 font-semibold text-white shadow-[0_4px_12px_rgba(220,38,38,0.2)] transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-70"
-                >
-                  {isDisapproving ? "Disapproving..." : "Disapprove"}
+                  Next: Matrimonial Agreement & Review →
                 </button>
               </div>
             </div>

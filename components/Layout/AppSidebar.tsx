@@ -18,6 +18,7 @@ const LEAF_TO_KEY: Record<string, string> = {
   "joint-assets": "jointAssets",
   "joint-income-revenue": "jointIncomeAndRevenue",
   "joint-liabilities-debts": "jointLiabilitiesAndDebts",
+  "matrimonial-agreement": "matrimonialAgreement",
 };
 
 const PERSONAL_LEAFS: { id: string; icon: IconName; label: string }[] = [
@@ -47,6 +48,11 @@ const JOINT_ASSETS_LEAFS: { id: string; icon: IconName; label: string }[] = [
     id: "joint-liabilities-debts",
     icon: "liabilities",
     label: "Joint Liabilities and debts",
+  },
+  {
+    id: "matrimonial-agreement",
+    icon: "joint",
+    label: "Matrimonial Agreement & Review",
   },
 ];
 
@@ -264,7 +270,7 @@ function Leaf({
 
 export default function AgreementSidebar() {
   const dispatch = useDispatch<AppDispatch>();
-  const { status, myInformation, partnerInformation, jointInformation } = useSelector((state: RootState) => state.cases);
+  const { status, myInformation, partnerInformation, jointInformation, approval } = useSelector((state: RootState) => state.cases);
   const user = useSelector((state: RootState) => state.auth.user);
 
   // Highlight follows the URL, so it also updates after a form auto-advances
@@ -574,6 +580,43 @@ export default function AgreementSidebar() {
               </div>
             </div>
           )}
+        </div>
+
+        <div className="mx-1 my-2.5 h-px bg-[#E7E7F2]" />
+
+        {/* FINAL REVIEW & CONFIRMATION — Exhibit A/B/C/D flow */}
+        <div className="mt-1">
+          <Link href="/dashboard/final-review-confirmation">
+            <div
+              className={`relative flex cursor-pointer items-center gap-2.5 rounded-[9px] px-2.5 py-[11px] hover:bg-[#F4F4FA] ${
+                activeLeaf === "final-review-confirmation" || activeLeaf.startsWith("final-review-confirmation/")
+                  ? "bg-[#EDE9FE]"
+                  : ""
+              }`}
+            >
+              {(activeLeaf === "final-review-confirmation" || activeLeaf.startsWith("final-review-confirmation/")) && (
+                <span className="absolute -left-[0px] top-2 bottom-2 w-0.5 rounded-full bg-[#6D28D9]" />
+              )}
+              <span className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[7px] bg-[#EDE9FE] text-[#6D28D9]">
+                <Icon name="seal" className="h-3.5 w-3.5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <div className="text-[13.5px] font-semibold text-[#1E1B3C]">
+                  Final Review & Confirmation
+                </div>
+                <div className="mt-px text-[11px] text-[#9494AA]">
+                  {Boolean(approval?.user1Approved && approval?.user2Approved)
+                    ? "Mutual confirmation complete"
+                    : Boolean(status?.jointInformation?.submitted || approval?.user1Approved)
+                    ? "Partner review in progress"
+                    : "Ready for review & confirmation"}
+                </div>
+              </span>
+              <StatusCheck
+                done={Boolean(approval?.user1Approved && approval?.user2Approved)}
+              />
+            </div>
+          </Link>
         </div>
 
         <div className="mx-1 my-2.5 h-px bg-[#E7E7F2]" />

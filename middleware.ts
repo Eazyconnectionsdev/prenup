@@ -23,7 +23,6 @@ const ROLE_HOME: Record<string, string> = {
   end_user: "/dashboard",
 };
 
-// Extra pages a role may visit besides its home path.
 const ROLE_EXTRA_PATHS: Record<string, string[]> = {
   end_user: ["/onboarding"],
 };

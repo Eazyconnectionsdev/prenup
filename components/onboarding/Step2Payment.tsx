@@ -1,21 +1,33 @@
 'use client';
 
 import React, { useState } from 'react';
-import type { AgreementOption } from "@/types/onboarding";
+import { useSelector } from 'react-redux';
+import type { RootState } from "@/store/store";
 import type { Step2PaymentProps } from "@/types/onboarding/step2-payment";
 
 export const Step2Payment: React.FC<Step2PaymentProps> = ({
   selectedOption,
   onBack,
   onPaymentSuccess,
+  onChooseService,
+  isPaid: propIsPaid,
 }) => {
+  const user = useSelector((state: RootState) => state.auth?.user);
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentDone, setPaymentDone] = useState(false);
 
   // Price formatting: default to €499
   const displayPrice = '€499';
 
+  const isPaid = Boolean(propIsPaid || user?.paymentDone || paymentDone);
+  const hasSelectedService = Boolean(selectedOption && selectedOption.id && selectedOption.id !== 'help-choose');
+
   const handlePay = () => {
+    if (!hasSelectedService) {
+      if (onChooseService) onChooseService();
+      else onBack();
+      return;
+    }
     setIsProcessing(true);
     setTimeout(() => {
       setIsProcessing(false);
@@ -25,8 +37,6 @@ export const Step2Payment: React.FC<Step2PaymentProps> = ({
       }, 800);
     }, 1200);
   };
-
-
 
   return (
     <main className="w-full max-w-7xl mx-auto px-6 py-8 flex-1 space-y-8 mb-10">
@@ -57,8 +67,17 @@ export const Step2Payment: React.FC<Step2PaymentProps> = ({
       <div className="max-w-md mx-auto">
         <div className="bg-[#0F172A] border-2 border-[#C5A880] rounded-2xl p-6 md:p-8 space-y-6 shadow-2xl text-white relative overflow-hidden">
           {/* Tag */}
-          <div className="text-[0.65rem] font-bold tracking-[0.2em] text-[#C5A880] uppercase border-b border-[#1E293B] pb-3 text-center">
-            {selectedOption.badge ? selectedOption.badge.toUpperCase() : 'POPULAR'}
+          <div className="text-[0.65rem] font-bold tracking-[0.2em] text-[#C5A880] uppercase border-b border-[#1E293B] pb-3 text-center flex items-center justify-center gap-2">
+            {hasSelectedService ? (
+              <>
+                <span>{selectedOption?.serviceTag || 'PRENUP'}</span>
+                {selectedOption?.subTag && (
+                  <span className="text-[#94A3B8]">• {selectedOption.subTag}</span>
+                )}
+              </>
+            ) : (
+              <span>SERVICE SELECTION REQUIRED</span>
+            )}
           </div>
 
           {/* Pricing Row */}
@@ -69,20 +88,94 @@ export const Step2Payment: React.FC<Step2PaymentProps> = ({
             </span>
           </div>
 
-          {/* Pay Button: Default White (bg-white), Hover Warm Gold (#C5A880) */}
-          <button
-            onClick={handlePay}
-            disabled={isProcessing || paymentDone}
-            className="w-full py-4 px-6 rounded-xl bg-white text-[#0F172A] text-xs md:text-sm font-extrabold tracking-widest uppercase hover:bg-[#C5A880] hover:border-[#C5A880] hover:scale-[1.01] active:scale-[0.99] transition-all shadow-lg flex items-center justify-center space-x-2 disabled:opacity-80 cursor-pointer border border-white"
-          >
-            {isProcessing ? (
-              <span>Processing Payment...</span>
-            ) : paymentDone ? (
-              <span>✓ Payment Complete</span>
+          {/* Service Table / Selected Service Row */}
+          <div className="bg-[#1E293B]/80 border border-[#334155] rounded-xl p-4 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[0.68rem] font-bold tracking-[0.16em] uppercase text-[#C5A880]">
+                Service Selected
+              </span>
+              {hasSelectedService && (
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {selectedOption?.serviceTag && (
+                    <span className="text-[0.6rem] font-extrabold px-2 py-0.5 rounded bg-[#C5A880] text-[#0F172A] tracking-wider uppercase">
+                      {selectedOption.serviceTag}
+                    </span>
+                  )}
+                  {selectedOption?.subTag && (
+                    <span className="text-[0.6rem] font-bold px-2 py-0.5 rounded bg-white/10 text-[#CBD5E1] border border-white/15 tracking-wider uppercase">
+                      {selectedOption.subTag}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {hasSelectedService ? (
+              <div className="space-y-1 pt-0.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm md:text-base font-bold text-[#FAF8F5]">
+                    {selectedOption?.serviceName || selectedOption?.title || 'Prenup'}
+                  </span>
+                  {isPaid && (
+                    <span className="text-[0.65rem] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                      ✓ Paid
+                    </span>
+                  )}
+                </div>
+                <p className="text-[0.72rem] text-[#94A3B8]">
+                  {selectedOption?.overviewTitle || selectedOption?.title}
+                </p>
+                {selectedOption?.tags && selectedOption.tags.length > 0 && (
+                  <div className="flex items-center gap-1.5 pt-1 flex-wrap">
+                    {selectedOption.tags.map((tag, idx) => (
+                      <span
+                        key={idx}
+                        className="text-[0.6rem] font-semibold px-2 py-0.5 rounded bg-[#0F172A] border border-[#334155] text-[#CBD5E1]"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
             ) : (
-              <span>PAY {displayPrice}</span>
+              <div className="pt-1 pb-0.5 flex items-center justify-between gap-3">
+                <span className="text-xs text-[#94A3B8]">No service selected</span>
+                <button
+                  type="button"
+                  onClick={onChooseService || onBack}
+                  className="px-3 py-1.5 rounded-lg bg-[#C5A880] text-[#0F172A] text-xs font-extrabold uppercase tracking-wider hover:bg-white transition-all shadow-sm cursor-pointer"
+                >
+                  Choose a Service
+                </button>
+              </div>
             )}
-          </button>
+          </div>
+
+          {/* Pay Button */}
+          {hasSelectedService ? (
+            <button
+              onClick={handlePay}
+              disabled={isProcessing || isPaid}
+              className="w-full py-4 px-6 rounded-xl bg-white text-[#0F172A] text-xs md:text-sm font-extrabold tracking-widest uppercase hover:bg-[#C5A880] hover:border-[#C5A880] hover:scale-[1.01] active:scale-[0.99] transition-all shadow-lg flex items-center justify-center space-x-2 disabled:opacity-80 cursor-pointer border border-white"
+            >
+              {isProcessing ? (
+                <span>Processing Payment...</span>
+              ) : isPaid ? (
+                <span>✓ Payment Complete</span>
+              ) : (
+                <span>PAY {displayPrice}</span>
+              )}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onChooseService || onBack}
+              className="w-full py-4 px-6 rounded-xl bg-[#C5A880] text-[#0F172A] text-xs md:text-sm font-extrabold tracking-widest uppercase hover:bg-white hover:scale-[1.01] active:scale-[0.99] transition-all shadow-lg flex items-center justify-center space-x-2 cursor-pointer border border-[#C5A880]"
+            >
+              <span>Choose a Service to Continue</span>
+            </button>
+          )}
 
           {/* Subtext Note */}
           <div className="bg-[#1E293B]/70 border border-[#334155] rounded-xl p-4 text-center space-y-1">
@@ -106,8 +199,6 @@ export const Step2Payment: React.FC<Step2PaymentProps> = ({
           </div>
         </div>
       </div>
-
-     
     </main>
   );
 };

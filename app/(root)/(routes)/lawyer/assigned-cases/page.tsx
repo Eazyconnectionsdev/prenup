@@ -4,8 +4,26 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, RotateCcw, Filter, Search } from "lucide-react";
 import Axios from "@/lib/ApiConfig";
+
+export interface LawyerFilterState {
+  status: string;
+  priority: string;
+  search: string;
+}
+
+export interface LawyerRowCase {
+  id: string;
+  caseNumber: string;
+  p1Name: string;
+  p2Name: string;
+  service: string;
+  status: string;
+  priority: string;
+  daysInStatus: number;
+  lastActivity: string;
+  certificateExpiryDate: string | null;
+}
 import type { CaseStatus } from "@/types/lawyer";
-import type { LawyerFilterState, LawyerRowCase } from "@/types/lawyer/pages/assigned-cases";
 
 const DEFAULT_FILTERS: LawyerFilterState = {
   status: "ALL",
@@ -93,6 +111,7 @@ const LawyerCasesPage = () => {
 
         const formattedCases: LawyerRowCase[] = response.data.map((item: any) => ({
           id: item._id,
+          caseNumber: item.caseNumber || item._id,
 
           p1Name: item.owner
             ? `${item.owner.firstName ?? ""} ${item.owner.lastName ?? ""}`.trim() || "Unknown"
@@ -180,7 +199,7 @@ const LawyerCasesPage = () => {
 
       if (filters.search.trim()) {
         const q = filters.search.toLowerCase();
-        const haystack = `${c.id} ${c.p1Name} ${c.p2Name} ${c.service}`.toLowerCase();
+        const haystack = `${c.caseNumber} ${c.id} ${c.p1Name} ${c.p2Name} ${c.service}`.toLowerCase();
         if (!haystack.includes(q)) return false;
       }
 
@@ -206,7 +225,7 @@ const LawyerCasesPage = () => {
         <div className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-2 text-xs font-bold font-sans text-slate-900 uppercase tracking-wider">
             <Filter className="w-4 h-4 text-slate-700" />
-            <span>Workflow Filters:</span>
+ ,m,,,,,           <span>Workflow Filters:</span>
           </div>
 
           <div className="flex flex-col gap-1">
@@ -296,7 +315,7 @@ const LawyerCasesPage = () => {
                     onClick={() => handleCaseClick(c.id)}
                     className="border-b border-slate-100 hover:bg-slate-50 transition-all cursor-pointer text-slate-700"
                   >
-                    <td className="p-4 pl-6 font-mono font-bold text-slate-900">{c.id}</td>
+                    <td className="p-4 pl-6 font-mono font-bold text-slate-900">{c.caseNumber}</td>
                     <td className="p-4 font-semibold text-slate-900">{c.p1Name}</td>
                     <td className="p-4">{c.p2Name}</td>
                     <td className="p-4">

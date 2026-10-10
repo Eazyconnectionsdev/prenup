@@ -39,7 +39,7 @@ const TopBar = ({ caseId }: TopBarProps) => {
       <span className="text-sm font-semibold text-[#1E1B3C]">
         Case ID:{" "}
         <span className="font-mono font-normal text-[#5B5B75]">
-          {caseId || user?.inviteCaseId}
+          {user?.caseNumber || caseId || user?.inviteCaseId}
         </span>
       </span>
       <button

@@ -5,8 +5,28 @@ import { useSearchParams } from "next/navigation";
 import { Eye, RotateCcw, Filter } from "lucide-react";
 import Axios from "@/lib/ApiConfig";
 import { useRouter } from "next/navigation";
+
+interface CasesMasterViewProps {
+  filters: FilterState;
+  onFilterChange: (
+    key: keyof FilterState,
+    val: string
+  ) => void;
+  onResetFilters: () => void;
+  onSelectCase: (caseId: string) => void;
+}
+
+interface RowCase {
+  id: string;
+  caseNumber: string;
+  p1: string;
+  p2: string;
+  cmView: string;
+  owner: string;
+  priority: string;
+  daysInStatus: number;
+}
 import type { FilterState } from "@/types/case-manager";
-import type { CasesMasterViewProps, RowCase } from "@/types/case-manager/cases-master-view";
 
 export const CasesMasterView: React.FC<CasesMasterViewProps> = ({
   filters,
@@ -40,6 +60,7 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = ({
         const formattedCases: RowCase[] = response.data.map(
           (item: any) => ({
             id: item._id,
+            caseNumber: item.caseNumber || item._id,
 
             p1: item.owner
               ? `${item.owner.firstName ?? ""} ${
@@ -141,7 +162,7 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = ({
                   className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer"
                 >
                   <td className="p-4 pl-6 font-mono">
-                    {c.id}
+                    {c.caseNumber}
                   </td>
 
                   <td className="p-4 font-semibold">

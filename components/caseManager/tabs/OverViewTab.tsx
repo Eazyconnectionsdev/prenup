@@ -9,7 +9,7 @@ const OverViewTab = ({caseObj} : any) => {
             CASE ID &amp; SERVICE
           </span>
           <span className="font-mono text-xs font-bold text-slate-900">
-            {caseObj.id}
+            {caseObj.caseNumber || caseObj.id}
           </span>
           <span className="text-xs text-slate-600 font-semibold">
             {caseObj.service}

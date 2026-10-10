@@ -17,6 +17,7 @@ const JOINT_KEYS = [
   'jointAssets',
   'jointIncomeAndRevenue',
   'jointLiabilitiesAndDebts',
+  'matrimonialAgreement',
 ];
 
 export const calculateOverallProgress = (caseData: CaseData): ProgressResult => {
