@@ -57,7 +57,7 @@ export default function EmailVerification() {
       ).unwrap();
 
       if (result.success) {
-        router.push("/onboarding");
+        router.push("/dashboard");
       }
     } catch (error) {
       const message = getErrorMessage(error, "Error while email verification");

@@ -7,7 +7,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
 import { LoginUser, resendOtp } from "@/store/asyncThunk/authThunk";
 import { toast } from "react-toastify";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useForm, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import AuthInput from "@/components/auth/AuthInput";
@@ -18,8 +18,6 @@ import { setUserProfileData } from "@/store/slices/authSlice";
 
 export default function LoginPageStatic() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl");
   const dispatch = useDispatch<AppDispatch>();
   const { isLoading } = useSelector((state: RootState) => state.auth);
 
@@ -41,25 +39,15 @@ export default function LoginPageStatic() {
 
   const onSubmit = async (values: LoginFormValues) => {
     try {
-      const res = await dispatch(LoginUser(values)).unwrap();
+      await dispatch(LoginUser(values)).unwrap();
       toast.success("Signed in successfully");
-      const role = res?.user?.role;
-      const roleHome: Record<string, string> = {
-        admin: "/admin",
-        case_manager: "/cm",
-        lawyer: "/lawyer",
-        end_user: "/dashboard",
-      };
-      const defaultHome = (role && roleHome[role]) || "/dashboard";
-      const targetUrl = callbackUrl && callbackUrl !== "/" ? callbackUrl : defaultHome;
-      router.push(targetUrl);
+      router.refresh();
     } catch (error) {
       const message = getErrorMessage(
         error,
         "Unable to sign in. Please try again.",
       );
       if (/not verified/i.test(message)) {
-        // Unverified account: send a fresh code and continue on the OTP page.
         dispatch(
           setUserProfileData({ email: values.email.trim().toLowerCase() }),
         );
