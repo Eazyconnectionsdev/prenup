@@ -24,7 +24,9 @@ const ROLE_HOME: Record<string, string> = {
 };
 
 const ROLE_EXTRA_PATHS: Record<string, string[]> = {
-  end_user: ["/onboarding"],
+  // Onboarding is no longer part of the signup flow; re-add "/onboarding"
+  // here if end users need to reach it again.
+  end_user: [],
 };
 
 async function getRoleFromToken(token: string | undefined): Promise<string | null> {
@@ -32,8 +34,8 @@ async function getRoleFromToken(token: string | undefined): Promise<string | nul
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     return typeof payload.role === "string" ? payload.role : null;
-  } catch (error: any) {
-    console.log("getRoleFromToken error", error);
+  } catch {
+    // Invalid or expired token: treat as signed out.
     return null;
   }
 }
@@ -53,20 +55,10 @@ export default async function middleware(req: NextRequest) {
   const isAuthRoute = AUTH_ROUTES.includes(nextUrl.pathname);
   const isPublicRoute = PUBLIC_ROUTES.includes(nextUrl.pathname);
 
-  console.log({
-    isLoggedIn,
-    isAuthRoute,
-    isPublicRoute,
-    homePath: role ? ROLE_HOME[role] : null,
-  });
   if (!isLoggedIn && !isPublicRoute) {
     const loginUrl = new URL(DEFAULT_LOGIN_REDIRECT, nextUrl);
     loginUrl.searchParams.set("callbackUrl", nextUrl.pathname);
     return NextResponse.redirect(loginUrl);
-  }
-
-  if (isLoggedIn && !role) {
-    return NextResponse.redirect(new URL(DEFAULT_LOGIN_REDIRECT, nextUrl));
   }
 
   const homePath = role ? ROLE_HOME[role] : null;
