@@ -48,7 +48,6 @@ export default function LoginPageStatic() {
         "Unable to sign in. Please try again.",
       );
       if (/not verified/i.test(message)) {
-        // Unverified account: send a fresh code and continue on the OTP page.
         dispatch(
           setUserProfileData({ email: values.email.trim().toLowerCase() }),
         );
