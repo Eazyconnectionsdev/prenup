@@ -4,9 +4,41 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import {
+  Home,
+  FileText,
+  Users,
+  Database,
+  File,
+  PenLine,
+  CreditCard,
+  ChevronRight,
+  Check,
+  Lock,
+  UserRound,
+  Scale,
+  UsersRound,
+  Wallet,
+  Landmark,
+  TrendingUp,
+  HeartHandshake,
+  Briefcase,
+  ClipboardList,
+  type LucideIcon,
+} from "lucide-react";
 import { AppDispatch, RootState } from "@/store/store";
 import { getCasesDetails } from "@/store/asyncThunk/casesThunk";
-import type { IconName, LeafProps, SectionKey, SubgroupKey } from "@/types/layout/app-sidebar";
+
+/* ------------------------------------------------------------------ */
+/* Types                                                               */
+/* ------------------------------------------------------------------ */
+
+type SectionKey = "section1" | "section2" | "section3" | "section4";
+type LeafDef = { id: string; icon: LucideIcon; label: string };
+
+/* ------------------------------------------------------------------ */
+/* Config                                                              */
+/* ------------------------------------------------------------------ */
 
 const LEAF_TO_KEY: Record<string, string> = {
   "personal-info": "personalInformation",
@@ -21,235 +53,250 @@ const LEAF_TO_KEY: Record<string, string> = {
   "matrimonial-agreement": "matrimonialAgreement",
 };
 
-const PERSONAL_LEAFS: { id: string; icon: IconName; label: string }[] = [
-  { id: "personal-info", icon: "personalInfo", label: "Personal information" },
-  { id: "legal-declaration", icon: "legal", label: "Legal declaration" },
-  { id: "family", icon: "family", label: "Family and dependents" },
+const PERSONAL_LEAFS: LeafDef[] = [
+  { id: "personal-info", icon: UserRound, label: "Personal Information" },
+  { id: "legal-declaration", icon: Scale, label: "Legal Declaration" },
+  { id: "family", icon: UsersRound, label: "Family & Dependents" },
 ];
 
-const FINANCIAL_LEAFS: { id: string; icon: IconName; label: string }[] = [
-  { id: "individual_assets", icon: "assets", label: "Individual Assets" },
-  { id: "income_revenue", icon: "income", label: "Income and revenue" },
-  {
-    id: "liabilities_debts",
-    icon: "liabilities",
-    label: "Liabilities and debts",
-  },
+const FINANCIAL_LEAFS: LeafDef[] = [
+  { id: "individual_assets", icon: Landmark, label: "Assets" },
+  { id: "income_revenue", icon: TrendingUp, label: "Income & Revenue" },
+  { id: "liabilities_debts", icon: CreditCard, label: "Liabilities & Debts" },
 ];
 
-const JOINT_ASSETS_LEAFS: { id: string; icon: IconName; label: string }[] = [
-  { id: "joint-assets", icon: "assets", label: "Joint Assets" },
-  {
-    id: "joint-income-revenue",
-    icon: "income",
-    label: "Joint Income and revenue",
-  },
-  {
-    id: "joint-liabilities-debts",
-    icon: "liabilities",
-    label: "Joint Liabilities and debts",
-  },
-  {
-    id: "matrimonial-agreement",
-    icon: "joint",
-    label: "Matrimonial Agreement & Review",
-  },
+const JOINT_FINANCIAL_LEAFS: LeafDef[] = [
+  { id: "joint-assets", icon: Landmark, label: "Joint Assets" },
+  { id: "joint-income-revenue", icon: TrendingUp, label: "Joint Income & Revenue" },
+  { id: "joint-liabilities-debts", icon: CreditCard, label: "Joint Liabilities & Debts" },
 ];
 
-const TOTAL_LEAVES = Object.keys(LEAF_TO_KEY).length;
+const MATRIMONIAL_LEAF: LeafDef = {
+  id: "matrimonial-agreement",
+  icon: HeartHandshake,
+  label: "Matrimonial Agreement & Review",
+};
+
+const JOINT_LEAFS = [...JOINT_FINANCIAL_LEAFS, MATRIMONIAL_LEAF];
+const MY_LEAF_IDS = [...PERSONAL_LEAFS, ...FINANCIAL_LEAFS].map((l) => l.id);
+const JOINT_LEAF_IDS = JOINT_LEAFS.map((l) => l.id);
 
 const ILA_LEAFS = ["solicitor-details", "lawyer-questionaries", "review-and-sign"];
 
-// Which accordion section / subgroup holds the page at this URL, so it can be
-// opened automatically (e.g. after a refresh or a form auto-advancing).
-function locateLeaf(activeLeaf: string): {
-  section: SectionKey;
-  subgroup: SubgroupKey | null;
-} | null {
+// Which step holds the page at this URL, so it opens automatically.
+function locateSection(activeLeaf: string): SectionKey | null {
   const isPartner = activeLeaf.startsWith("partner-");
   const id = (isPartner ? activeLeaf.slice("partner-".length) : activeLeaf).split("/")[0];
 
-  if (!isPartner && ILA_LEAFS.includes(id)) {
-    return { section: "section4", subgroup: null };
-  }
-  if (!isPartner && JOINT_ASSETS_LEAFS.some((l) => l.id === id)) {
-    return { section: "section3", subgroup: "jointFinancial" };
-  }
-  if (PERSONAL_LEAFS.some((l) => l.id === id)) {
-    return { section: isPartner ? "section2" : "section1", subgroup: null };
-  }
-  if (FINANCIAL_LEAFS.some((l) => l.id === id)) {
-    return isPartner
-      ? { section: "section2", subgroup: "partnerFinancial" }
-      : { section: "section1", subgroup: "myFinancial" };
-  }
+  if (!isPartner && ILA_LEAFS.includes(id)) return "section4";
+  if (!isPartner && JOINT_LEAF_IDS.includes(id)) return "section3";
+  if (MY_LEAF_IDS.includes(id)) return isPartner ? "section2" : "section1";
   return null;
 }
 
-const iconPaths: Record<IconName, ReactNode> = {
-  workspace: <path d="M3 7l9-4 9 4-9 4-9-4z M3 7v10l9 4 9-4V7" />,
-  person: (
-    <>
-      <circle cx="12" cy="8" r="3.2" />
-      <path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7" />
-    </>
-  ),
-  personalInfo: (
-    <>
-      <path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z" />
-      <path d="M14 3v6h6" />
-    </>
-  ),
-  legal: (
-    <>
-      <path d="M9 12l2 2 4-4" />
-      <circle cx="12" cy="12" r="9" />
-    </>
-  ),
-  family: (
-    <>
-      <path d="M17 20v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2" />
-      <circle cx="10" cy="7" r="3.2" />
-      <path d="M20 20v-2a4 4 0 00-3-3.9" />
-      <path d="M15.2 3.2A3.2 3.2 0 0117 6.3" />
-    </>
-  ),
-  folder: (
-    <>
-      <path d="M3 7l4-4h10l4 4v13a1 1 0 01-1 1H4a1 1 0 01-1-1z" />
-      <path d="M3 7h18" />
-    </>
-  ),
-  assets: (
-    <>
-      <rect x="3" y="7" width="18" height="13" rx="2" />
-      <path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2" />
-    </>
-  ),
-  income: (
-    <>
-      <path d="M3 3v18h18" />
-      <path d="M7 15l4-5 3 3 5-6" />
-    </>
-  ),
-  liabilities: (
-    <>
-      <rect x="2" y="6" width="20" height="12" rx="2" />
-      <path d="M2 10h20" />
-    </>
-  ),
-  joint: (
-    <path d="M12 3l2.5 5.2L20 9l-4 3.9.9 5.5L12 15.8 7.1 18.4 8 12.9 4 9l5.5-.8z" />
-  ),
-  seal: (
-    <>
-      <circle cx="12" cy="9" r="5.5" />
-      <path d="M8.5 13.5L7 21l5-2.5L17 21l-1.5-7.5" />
-    </>
-  ),
-};
-
-function Icon({ name, className }: { name: IconName; className?: string }) {
+function LogoMark() {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.8}
-      className={className}
-    >
-      {iconPaths[name]}
-    </svg>
-  );
-}
-
-function Chevron({ open }: { open: boolean }) {
-  return (
-    <span className="flex-shrink-0 flex text-[#9494AA]">
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2}
-        className={`w-[13px] h-[13px] transition-transform duration-150 ${
-          open ? "rotate-90" : "rotate-0"
-        }`}
-      >
-        <path d="M9 6l6 6-6 6" />
-      </svg>
-    </span>
-  );
-}
-
-function StatusCheck({
-  done,
-  readOnly,
-}: {
-  done?: boolean;
-  readOnly?: boolean;
-}) {
-  const color = done ? "#16A34A" : readOnly ? "#9494AA" : "#D1D1DC";
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      className="flex-shrink-0"
-    >
-      <circle cx="8" cy="8" r="7" fill={color} />
+    <svg viewBox="0 0 32 32" fill="none" className="h-8 w-8" aria-hidden>
       <path
-        d="M5 8.2l2 2 4-4.4"
-        stroke="white"
-        strokeWidth={1.6}
-        strokeLinecap="round"
+        d="M12 26s-8-5.2-8-11.2A4.8 4.8 0 0112 11.6a4.8 4.8 0 018 3.2C20 20.8 12 26 12 26z"
+        stroke="#8B87FF"
+        strokeWidth={2}
+        strokeLinejoin="round"
+      />
+      <path
+        d="M20 26s-8-5.2-8-11.2a4.8 4.8 0 018-3.2 4.8 4.8 0 018 3.2C28 20.8 20 26 20 26z"
+        stroke="#C4B5FD"
+        strokeWidth={2}
         strokeLinejoin="round"
       />
     </svg>
   );
 }
 
+function Collapse({ open, children }: { open: boolean; children: ReactNode }) {
+  return (
+    <div
+      aria-hidden={!open}
+      inert={!open}
+      className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${
+        open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+      }`}
+    >
+      <div className="min-h-0 overflow-hidden">{children}</div>
+    </div>
+  );
+}
+
+function StatusDot({ done, locked }: { done?: boolean; locked?: boolean }) {
+  if (locked) return <Lock className="h-3.5 w-3.5 flex-shrink-0" />;
+  if (done)
+    return (
+      <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.15)]">
+        <Check className="h-2.5 w-2.5 text-white" strokeWidth={3.5} />
+      </span>
+    );
+  return <span className="h-4 w-4 flex-shrink-0 rounded-full border-[1.5px] border-white/20" />;
+}
+
+
+function StepHeader({
+  number,
+  icon: IconC,
+  title,
+  subtitle,
+  badge,
+  open,
+  active,
+  onClick,
+  href,
+  locked,
+  lockReason,
+}: {
+  number: number;
+  icon: LucideIcon;
+  title: string;
+  subtitle?: string;
+  badge?: string;
+  open?: boolean;
+  active?: boolean;
+  onClick?: () => void;
+  href?: string;
+  locked?: boolean;
+  lockReason?: string;
+}) {
+  const highlighted = active || open;
+
+  const inner = (
+    <>
+      <span className="flex h-[22px] w-[22px] flex-shrink-0 items-center justify-center rounded-full bg-[#5B55F6] text-[11px] font-semibold text-white shadow-[0_0_0_3px_rgba(91,85,246,0.22)]">
+        {number}
+      </span>
+
+      {/* <IconC
+        className={`h-[18px] w-[18px] flex-shrink-0 transition-colors duration-200 ${
+          highlighted ? "text-white" : "text-[#A9ACD6] group-hover:text-white"
+        }`}
+        strokeWidth={1.8}
+      /> */}
+
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-1.5">
+          <span
+            className={`truncate text-[14px] font-medium transition-colors duration-200 ${
+              highlighted ? "text-white" : "text-[#D6D8F2] group-hover:text-white"
+            }`}
+          >
+            {title}
+          </span>
+          
+        </span>
+        {subtitle && (
+          <span className="mt-0.5 block truncate text-[11px] text-[#7F82B5]">{subtitle}</span>
+        )}
+      </span>
+
+      {locked ? (
+        <Lock className="h-4 w-4 flex-shrink-0" />
+      ) : (
+        <ChevronRight
+          className={`h-4 w-4 flex-shrink-0 text-[#8A8DC0] transition-transform duration-300 ${
+            !href && open ? "rotate-90" : ""
+          }`}
+        />
+      )}
+    </>
+  );
+
+  const cls = `group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all duration-200 ${
+    locked
+      ? ""
+      : active
+        ? "bg-[#2B2E6F] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+        : open
+          ? "bg-white/[0.04]"
+          : "hover:bg-white/[0.05]"
+  }`;
+
+  // A locked step is neither a button nor a link, so it cannot be opened.
+  if (locked)
+    return (
+      <div aria-disabled="true" title={lockReason} className={cls}>
+        {inner}
+      </div>
+    );
+
+  if (href)
+    return (
+      <Link href={href} className={cls} aria-current={active ? "page" : undefined}>
+        {inner}
+      </Link>
+    );
+
+  return (
+    <button type="button" onClick={onClick} className={cls} aria-expanded={open}>
+      {inner}
+    </button>
+  );
+}
+
+
 function Leaf({
   id,
-  icon,
+  icon: IconC,
   label,
   done,
   activeLeaf,
-  readOnly,
+  locked,
   lockReason,
   isPartner,
-}: LeafProps) {
-  // Route id gets a "partner-" prefix only for the partner's section leaves.
+  nested,
+}: LeafDef & {
+  done?: boolean;
+  activeLeaf: string;
+  locked?: boolean;
+  lockReason?: string;
+  isPartner?: boolean;
+  nested?: boolean;
+}) {
   const routeId = isPartner ? `partner-${id}` : id;
   const isActive =
-    !readOnly &&
-    (activeLeaf === routeId || activeLeaf.startsWith(`${routeId}/`));
+    !locked && (activeLeaf === routeId || activeLeaf.startsWith(`${routeId}/`));
 
   const content = (
     <>
       {isActive && (
-        <span className="absolute -left-[17px] top-2 bottom-2 w-0.5 rounded-full bg-[#6D28D9]" />
+        <span
+          className={`absolute top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-[#8B87FF] shadow-[0_0_8px_rgba(139,135,255,0.8)] ${
+            nested ? "-left-[8px]" : "-left-[12px]"
+          }`}
+        />
       )}
-      <span className="flex-shrink-0 text-[#9494AA]">
-        <Icon name={icon} className="w-3.5 h-3.5" />
-      </span>
+      <IconC
+        className={`h-4 w-4 flex-shrink-0 transition-colors duration-200 ${
+          isActive ? "text-[#B7B4FF]" : "text-[#8A8DC0] group-hover:text-[#C9C7FF]"
+        }`}
+        strokeWidth={1.8}
+      />
       <span
-        className={`flex-1 text-[13px] ${
-          isActive ? "text-[#1E1B3C] font-medium" : "text-[#6B6B80]"
-        } ${readOnly ? "opacity-70" : ""}`}
+        className={`flex-1 truncate text-[13px] transition-colors duration-200 ${
+          isActive ? "font-medium text-white" : "text-[#B4B7DE] group-hover:text-white"
+        }`}
       >
         {label}
       </span>
-      <StatusCheck done={done} readOnly={readOnly} />
+      <StatusDot done={done} locked={locked} />
     </>
   );
 
-  if (readOnly) {
+  const base =
+    "group relative my-[2px] flex items-center gap-2.5 rounded-lg px-[11px] py-[7px] transition-all duration-200";
+
+  if (locked) {
     return (
       <div
         aria-disabled="true"
-        title={lockReason ?? "View only"}
-        className="relative flex items-center gap-[9px] rounded-[7px] px-[9px] py-2 my-0.5 cursor-not-allowed select-none"
+        title={lockReason ?? "Complete payment to unlock"}
+        className={`${base} cursor-not-allowed select-none opacity-50`}
       >
         {content}
       </div>
@@ -259,42 +306,69 @@ function Leaf({
   return (
     <Link
       href={`/dashboard/${routeId}`}
-      className={`relative flex items-center gap-[9px] rounded-[7px] px-[9px] py-2 my-0.5 cursor-pointer hover:bg-[#F4F4FA] ${
-        isActive ? "bg-[#EDE9FE]" : ""
-      }`}
+      className={`${base} ${isActive ? "bg-white/[0.09]" : "hover:bg-white/[0.04]"}`}
     >
       {content}
     </Link>
   );
 }
 
-export default function AgreementSidebar() {
+function SubGroup({
+  label,
+  done,
+  children,
+}: {
+  label: string;
+  done?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div className="my-[2px]">
+      <div className="flex items-center gap-2.5 px-[11px] py-[7px]">
+        <Wallet className="h-4 w-4 flex-shrink-0 text-[#A9ACD6]" strokeWidth={1.8} />
+        <span className="flex-1 truncate text-[13px] font-semibold text-[#E4E5F7]">
+          {label}
+        </span>
+      </div>
+      <div className="ml-[19px] pl-1.5">{children}</div>
+    </div>
+  );
+}
+
+function Tree({ children }: { children: ReactNode }) {
+  return <div className="ml-[44px]  pb-1 pl-2.5">{children}</div>;
+}
+
+
+export default function AppSidebar() {
   const dispatch = useDispatch<AppDispatch>();
-  const { status, myInformation, partnerInformation, jointInformation, approval } = useSelector((state: RootState) => state.cases);
+  const {
+    status,
+    myInformation,
+    partnerInformation,
+    jointInformation,
+    approval,
+    fullyLocked,
+  } = useSelector((state: RootState) => state.cases);
   const user = useSelector((state: RootState) => state.auth.user);
 
-  // Highlight follows the URL, so it also updates after a form auto-advances
   const pathname = usePathname();
   const activeLeaf = pathname.replace(/^\/dashboard\/?/, "").replace(/\/+$/, "");
   const isDashboardHome = /^\/dashboard\/?$/.test(pathname);
+  const isFinalReview =
+    activeLeaf === "final-review-confirmation" ||
+    activeLeaf.startsWith("final-review-confirmation/");
 
-  const initial = locateLeaf(activeLeaf);
   const [openSection, setOpenSection] = useState<SectionKey | null>(
-    initial?.section ?? "section1",
-  );
-  const [openSubgroup, setOpenSubgroup] = useState<SubgroupKey | null>(
-    initial?.subgroup ?? "myFinancial",
+    locateSection(activeLeaf) ?? "section1",
   );
 
-  // When the URL changes, open the section that contains the active page.
+
   const [lastPath, setLastPath] = useState(pathname);
   if (pathname !== lastPath) {
     setLastPath(pathname);
-    const target = locateLeaf(activeLeaf);
-    if (target) {
-      setOpenSection(target.section);
-      if (target.subgroup) setOpenSubgroup(target.subgroup);
-    }
+    const target = locateSection(activeLeaf);
+    if (target) setOpenSection(target);
   }
 
   const isFirstUser = user?.endUserType === "user1";
@@ -303,370 +377,266 @@ export default function AgreementSidebar() {
   const myData = isFirstUser ? myInformation : partnerInformation;
   const partnerData = isFirstUser ? partnerInformation : myInformation;
 
-  const hasData = (obj?: Record<string, unknown>) =>
-    Boolean(obj && Object.keys(obj).length > 0);
-
+  const hasData = (obj?: Record<string, unknown>) => Boolean(obj && Object.keys(obj).length > 0);
   const isLeafDone = (leafId: string, info?: Record<string, any>) =>
     hasData(info?.[LEAF_TO_KEY[leafId]]);
 
-  // Joint leaves live in jointInformation, the rest in the user's own section
-  const jointLeafIds = JOINT_ASSETS_LEAFS.map((leaf) => leaf.id);
-  const completedCount = Object.keys(LEAF_TO_KEY).filter((id) =>
-    isLeafDone(id, jointLeafIds.includes(id) ? jointInformation : myData),
-  ).length;
+  const myDoneCount = MY_LEAF_IDS.filter((id) => isLeafDone(id, myData)).length;
+  const jointDoneCount = JOINT_LEAF_IDS.filter((id) => isLeafDone(id, jointInformation)).length;
+
+  const myFinancialDone = FINANCIAL_LEAFS.every((l) => isLeafDone(l.id, myData));
+  const partnerFinancialDone = FINANCIAL_LEAFS.every((l) => isLeafDone(l.id, partnerData));
+  const jointFinancialDone = JOINT_FINANCIAL_LEAFS.every((l) =>
+    isLeafDone(l.id, jointInformation),
+  );
+  const bothApproved = Boolean(approval?.user1Approved && approval?.user2Approved);
+  const ilaDone = Boolean(status?.independentLegalAdvice?.submitted);
+
+  const caseLocked = Boolean(
+    fullyLocked ||
+      bothApproved ||
+      status?.myInformation?.locked ||
+      status?.partnerInformation?.locked ||
+      status?.jointInformation?.locked,
+  );
+  const LOCK_REASON = "Locked - both partners have confirmed the agreement";
+  const lockedSubtitle = "Confirmed and locked";
+
+  const finalSubtitle = bothApproved
+    ? "Mutual confirmation complete"
+    : status?.jointInformation?.submitted || approval?.user1Approved
+      ? "Partner review in progress"
+      : "Ready for review";
 
   const toggleSection = (key: SectionKey) =>
     setOpenSection((prev) => (prev === key ? null : key));
-  const toggleSubgroup = (key: SubgroupKey) =>
-    setOpenSubgroup((prev) => (prev === key ? null : key));
 
   const isLocked = (leafId: string) =>
-    !isPaymentDone && leafId !== "personal-info";
+    caseLocked || (!isPaymentDone && leafId !== "personal-info");
+  const leafLockReason = caseLocked ? LOCK_REASON : undefined;
 
-  // Forms re-fetch the case after saving, which turns the matching tick green
   const inviteCaseId = user?.inviteCaseId;
   useEffect(() => {
     if (inviteCaseId) dispatch(getCasesDetails(inviteCaseId));
   }, [dispatch, inviteCaseId]);
 
   return (
-    <div className="w-[340px] h-screen overflow-y-auto no-scrollbar border border-[#E7E7F2] bg-white shadow-[0_20px_50px_rgba(30,27,60,0.10)] font-sans">
-      <div className="border-b border-[#E7E7F2] px-[22px] pb-[18px] pt-[22px]">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-lg border border-[#DDD6FE] bg-[#EDE9FE] text-[#6D28D9]">
-            <Icon name="workspace" className="h-[15px] w-[15px]" />
-          </div>
-          <div className="text-[15.5px] font-semibold tracking-wide text-[#1E1B3C]">
-            Let&apos;s Prenup
-          </div>
-        </div>
-        <div className="ml-10 mt-0.5 text-[11px] uppercase tracking-wider text-[#9494AA]">
-          Financial disclosure
-        </div>
+    <aside className="flex h-screen w-[315px] flex-shrink-0 flex-col bg-gradient-to-b from-[#1B1E52] via-[#15183F] to-[#101233] font-sans text-white shadow-[8px_0_30px_rgba(10,10,40,0.35)]">
+      <div className="flex items-center gap-2.5 px-5 pb-4 pt-6">
+        <LogoMark />
+        <span className="text-[18px] font-semibold tracking-tight text-white">
+          Let&apos;s Prenup
+        </span>
       </div>
 
-      <div className="px-3 pt-2.5">
-        <div className="mt-1">
-          <Link href="/dashboard" aria-current={isDashboardHome ? "page" : undefined}>
-            <div
-              className={`relative flex cursor-pointer items-center gap-2.5 rounded-[9px] px-2.5 py-[11px] hover:bg-[#F4F4FA] ${
-                isDashboardHome ? "bg-[#EDE9FE]" : ""
-              }`}
-            >
-              {isDashboardHome && (
-                <span className="absolute -left-[0px] top-2 bottom-2 w-0.5 rounded-full bg-[#6D28D9]" />
-              )}
-              <span className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[7px] bg-[#EDE9FE] text-[#6D28D9]">
-                <Icon name="person" className="h-3.5 w-3.5" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <div className="text-[13.5px] font-semibold text-[#1E1B3C]">
-                  Dashboard
-                </div>
-              </span>
-            </div>
-          </Link>
+      <nav className="flex-1 space-y-1 overflow-y-auto px-3 pb-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {/* Dashboard */}
+        <Link
+          href="/dashboard"
+          aria-current={isDashboardHome ? "page" : undefined}
+          className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-200 ${
+            isDashboardHome
+              ? "bg-[#2B2E6F] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+              : "hover:bg-white/[0.05]"
+          }`}
+        >
+          <Home
+            className={`h-[18px] w-[18px] ${
+              isDashboardHome ? "text-white" : "text-[#A9ACD6] group-hover:text-white"
+            }`}
+            strokeWidth={1.8}
+          />
+          <span
+            className={`text-[14px] font-medium ${
+              isDashboardHome ? "text-white" : "text-[#D6D8F2] group-hover:text-white"
+            }`}
+          >
+            Dashboard
+          </span>
+        </Link>
+
+        <div className="px-3 pb-1 pt-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6E71A3]">
+          Agreement steps
         </div>
 
-        {/* SECTION 1 — logged-in user's own information */}
-        <div className="mt-1">
-          <div
+        {/* 1 — My Questionnaire */}
+        <div>
+          <StepHeader
+            number={1}
+            icon={FileText}
+            title="My Questionnaire"
+            subtitle={
+              caseLocked ? lockedSubtitle : `${myDoneCount} of ${MY_LEAF_IDS.length} complete`
+            }
+            open={openSection === "section1"}
             onClick={() => toggleSection("section1")}
-            className="flex cursor-pointer items-center gap-2.5 rounded-[9px] px-2.5 py-[11px] hover:bg-[#F4F4FA]"
-          >
-            <span className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[7px] bg-[#EDE9FE] text-[#6D28D9]">
-              <Icon name="person" className="h-3.5 w-3.5" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5 text-[13.5px] font-semibold text-[#1E1B3C]">
-                My information
-                {!isPaymentDone && (
-                  <span className="rounded bg-[#FEF3C7] px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wide text-[#92400E]">
-                    Locked
-                  </span>
-                )}
-              </div>
-              <div className="mt-px text-[11px] text-[#9494AA]">
-                {completedCount} of {TOTAL_LEAVES} complete
-              </div>
-            </span>
-            <Chevron open={openSection === "section1"} />
-          </div>
-
-          {openSection === "section1" && (
-            <div className="ml-[23px] border-l border-[#E7E7F2] pl-4">
+            locked={caseLocked}
+            lockReason={LOCK_REASON}
+          />
+          <Collapse open={!caseLocked && openSection === "section1"}>
+            <Tree>
               {PERSONAL_LEAFS.map((leaf) => (
                 <Leaf
                   key={leaf.id}
                   {...leaf}
                   done={isLeafDone(leaf.id, myData)}
                   activeLeaf={activeLeaf}
-                  readOnly={isLocked(leaf.id)}
-                  lockReason={
-                    isLocked(leaf.id) ? "Complete payment to unlock" : undefined
-                  }
+                  locked={isLocked(leaf.id)}
+                  lockReason={leafLockReason}
                 />
               ))}
-
-              <div className="mt-0.5">
-                <div
-                  onClick={() => toggleSubgroup("myFinancial")}
-                  className="flex cursor-pointer items-center gap-2.5 rounded-[7px] px-[9px] py-2 hover:bg-[#F4F4FA]"
-                >
-                  <span className="flex-shrink-0 text-[#9494AA]">
-                    <Icon name="folder" className="h-3.5 w-3.5" />
-                  </span>
-                  <span className="flex-1 text-[13px] text-[#6B6B80]">
-                    Financial disclosure
-                  </span>
-                  <Chevron open={openSubgroup === "myFinancial"} />
-                </div>
-                {openSubgroup === "myFinancial" && (
-                  <div className="ml-[19px] border-l border-[#E7E7F2] pl-3.5">
-                    {FINANCIAL_LEAFS.map((leaf) => (
-                      <Leaf
-                        key={leaf.id}
-                        {...leaf}
-                        done={isLeafDone(leaf.id, myData)}
-                        activeLeaf={activeLeaf}
-                        readOnly={isLocked(leaf.id)}
-                        lockReason={
-                          isLocked(leaf.id)
-                            ? "Complete payment to unlock"
-                            : undefined
-                        }
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+              <SubGroup label="Financial Disclosure" done={myFinancialDone}>
+                {FINANCIAL_LEAFS.map((leaf) => (
+                  <Leaf
+                    key={leaf.id}
+                    {...leaf}
+                    nested
+                    done={isLeafDone(leaf.id, myData)}
+                    activeLeaf={activeLeaf}
+                    locked={isLocked(leaf.id)}
+                    lockReason={leafLockReason}
+                  />
+                ))}
+              </SubGroup>
+            </Tree>
+          </Collapse>
         </div>
 
-        <div className="mx-1 my-2.5 h-px bg-[#E7E7F2]" />
-
-        {/* SECTION 2 — the OTHER party's information, always read-only */}
-        <div className="mt-1">
-          <div
+        {/* 2 — Partner Questionnaire (read-only) */}
+        <div>
+          <StepHeader
+            number={2}
+            icon={Users}
+            title="Partner Questionnaire"
+            subtitle={caseLocked ? lockedSubtitle : "Shared by partner"}
+            badge={caseLocked ? "Locked" : "Read-only"}
+            open={openSection === "section2"}
             onClick={() => toggleSection("section2")}
-            className="flex cursor-pointer items-center gap-2.5 rounded-[9px] px-2.5 py-[11px] hover:bg-[#F4F4FA]"
-          >
-            <span className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[7px] bg-[#EDEDF5] text-[#5B5B75]">
-              <Icon name="person" className="h-3.5 w-3.5" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5 text-[13.5px] font-semibold text-[#1E1B3C]">
-                Partner&apos;s information
-                <span className="rounded bg-[#EDEDF5] px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wide text-[#5B5B75]">
-                  Read-only
-                </span>
-              </div>
-              <div className="mt-px text-[11px] text-[#9494AA]">
-                Shared by partner
-              </div>
-            </span>
-            <Chevron open={openSection === "section2"} />
-          </div>
-
-          {openSection === "section2" && (
-            <div className="ml-[23px] border-l border-[#E7E7F2] pl-4">
+            locked={caseLocked}
+            lockReason={LOCK_REASON}
+          />
+          <Collapse open={!caseLocked && openSection === "section2"}>
+            <Tree>
               {PERSONAL_LEAFS.map((leaf) => (
                 <Leaf
                   key={leaf.id}
                   {...leaf}
                   done={isLeafDone(leaf.id, partnerData)}
                   activeLeaf={activeLeaf}
-                  readOnly={isLocked(leaf.id)}
-                  lockReason={
-                    isLocked(leaf.id) ? "Complete payment to unlock" : undefined
-                  }
+                  locked={isLocked(leaf.id)}
+                  lockReason={leafLockReason}
                   isPartner
                 />
               ))}
-
-              <div className="mt-0.5">
-                <div
-                  onClick={() => toggleSubgroup("partnerFinancial")}
-                  className="flex cursor-pointer items-center gap-2.5 rounded-[7px] px-[9px] py-2 hover:bg-[#F4F4FA]"
-                >
-                  <span className="flex-shrink-0 text-[#9494AA]">
-                    <Icon name="folder" className="h-3.5 w-3.5" />
-                  </span>
-                  <span className="flex-1 text-[13px] text-[#6B6B80]">
-                    Financial disclosure
-                  </span>
-                  <Chevron open={openSubgroup === "partnerFinancial"} />
-                </div>
-                {openSubgroup === "partnerFinancial" && (
-                  <div className="ml-[19px] border-l border-[#E7E7F2] pl-3.5">
-                    {FINANCIAL_LEAFS.map((leaf) => (
-                      <Leaf
-                        key={leaf.id}
-                        {...leaf}
-                        done={isLeafDone(leaf.id, partnerData)}
-                        activeLeaf={activeLeaf}
-                        readOnly={isLocked(leaf.id)}
-                        lockReason={
-                          isLocked(leaf.id)
-                            ? "Complete payment to unlock"
-                            : undefined
-                        }
-                        isPartner
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+              <SubGroup label="Financial Disclosure" done={partnerFinancialDone}>
+                {FINANCIAL_LEAFS.map((leaf) => (
+                  <Leaf
+                    key={leaf.id}
+                    {...leaf}
+                    nested
+                    done={isLeafDone(leaf.id, partnerData)}
+                    activeLeaf={activeLeaf}
+                    locked={isLocked(leaf.id)}
+                    lockReason={leafLockReason}
+                    isPartner
+                  />
+                ))}
+              </SubGroup>
+            </Tree>
+          </Collapse>
         </div>
 
-        <div className="mx-1 my-2.5 h-px bg-[#E7E7F2]" />
-
-        {/* SECTION 3 — Joint information */}
-        <div className="mt-1">
-          <div
+        {/* 3 — Joint Questionnaire */}
+        <div>
+          <StepHeader
+            number={3}
+            icon={Database}
+            title="Joint Questionnaire"
+            subtitle={
+              caseLocked ? lockedSubtitle : `${jointDoneCount} of ${JOINT_LEAF_IDS.length} complete`
+            }
+            badge={caseLocked ? "Locked" : undefined}
+            open={openSection === "section3"}
             onClick={() => toggleSection("section3")}
-            className="flex cursor-pointer items-center gap-2.5 rounded-[9px] px-2.5 py-[11px] hover:bg-[#F4F4FA]"
-          >
-            <span className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[7px] bg-[#EDE9FE] text-[#6D28D9]">
-              <Icon name="joint" className="h-3.5 w-3.5" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <div className="text-[13.5px] font-semibold text-[#1E1B3C]">
-                Joint information
-              </div>
-              <div className="mt-px text-[11px] text-[#9494AA]">
-                Combined disclosure
-              </div>
-            </span>
-            <Chevron open={openSection === "section3"} />
-          </div>
-
-          {openSection === "section3" && (
-            <div className="ml-[23px] border-l border-[#E7E7F2] pl-4">
-              <div className="mt-0.5">
-                <div
-                  onClick={() => toggleSubgroup("jointFinancial")}
-                  className="flex cursor-pointer items-center gap-2.5 rounded-[7px] px-[9px] py-2 hover:bg-[#F4F4FA]"
-                >
-                  <span className="flex-shrink-0 text-[#9494AA]">
-                    <Icon name="folder" className="h-3.5 w-3.5" />
-                  </span>
-                  <span className="flex-1 text-[13px] text-[#6B6B80]">
-                    Joint financial disclosure
-                  </span>
-                  <Chevron open={openSubgroup === "jointFinancial"} />
-                </div>
-                {openSubgroup === "jointFinancial" && (
-                  <div className="ml-[19px] border-l border-[#E7E7F2] pl-3.5">
-                    {JOINT_ASSETS_LEAFS.map((leaf) => (
-                      <Leaf
-                        key={leaf.id}
-                        {...leaf}
-                        done={isLeafDone(leaf.id, jointInformation)}
-                        activeLeaf={activeLeaf}
-                        readOnly={isLocked(leaf.id)}
-                        lockReason={
-                          isLocked(leaf.id)
-                            ? "Complete payment to unlock"
-                            : undefined
-                        }
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="mx-1 my-2.5 h-px bg-[#E7E7F2]" />
-
-        {/* FINAL REVIEW & CONFIRMATION — Exhibit A/B/C/D flow */}
-        <div className="mt-1">
-          <Link href="/dashboard/final-review-confirmation">
-            <div
-              className={`relative flex cursor-pointer items-center gap-2.5 rounded-[9px] px-2.5 py-[11px] hover:bg-[#F4F4FA] ${
-                activeLeaf === "final-review-confirmation" || activeLeaf.startsWith("final-review-confirmation/")
-                  ? "bg-[#EDE9FE]"
-                  : ""
-              }`}
-            >
-              {(activeLeaf === "final-review-confirmation" || activeLeaf.startsWith("final-review-confirmation/")) && (
-                <span className="absolute -left-[0px] top-2 bottom-2 w-0.5 rounded-full bg-[#6D28D9]" />
-              )}
-              <span className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[7px] bg-[#EDE9FE] text-[#6D28D9]">
-                <Icon name="seal" className="h-3.5 w-3.5" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <div className="text-[13.5px] font-semibold text-[#1E1B3C]">
-                  Final Review & Confirmation
-                </div>
-                <div className="mt-px text-[11px] text-[#9494AA]">
-                  {Boolean(approval?.user1Approved && approval?.user2Approved)
-                    ? "Mutual confirmation complete"
-                    : Boolean(status?.jointInformation?.submitted || approval?.user1Approved)
-                    ? "Partner review in progress"
-                    : "Ready for review & confirmation"}
-                </div>
-              </span>
-              <StatusCheck
-                done={Boolean(approval?.user1Approved && approval?.user2Approved)}
+            locked={caseLocked}
+            lockReason={LOCK_REASON}
+          />
+          <Collapse open={!caseLocked && openSection === "section3"}>
+            <Tree>
+              <SubGroup label="Financial Disclosure" done={jointFinancialDone}>
+                {JOINT_FINANCIAL_LEAFS.map((leaf) => (
+                  <Leaf
+                    key={leaf.id}
+                    {...leaf}
+                    nested
+                    done={isLeafDone(leaf.id, jointInformation)}
+                    activeLeaf={activeLeaf}
+                    locked={isLocked(leaf.id)}
+                    lockReason={leafLockReason}
+                  />
+                ))}
+              </SubGroup>
+              <Leaf
+                {...MATRIMONIAL_LEAF}
+                done={isLeafDone(MATRIMONIAL_LEAF.id, jointInformation)}
+                activeLeaf={activeLeaf}
+                locked={isLocked(MATRIMONIAL_LEAF.id)}
+                lockReason={leafLockReason}
               />
-            </div>
-          </Link>
+            </Tree>
+          </Collapse>
         </div>
 
-        <div className="mx-1 my-2.5 h-px bg-[#E7E7F2]" />
+        {/* 4 — Final Review & Confirmation */}
+        <StepHeader
+          number={4}
+          icon={File}
+          title="Final Review & Confirmation"
+          subtitle={finalSubtitle}
+          href="/dashboard/final-review-confirmation"
+          active={isFinalReview}
+        />
 
-        {/* SECTION 4 — Independent Legal Advice */}
-        <div className="mt-1">
-          <div
+        {/* 5 — Independent Legal Advice */}
+        <div>
+          <StepHeader
+            number={5}
+            icon={PenLine}
+            title="Independent Legal Advice"
+            subtitle="Solicitor review & signing"
+            open={openSection === "section4"}
             onClick={() => toggleSection("section4")}
-            className="flex cursor-pointer items-center gap-2.5 rounded-[9px] px-2.5 py-[11px] hover:bg-[#F4F4FA]"
-          >
-            <span className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[7px] bg-[#EDE9FE] text-[#6D28D9]">
-              <Icon name="joint" className="h-3.5 w-3.5" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <div className="text-[13.5px] font-semibold text-[#1E1B3C]">
-                Independent Legal Advice
-              </div>
-              <div className="mt-px text-[11px] text-[#9494AA]">
-                Combined disclosure
-              </div>
-            </span>
-            <Chevron open={openSection === "section4"} />
-          </div>
-
-          {openSection === "section4" && (
-            <div className="ml-[23px] border-l border-[#E7E7F2] pl-4">
+          />
+          <Collapse open={openSection === "section4"}>
+            <Tree>
               <Leaf
                 id="solicitor-details"
-                icon="personalInfo"
+                icon={Briefcase}
                 label="Solicitor Details"
-                done={Boolean(status?.independentLegalAdvice?.submitted)}
+                done={ilaDone}
                 activeLeaf={activeLeaf}
+                locked
+                lockReason="Not available yet"
               />
               <Leaf
                 id="lawyer-questionaries"
-                icon="legal"
+                icon={ClipboardList}
                 label="Lawyer Questionnaire"
-                done={Boolean(status?.independentLegalAdvice?.submitted)}
+                done={ilaDone}
                 activeLeaf={activeLeaf}
               />
               <Leaf
                 id="review-and-sign"
-                icon="family"
+                icon={PenLine}
                 label="Review and Sign"
                 activeLeaf={activeLeaf}
+                locked
+                lockReason="Not available yet"
               />
-            </div>
-          )}
+            </Tree>
+          </Collapse>
         </div>
-      </div>
-    </div>
+      </nav>
+    </aside>
   );
 }

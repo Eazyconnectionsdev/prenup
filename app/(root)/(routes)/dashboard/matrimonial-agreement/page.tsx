@@ -114,7 +114,7 @@ export default function MatrimonialAgreementPage() {
       // Post to questionnaire endpoint for matrimonial agreement
       await Axios.post(`/cases/${caseId}/questionnaire/matrimonial-agreement`, formData);
       await dispatch(getCasesDetails(caseId));
-      toast.success("Matrimonial agreement intentions saved.");
+      toast.success("Saved. Review everything, then send the approval request to your partner.");
       router.push("/dashboard/final-review-confirmation");
     } catch (error) {
       // If endpoint is not created on backend, also save via generic step
@@ -123,7 +123,7 @@ export default function MatrimonialAgreementPage() {
           matrimonialAgreement: formData,
         });
         await dispatch(getCasesDetails(caseId));
-        toast.success("Matrimonial agreement intentions saved.");
+        toast.success("Saved. Review everything, then send the approval request to your partner.");
         router.push("/dashboard/final-review-confirmation");
       } catch (innerErr) {
         toast.error(getErrorMessage(error, "Failed to save matrimonial agreement intentions."));

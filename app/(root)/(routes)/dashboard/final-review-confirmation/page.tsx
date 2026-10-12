@@ -10,6 +10,7 @@ import { AppDispatch, RootState } from "@/store/store";
 import { getCasesDetails } from "@/store/asyncThunk/casesThunk";
 import { updateApproval, updateJointInformationStatus } from "@/store/slices/casesSlice";
 import { getErrorMessage } from "@/lib/api/http-error";
+import { useJointSectionStatus } from "@/hooks/useJointSectionStatus";
 
 export default function FinalReviewConfirmationPage() {
   const router = useRouter();
@@ -21,6 +22,17 @@ export default function FinalReviewConfirmationPage() {
 
   const isUser1 = user?.endUserType === "user1";
   const isUser2 = user?.endUserType === "user2";
+
+  // Whose turn it is to edit / review the joint section
+  const {
+    myId,
+    isOwner,
+    canEdit,
+    isMyTurnToApprove,
+    iAmWaitingForReview,
+    partnerDisapproved,
+    isWaitingOnPartner,
+  } = useJointSectionStatus();
 
   // Section data from Redux
   const myData = isUser1 ? cases.myInformation : cases.partnerInformation;
@@ -39,6 +51,10 @@ export default function FinalReviewConfirmationPage() {
   // Loading and action state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
+  const [showDisapproveModal, setShowDisapproveModal] = useState(false);
+  const [disapproveReason, setDisapproveReason] = useState("");
+  const [isDisapproving, setIsDisapproving] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Local state tracking P2 editing mode if they clicked "Make Changes"
   const [p2MadeChanges, setP2MadeChanges] = useState(false);
@@ -56,30 +72,63 @@ export default function FinalReviewConfirmationPage() {
   const hasData = (obj?: Record<string, unknown>) =>
     Boolean(obj && Object.keys(obj).length > 0);
 
-  const isP1Complete =
-    hasData(cases?.myInformation?.personalInformation as any) ||
-    hasData(cases?.myInformation?.individualAssets as any);
-
-  const isP2Complete =
-    hasData(cases?.partnerInformation?.personalInformation as any) ||
-    hasData(cases?.partnerInformation?.individualAssets as any);
-
+  // Every joint form has to be filled in before an approval request can be sent
   const isJointComplete =
-    hasData((cases?.jointInformation as any)?.jointAssets) ||
+    hasData((cases?.jointInformation as any)?.jointAssets) &&
+    hasData((cases?.jointInformation as any)?.jointIncomeAndRevenue) &&
     hasData((cases?.jointInformation as any)?.jointLiabilitiesAndDebts);
 
-  const isMatrimonialComplete =
-    hasData(matrimonialData) || isJointComplete;
+  const isMatrimonialComplete = hasData(matrimonialData);
 
   const isUser1Approved = Boolean(cases?.approval?.user1Approved);
   const isUser2Approved = Boolean(cases?.approval?.user2Approved);
-  const isJointSubmitted = Boolean(cases?.status?.jointInformation?.submitted);
 
-  // P1 is considered submitted if user1Approved is true or jointInformation is submitted, or just submitted locally
-  const isP1Submitted = isUser1Approved || isJointSubmitted || justSubmittedByP1;
   const isMutualApproved = isUser1Approved && isUser2Approved;
 
+  // The approval request has gone out and the partner owes a review
+  const isWaitingForPartnerReview = iAmWaitingForReview || justSubmittedByP1;
+
+  // Only the partner holding the pen can send the request, and only once
+  // every joint form is filled in
+  const canSendForReview =
+    canEdit && isJointComplete && isMatrimonialComplete && !isWaitingForPartnerReview;
+
   // Handlers
+  // Clicking "Make Changes" while the partner is waiting on your review is a
+  // disapproval: it hands editing control back and clears both approvals.
+  const handleDisapprove = async () => {
+    if (!caseId) return;
+    setIsDisapproving(true);
+    setActionError(null);
+    try {
+      await Axios.post(`/cases/${caseId}/reject`, { reason: disapproveReason });
+
+      dispatch(
+        updateJointInformationStatus({ submitted: false, submittedBy: myId ?? null }),
+      );
+      dispatch(
+        updateApproval({
+          user1Approved: false,
+          user2Approved: false,
+          disapprovedBy: myId ?? null,
+          disapprovalReason: disapproveReason || null,
+        } as any),
+      );
+      await dispatch(getCasesDetails(caseId));
+
+      setShowDisapproveModal(false);
+      setDisapproveReason("");
+      toast.success("Sent back for changes. You can now edit the information.");
+      router.push("/dashboard/personal-info");
+    } catch (err) {
+      setActionError(
+        getErrorMessage(err, "Couldn't send this back right now. Please try again."),
+      );
+    } finally {
+      setIsDisapproving(false);
+    }
+  };
+
   const handleP1MakeChanges = () => {
     router.push("/dashboard/personal-info");
   };
@@ -89,30 +138,45 @@ export default function FinalReviewConfirmationPage() {
     router.push("/dashboard/personal-info");
   };
 
+  // Filling in the forms only saves them. This is the explicit "send the
+  // approval request", and it is what puts the case in front of the partner.
   const handleConfirmSubmitForPartnerReview = async () => {
     setIsSubmitting(true);
+    setActionError(null);
     try {
-      if (caseId) {
-        // Record user 1 approval / submission
-        await Axios.post(`/cases/${caseId}/approve`);
-        dispatch(updateApproval({ user1Approved: true }));
-        dispatch(
-          updateJointInformationStatus({
-            submitted: true,
-            submittedBy: user?._id ?? null,
-          }),
-        );
-        await dispatch(getCasesDetails(caseId));
+      if (!caseId) return;
+
+      if (!matrimonialData || Object.keys(matrimonialData).length === 0) {
+        setShowExhibitBModal(false);
+        toast.info("Please complete the Matrimonial Agreement form first.");
+        router.push("/dashboard/matrimonial-agreement");
+        return;
       }
+
+      await Axios.post(`/cases/${caseId}/joint-information/submit`);
+
+      dispatch(
+        updateJointInformationStatus({
+          submitted: true,
+          submittedBy: myId ?? null,
+        }),
+      );
+      dispatch(
+        updateApproval(
+          isOwner
+            ? { user1Approved: true, user2Approved: false }
+            : { user2Approved: true, user1Approved: false },
+        ),
+      );
+      await dispatch(getCasesDetails(caseId));
       setJustSubmittedByP1(true);
       setShowExhibitBModal(false);
-      toast.success("Submitted for partner review.");
+      toast.success("Approval request sent to your partner.");
     } catch (err) {
-      // If endpoint fails or mock mode, still progress locally
-      dispatch(updateApproval({ user1Approved: true }));
-      setJustSubmittedByP1(true);
       setShowExhibitBModal(false);
-      toast.success("Submitted for partner review.");
+      setActionError(
+        getErrorMessage(err, "Couldn't send the approval request right now. Please try again."),
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -147,9 +211,13 @@ export default function FinalReviewConfirmationPage() {
     setOpenSection((prev) => (prev === id ? null : id));
   };
 
-  // Helper formatting for timestamps
-  const formattedTime = cases?.approval?.user1ApprovedAt
-    ? new Date(cases.approval.user1ApprovedAt).toLocaleDateString("en-GB", {
+  // Helper formatting for timestamps — when the approval request went out
+  const sentAt =
+    (cases?.status?.jointInformation as any)?.submittedAt ||
+    (isOwner ? cases?.approval?.user1ApprovedAt : cases?.approval?.user2ApprovedAt);
+
+  const formattedTime = sentAt
+    ? new Date(sentAt).toLocaleDateString("en-GB", {
         day: "numeric",
         month: "short",
         year: "numeric",
@@ -256,9 +324,64 @@ export default function FinalReviewConfirmationPage() {
   }
 
   // ----------------------------------------------------
-  // CASE 2: P1 SUBMITTED AND WAITING (EXHIBIT C)
+  // PARTNER SENT IT BACK: they hold the pen until they resubmit
   // ----------------------------------------------------
-  if (isUser1 && isP1Submitted) {
+  if (partnerDisapproved && isWaitingOnPartner) {
+    const reason = cases?.approval?.disapprovalReason;
+    return (
+      <div className="min-h-screen bg-[#F8F9FC] px-4 py-8 md:px-8">
+        <div className="mx-auto max-w-4xl space-y-6">
+          <div className="flex items-start gap-4 rounded-2xl border border-[#FDE68A] bg-[#FEF9C3]/70 p-5 shadow-sm md:p-6">
+            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[#F59E0B]/15 text-[#B45309]">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-6 w-6">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M16.732 3.732a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-[#1E1B3C]">
+                Your partner sent the review back
+              </h2>
+              <p className="mt-1 text-sm leading-relaxed text-[#6B6B80]">
+                They did not approve the information and are making changes now. You
+                will be asked to review and approve once they resubmit.
+              </p>
+            </div>
+          </div>
+
+          {reason && (
+            <div className="rounded-2xl border border-[#E7E7F2] bg-white p-5 shadow-sm md:p-6">
+              <h3 className="text-sm font-bold text-[#1E1B3C]">
+                What they asked to change
+              </h3>
+              <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-[#6B6B80]">
+                {reason}
+              </p>
+            </div>
+          )}
+
+          <div className="rounded-2xl border border-[#E7E7F2] bg-white p-5 shadow-sm md:p-6">
+            <p className="text-sm text-[#6B6B80]">
+              You cannot edit the joint information while your partner has it. Check
+              back shortly, or review the rest of your details in the meantime.
+            </p>
+            <Link
+              href="/dashboard"
+              className="mt-4 inline-block rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white hover:bg-primary/90"
+            >
+              Return to Dashboard
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ----------------------------------------------------
+  // CASE 2: APPROVAL REQUEST SENT AND WAITING (EXHIBIT C)
+  // ----------------------------------------------------
+  // Only the person who sent the request waits here — and only once they have
+  // actually sent it. Filling in the last form no longer gets you this screen.
+  if (isWaitingForPartnerReview && !isMyTurnToApprove) {
     return (
       <div className="min-h-screen bg-[#F8F9FC] px-4 py-8 md:px-8">
         <div className="mx-auto max-w-4xl space-y-6">
@@ -728,25 +851,39 @@ export default function FinalReviewConfirmationPage() {
           </div>
           <div>
             <h3 className="text-sm font-bold text-[#1E3A8A]">
-              {isUser1
-                ? "Ready to submit for your partner's review?"
-                : "Partner review and approval required"}
+              {isMyTurnToApprove
+                ? "Partner review and approval required"
+                : "Ready to ask your partner to approve?"}
             </h3>
             <p className="mt-1 text-xs leading-relaxed text-[#2563EB] md:text-sm">
-              {isUser1
-                ? "Once you submit, your complete information will be made available to your partner for their review. They can approve the information or make changes. If they make changes, you will be able to review and approve those changes before the final confirmation."
-                : "Please review all 4 sections carefully. You can approve the package as presented, or click Make Changes to adjust your questionnaire before sending back for mutual review."}
+              {isMyTurnToApprove
+                ? "Please review all 4 sections carefully. You can approve the package as presented, or click Make Changes to adjust your questionnaire before sending back for mutual review."
+                : "Nothing has been sent to your partner yet. When you send the approval request, your complete information is made available to them for review. They can approve it or make changes — and if they make changes, you will review and approve those before the final confirmation."}
             </p>
           </div>
         </div>
 
+        {actionError && (
+          <p className="mb-3 text-sm font-medium text-red-500">{actionError}</p>
+        )}
+        {iAmWaitingForReview && (
+          <p className="mb-3 text-sm font-medium text-[#2563EB]">
+            Waiting for your partner to review and approve.
+          </p>
+        )}
         {/* Action Buttons Section matching Exhibit A */}
         <div className="grid gap-4 sm:grid-cols-2 pt-2">
           {/* Left Action Button: Make Changes / Continue Editing */}
           <div>
             <button
               type="button"
-              onClick={isUser1 ? handleP1MakeChanges : handleP2MakeChanges}
+              onClick={
+                isMyTurnToApprove
+                  ? () => setShowDisapproveModal(true)
+                  : isUser1
+                    ? handleP1MakeChanges
+                    : handleP2MakeChanges
+              }
               className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-[#FCA5A5] bg-white py-3.5 text-sm font-bold text-[#EF4444] transition hover:bg-[#FEF2F2]"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
@@ -754,46 +891,11 @@ export default function FinalReviewConfirmationPage() {
               </svg>
               <span>{p2MadeChanges ? "Continue Editing" : "Make Changes"}</span>
             </button>
-            <p className="mt-1.5 text-center text-xs text-[#8A8AA0]">
-              Go back to the relevant sections to make changes.
-            </p>
+            
           </div>
 
-          {/* Right Action Button: Submit for Partner Review (P1) OR Approve (P2) */}
           <div>
-            {isUser1 ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setShowExhibitBModal(true)}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#16A34A] py-3.5 text-sm font-bold text-white shadow-lg shadow-[#16A34A]/25 transition hover:bg-[#15803D]"
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 10l18-7-7 18-3-7-8-4z" />
-                  </svg>
-                  <span>Submit for Partner Review</span>
-                </button>
-                <p className="mt-1.5 text-center text-xs text-[#8A8AA0]">
-                  Send your complete information to your partner for review.
-                </p>
-              </>
-            ) : p2MadeChanges ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setShowExhibitBModal(true)}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#16A34A] py-3.5 text-sm font-bold text-white shadow-lg shadow-[#16A34A]/25 transition hover:bg-[#15803D]"
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 10l18-7-7 18-3-7-8-4z" />
-                  </svg>
-                  <span>Send for Partner Review</span>
-                </button>
-                <p className="mt-1.5 text-center text-xs text-[#8A8AA0]">
-                  Send your updated information to your partner for review.
-                </p>
-              </>
-            ) : (
+            {isMyTurnToApprove ? (
               <>
                 <button
                   type="button"
@@ -805,22 +907,48 @@ export default function FinalReviewConfirmationPage() {
                   </svg>
                   <span>Approve</span>
                 </button>
-                <p className="mt-1.5 text-center text-xs text-[#8A8AA0]">
-                  Confirm and approve the complete information.
-                </p>
+                
+              </>
+            ) : canSendForReview ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setShowExhibitBModal(true)}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#16A34A] py-3.5 text-sm font-bold text-white shadow-lg shadow-[#16A34A]/25 transition hover:bg-[#15803D]"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 10l18-7-7 18-3-7-8-4z" />
+                  </svg>
+                  <span>
+                    {partnerDisapproved
+                      ? "Resend Approval Request"
+                      : "Send Approval Request"}
+                  </span>
+                </button>
+                
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  disabled
+                  className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl bg-[#E7E7F2] py-3.5 text-sm font-bold text-[#9494AA]"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 10l18-7-7 18-3-7-8-4z" />
+                  </svg>
+                  <span>Send Approval Request</span>
+                </button>
+                
               </>
             )}
           </div>
         </div>
       </div>
 
-      {/* ---------------------------------------------------- */}
-      {/* EXHIBIT B MODAL: Ready to send to your partner for review? */}
-      {/* ---------------------------------------------------- */}
       {showExhibitBModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
           <div className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl md:p-8">
-            {/* Close button */}
             <button
               type="button"
               onClick={() => setShowExhibitBModal(false)}
@@ -831,7 +959,6 @@ export default function FinalReviewConfirmationPage() {
               </svg>
             </button>
 
-            {/* Modal Icon: Paper airplane */}
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#EFF6FF] text-[#3B82F6]">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-7 w-7">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 10l18-7-7 18-3-7-8-4z" />
@@ -845,7 +972,6 @@ export default function FinalReviewConfirmationPage() {
               Before you continue:
             </div>
 
-            {/* 4 Numbered Steps matching Exhibit B */}
             <div className="mt-5 space-y-3">
               {[
                 "Please make sure all the information you have provided is complete and accurate.",
@@ -862,7 +988,6 @@ export default function FinalReviewConfirmationPage() {
               ))}
             </div>
 
-            {/* Green Callout Box matching Exhibit B */}
             <div className="mt-5 flex items-center gap-3 rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] p-3.5 text-xs text-[#166534]">
               <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-[#DCFCE7] text-[#16A34A]">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
@@ -875,7 +1000,6 @@ export default function FinalReviewConfirmationPage() {
               </span>
             </div>
 
-            {/* Modal Actions */}
             <div className="mt-6 flex items-center justify-between gap-3">
               <button
                 type="button"
@@ -893,16 +1017,14 @@ export default function FinalReviewConfirmationPage() {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 10l18-7-7 18-3-7-8-4z" />
                 </svg>
-                <span>{isSubmitting ? "Submitting..." : "Submit for Partner Review"}</span>
+                <span>{isSubmitting ? "Sending..." : "Send Approval Request"}</span>
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ---------------------------------------------------- */}
-      {/* EXHIBIT D MODAL: Approve the complete information? */}
-      {/* ---------------------------------------------------- */}
+
       {showExhibitDModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
           <div className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl md:p-8">
@@ -991,6 +1113,53 @@ export default function FinalReviewConfirmationPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
                 <span>{isApproving ? "Approving..." : "Approve"}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDisapproveModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+          <div className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl md:p-8">
+            <h3 className="text-lg font-bold text-[#1E1B3C]">
+              Send back for changes?
+            </h3>
+            <p className="mt-2 text-sm leading-relaxed text-[#6B6B80]">
+              Both approvals will be cleared and editing moves to you. Your partner will
+              be asked to review again once you resubmit.
+            </p>
+
+            <label className="mt-5 block text-xs font-bold text-[#1E1B3C]">
+              What needs changing?
+            </label>
+            <textarea
+              value={disapproveReason}
+              onChange={(e) => setDisapproveReason(e.target.value)}
+              rows={4}
+              placeholder="Let your partner know which details are wrong or missing."
+              className="mt-2 w-full rounded-xl border border-[#D1D1DC] p-3 text-sm text-[#1E1B3C] outline-none focus:border-[#6a69ff]"
+            />
+
+            {actionError && (
+              <p className="mt-3 text-sm font-medium text-red-500">{actionError}</p>
+            )}
+
+            <div className="mt-6 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => setShowDisapproveModal(false)}
+                className="w-1/2 rounded-xl border border-[#D1D1DC] bg-white py-3 text-xs font-bold text-[#6B6B80] transition hover:bg-slate-50"
+              >
+                Go Back
+              </button>
+              <button
+                type="button"
+                disabled={!disapproveReason.trim() || isDisapproving}
+                onClick={handleDisapprove}
+                className="w-1/2 rounded-xl bg-[#EF4444] py-3 text-xs font-bold text-white shadow-md transition hover:bg-[#DC2626] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isDisapproving ? "Sending..." : "Send Back for Changes"}
               </button>
             </div>
           </div>

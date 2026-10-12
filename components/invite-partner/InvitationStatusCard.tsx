@@ -139,7 +139,6 @@ export const InvitationStatusCard: React.FC<InvitationStatusCardProps> = ({
             )}
           </div>
 
-          {/* Pure White Action Buttons with Warm Gold Hover (Matching Screenshot 100%) */}
 
           {!accepted && !partnerData.acceptedAt && (
             <div className="grid grid-cols-2 gap-3">
