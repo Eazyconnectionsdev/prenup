@@ -20,6 +20,7 @@ const initialState: CasesState = {
   approval: null,
   fullyLocked: false,
   workflowStatus: "DRAFT",
+  agreementType: null,
   myInformation: {},
   partnerInformation: {},
   jointInformation: {},
@@ -33,6 +34,11 @@ const CasesSlice = createSlice({
       if (state.approval) {
         state.approval = { ...state.approval, ...action.payload };
       }
+    },
+    // Set right after the service selector saves, so the dashboard status
+    // updates without waiting for the case to be refetched.
+    setAgreementType(state, action: PayloadAction<string | null>) {
+      state.agreementType = action.payload;
     },
     updateJointInformationStatus(state, action: PayloadAction<Partial<SectionStatus>>) {
       state.status = {
@@ -63,6 +69,7 @@ const CasesSlice = createSlice({
           state.approval = payload.approval;
           state.fullyLocked = payload.fullyLocked;
           state.workflowStatus = payload.workflowStatus;
+          state.agreementType = payload.agreementType ?? null;
           state.myInformation = payload.myInformation ?? {};
           state.partnerInformation = payload.partnerInformation ?? {};
           state.jointInformation = payload.jointInformation ?? {};
@@ -76,5 +83,6 @@ const CasesSlice = createSlice({
   },
 });
 
-export const { updateApproval, updateJointInformationStatus } = CasesSlice.actions;
+export const { updateApproval, setAgreementType, updateJointInformationStatus } =
+  CasesSlice.actions;
 export default CasesSlice.reducer;

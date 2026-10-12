@@ -96,6 +96,8 @@ export interface CaseDetails {
   fullyLockedBy: string | null;
   fullyLockedAt: string | null;
   workflowStatus: string;
+  // The service picked in onboarding / the service selector
+  agreementType: string | null;
   assignedCaseManager: string | null;
   createdAt: string;
   updatedAt: string;
@@ -116,6 +118,7 @@ export interface CasesState {
   approval: CaseApproval | null;
   fullyLocked: boolean;
   workflowStatus: string;
+  agreementType: string | null;
   myInformation: InformationSection;
   partnerInformation: InformationSection;
   jointInformation : JointInformationSection;

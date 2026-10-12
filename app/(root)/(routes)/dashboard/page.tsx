@@ -6,6 +6,12 @@ import { useRouter } from "next/navigation";
 import { RootState } from "@/store/store";
 import { calculateOverallProgress } from "@/lib/progressCalculator";
 import type { StepConfig, StepId } from "@/types/dashboard/dashboard-home";
+import { useJointSectionStatus } from "@/hooks/useJointSectionStatus";
+import { ServiceStatus } from "@/components/ServiceStatus";
+import {
+  agreementTypeLabel,
+  agreementTypeShortLabel,
+} from "@/lib/agreementTypes";
 
 const steps: StepConfig[] = [
   {
@@ -239,46 +245,42 @@ export default function PrenupDashboard() {
     QUESTIONNAIRE_KEYS,
   );
 
-  // Full questionnaire (both sides)
   const isQuestionnaireComplete = isMyQuestComplete && isPartnerQuestComplete;
 
-  // ── Disclosure completion ────────────────────────────────────────────────────
   const isDisclosureComplete =
     hasAllKeys(cases?.myInformation, DISCLOSURE_KEYS) &&
     hasAllKeys(cases?.partnerInformation, DISCLOSURE_KEYS);
 
-  // ── Joint completion ─────────────────────────────────────────────────────────
   const isJointComplete =
     Boolean((cases?.jointInformation as any)?.jointAssets) ||
     Boolean((cases?.jointInformation as any)?.jointLiabilitiesAndDebts);
 
-  // ── All 4 sections done ──────────────────────────────────────────────────────
   const areAll4SectionsComplete =
     isQuestionnaireComplete && isDisclosureComplete && isJointComplete;
 
-  // ── Approval / final review states ──────────────────────────────────────────
   const isJointSubmitted = Boolean(
     (cases as any)?.status?.jointInformation?.submitted,
   );
-  // P1 "sent for review" = user1 approved OR joint submitted
   const isP1SentForReview =
     Boolean((cases as any)?.approval?.user1Approved) || isJointSubmitted;
+  const {
+    isMyTurnToApprove,
+    iAmWaitingForReview,
+    partnerDisapproved,
+    isWaitingOnPartner,
+  } = useJointSectionStatus();
   const isMutualApproved = Boolean(
     (cases as any)?.approval?.user1Approved &&
       (cases as any)?.approval?.user2Approved,
   );
 
-  // ── Progress ─────────────────────────────────────────────────────────────────
   const progressResult = calculateOverallProgress({
     myInformation: cases.myInformation,
     partnerInformation: cases.partnerInformation,
     jointInformation: cases.jointInformation,
   });
 
-  // ── Local popup state ────────────────────────────────────────────────────────
   const [activePopup, setActivePopup] = useState<PopupId | null>(null);
-
-  // ── Completed set ─────────────────────────────────────────────────────────
   const [completed] = useState<Set<StepId>>(new Set());
 
   const effectiveCompleted = useMemo(() => {
@@ -298,13 +300,10 @@ export default function PrenupDashboard() {
     isMutualApproved,
   ]);
 
-  // Visible steps: hide "invite" entirely for P2, and hide it after P2 has completed questionnaire (P2 joined + partner quest done)
   const visibleSteps = useMemo(() => {
     return steps.filter((s) => {
       if (s.id === "invite") {
-        // P2 never sees invite step
         if (isUser2) return false;
-        // P1: hide invite once P2 has completed their questionnaire
         if (isPartnerQuestComplete) return false;
       }
       return true;
@@ -317,14 +316,11 @@ export default function PrenupDashboard() {
   const currentIndex = activeIndex === -1 ? visibleSteps.length : activeIndex;
   const allStepsDone = visibleSteps.every((s) => effectiveCompleted.has(s.id));
 
-  // ── Step button renderer ───────────────────────────────────────────────────
   function renderStepButton(step: StepConfig) {
     const isDone = effectiveCompleted.has(step.id);
 
-    // ── INVITE ──────────────────────────────────────────────────────────────
     if (step.id === "invite") {
       if (hasP2Joined) {
-        // Green disabled "Joined"
         return (
           <button
             disabled
@@ -335,7 +331,6 @@ export default function PrenupDashboard() {
         );
       }
       if (isPartnerInvited) {
-        // Green "Resend Invitation"
         return (
           <button
             onClick={() => setActivePopup("invite-resend")}
@@ -345,7 +340,6 @@ export default function PrenupDashboard() {
           </button>
         );
       }
-      // Default: blue "Invite fiancé"
       return (
         <button
           onClick={() => router.push("/dashboard/invite-partner")}
@@ -356,10 +350,8 @@ export default function PrenupDashboard() {
       );
     }
 
-    // ── QUESTIONNAIRE (my own) ─────────────────────────────────────────────
     if (step.id === "questionnaire") {
       if (isDone) {
-        // Green "Completed" — still navigates to questionnaire
         return (
           <button
             onClick={() => router.push("/dashboard/personal-info")}
@@ -369,7 +361,6 @@ export default function PrenupDashboard() {
           </button>
         );
       }
-      // Blue "Select Terms"
       return (
         <button
           onClick={() => router.push("/dashboard/personal-info")}
@@ -380,7 +371,7 @@ export default function PrenupDashboard() {
       );
     }
 
-    // ── PARTNER QUESTIONNAIRE — always grey, always readonly ───────────────
+
     if (step.id === "partner_questionnaire") {
       return (
         <button
@@ -392,10 +383,8 @@ export default function PrenupDashboard() {
       );
     }
 
-    // ── JOINT QUESTIONNAIRE ────────────────────────────────────────────────
     if (step.id === "joint_questionnaire") {
       if (isDone) {
-        // P1 completed → P2 reviewing popup / P2 waiting popup
         if (isUser1) {
           return (
             <button
@@ -406,7 +395,6 @@ export default function PrenupDashboard() {
             </button>
           );
         }
-        // P2
         return (
           <button
             onClick={() => setActivePopup("p2-wait-for-partner")}
@@ -416,9 +404,7 @@ export default function PrenupDashboard() {
           </button>
         );
       }
-      // Not done
       if (isUser2) {
-        // P2 initial → Blue "Select Terms" → popup
         return (
           <button
             onClick={() => setActivePopup("p2-joint-initial")}
@@ -428,7 +414,6 @@ export default function PrenupDashboard() {
           </button>
         );
       }
-      // P1 initial → Blue "Select Terms" → navigate
       return (
         <button
           onClick={() => router.push("/dashboard/joint-assets")}
@@ -439,9 +424,7 @@ export default function PrenupDashboard() {
       );
     }
 
-    // ── FINAL REVIEW ───────────────────────────────────────────────────────
     if (step.id === "final_review") {
-      // Both approved = done
       if (isMutualApproved) {
         return (
           <button
@@ -453,13 +436,19 @@ export default function PrenupDashboard() {
         );
       }
 
-      // "Waiting for Partner Review" state
-      // P1: they submitted → waiting for P2
-      // P2: P1 sent for review → waiting
-      const p1IsWaiting =
-        isUser1 && isP1SentForReview && !isMutualApproved;
-      const p2IsWaiting =
-        isUser2 && isP1SentForReview && !isMutualApproved;
+      if (partnerDisapproved && isWaitingOnPartner) {
+        return (
+          <button
+            onClick={() => router.push("/dashboard/final-review-confirmation")}
+            className="ml-4 flex-shrink-0 rounded-lg bg-amber-100 px-4 py-2 text-xs font-semibold text-amber-700 hover:bg-amber-200"
+          >
+            Partner Making Changes
+          </button>
+        );
+      }
+
+      const p1IsWaiting = iAmWaitingForReview && !isMutualApproved;
+      const p2IsWaiting = false;
 
       if (p1IsWaiting || p2IsWaiting) {
         return (
@@ -472,12 +461,9 @@ export default function PrenupDashboard() {
         );
       }
 
-      // Determine if button should be enabled
-      // P1: enabled when all 4 sections complete (P2 also done their questionnaire)
-      // P2: enabled when P1 has sent for review
       const p1CanReview = isUser1 && areAll4SectionsComplete;
       const p2CanReview = isUser2 && isP1SentForReview;
-      const canReview = p1CanReview || p2CanReview;
+      const canReview = isMyTurnToApprove || p1CanReview || p2CanReview;
 
       if (canReview) {
         return (
@@ -490,7 +476,6 @@ export default function PrenupDashboard() {
         );
       }
 
-      // Disabled blue
       return (
         <button
           disabled
@@ -507,7 +492,6 @@ export default function PrenupDashboard() {
   return (
     <div className=" h-full bg-[#F6F6FB]">
       <div className="mx-auto max-w-5xl px-8 py-8">
-        {/* Welcome row */}
         <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
           <div>
             <h1 className="text-2xl font-semibold text-[#1E1B3C]">
@@ -520,7 +504,6 @@ export default function PrenupDashboard() {
             </p>
           </div>
           <div className="flex gap-3">
-            <ProgressPill label="Selected service" value="Prenup (Marriage)" />
             <div className="rounded-xl border border-[#E7E7F2] bg-white px-4 py-2.5">
               <div className="text-[10px] font-semibold uppercase tracking-wide text-[#9494AA]">
                 Overall progress
@@ -537,10 +520,14 @@ export default function PrenupDashboard() {
                 </div>
               </div>
             </div>
+            <ServiceStatus
+              service={agreementTypeShortLabel(cases?.agreementType)}
+              serviceTitle={agreementTypeLabel(cases?.agreementType)}
+            />
+
           </div>
         </div>
 
-        {/* Step section */}
         {!allStepsDone && (
           <div className="mt-8 rounded-2xl border border-[#E7E7F2] bg-white p-6">
             <p className="text-sm text-[#6B6B80]">

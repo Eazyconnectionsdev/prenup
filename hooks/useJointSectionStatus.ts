@@ -19,11 +19,14 @@ export function useJointSectionStatus() {
   const disapprovedById = cases.approval?.disapprovedBy ? String(cases.approval.disapprovedBy) : null;
 
   const locked = !!status?.locked;
-  // Older cases may have `submitted` set by the first joint form only
+  // Review starts only when the partner holding the pen sends the approval
+  // request from the Final Review page (never from saving a form)
   const reviewPending =
     !locked &&
     !!status?.submitted &&
-    hasData((cases.jointInformation as Record<string, unknown>)?.jointLiabilitiesAndDebts);
+    (hasData((cases.jointInformation as Record<string, unknown>)?.matrimonialAgreement) ||
+      // cases created before the matrimonial agreement form existed
+      hasData((cases.jointInformation as Record<string, unknown>)?.jointLiabilitiesAndDebts));
 
   // Owner edits first; after a disapproval the disapproving partner edits next
   const isMyTurn = submittedById === null ? isOwner : submittedById === myId;

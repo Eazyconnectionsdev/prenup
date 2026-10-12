@@ -117,7 +117,6 @@ export const PartnerDetailsForm: React.FC<PartnerDetailsFormProps> = ({
               autoComplete="off"
               value={confirmEmail}
               onChange={(e) => setConfirmInput(e.target.value)}
-              onPaste={(e) => e.preventDefault()}
               placeholder="Confirm your Partner's email"
               className={inputClass}
             />
