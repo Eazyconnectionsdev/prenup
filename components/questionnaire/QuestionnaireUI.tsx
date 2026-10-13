@@ -1,7 +1,9 @@
 "use client";
 
 import React, { ReactNode } from "react";
-import { Loader2 } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { Treatment, TreatmentFields, YesNo } from "@/types/forms/form-primitives";
 import type { CheckCardProps, FormShellProps, MatrixBoxProps, RadioCardProps, TreatmentSelectProps, ValueWithUnsureProps, YesNoToggleProps } from "@/types/questionnaire/questionnaire-ui";
 
@@ -23,29 +25,35 @@ export const inputClasses =
 
 export const textareaClasses = `${inputClasses} min-h-[70px] resize-y disabled:resize-none`;
 
+// Same textarea, sitting inside a tinted card so it needs to stay white
+export const cardTextareaClasses = cn(textareaClasses, "bg-white");
+
 /* ---------------------------------------------------------------------- */
 /* Page layout                                                             */
 /* ---------------------------------------------------------------------- */
 
-export function FormShell({ title, description, stepLabel, readOnly, children }: FormShellProps) {
+export function FormShell({ title, description, stepLabel, readOnly, icon, children }: FormShellProps) {
   return (
     <div className="min-h-full bg-slate-100 px-4 py-8 sm:px-6 sm:py-10">
       <div className="mx-auto max-w-4xl rounded-2xl border border-[#E7E7F2] bg-white p-6 shadow-[0_10px_25px_-5px_rgba(15,23,42,0.08)] sm:p-10">
-        <div className="mb-8 border-b border-slate-100 pb-6">
-          <div className="mb-2 flex flex-wrap items-center gap-2">
-            {stepLabel && (
-              <span className="rounded-full bg-[#EDE9FE] px-2.5 py-0.5 text-xs font-semibold text-[#6D28D9]">
-                {stepLabel}
-              </span>
-            )}
-            {readOnly && (
-              <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
-                Read-only
-              </span>
-            )}
+        <div className="mb-8 flex items-start gap-4 border-b border-slate-100 pb-6">
+          {icon && <IconBadge>{icon}</IconBadge>}
+          <div className="min-w-0 flex-1">
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              {stepLabel && (
+                <span className="rounded-full bg-[#EDE9FE] px-2.5 py-0.5 text-xs font-semibold text-[#6D28D9]">
+                  {stepLabel}
+                </span>
+              )}
+              {readOnly && (
+                <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
+                  Read-only
+                </span>
+              )}
+            </div>
+            <h2 className="text-[1.45rem] font-extrabold tracking-tight text-slate-900">{title}</h2>
+            <p className="mt-2 text-[0.95rem] leading-relaxed text-slate-500">{description}</p>
           </div>
-          <h2 className="text-[1.45rem] font-extrabold tracking-tight text-slate-900">{title}</h2>
-          <p className="mt-2 text-[0.95rem] leading-relaxed text-slate-500">{description}</p>
         </div>
         {children}
       </div>
@@ -62,9 +70,35 @@ export function LoadingState() {
   );
 }
 
-export function SubmitBar({ isSaving, label = "Save & Continue" }: { isSaving: boolean; label?: string }) {
+export function SubmitBar({
+  isSaving,
+  label = "Save & Continue",
+  withArrow,
+  backHref,
+  backLabel = "Back",
+}: {
+  isSaving: boolean;
+  label?: string;
+  withArrow?: boolean;
+  // Omitted on the first step, which has nothing to go back to
+  backHref?: string;
+  backLabel?: string;
+}) {
   return (
-    <div className="mt-10 flex justify-end border-t border-slate-100 pt-6">
+    <div
+      className={`mt-10 flex items-center border-t border-slate-100 pt-6 ${
+        backHref ? "justify-between" : "justify-end"
+      }`}
+    >
+      {backHref && (
+        <Link
+          href={backHref}
+          className="inline-flex items-center gap-2 rounded-[10px] border border-slate-300 bg-white px-6 py-3 font-semibold text-slate-600 transition hover:bg-slate-50"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {backLabel}
+        </Link>
+      )}
       <button
         type="submit"
         disabled={isSaving}
@@ -72,6 +106,7 @@ export function SubmitBar({ isSaving, label = "Save & Continue" }: { isSaving: b
       >
         {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
         {isSaving ? "Saving..." : label}
+        {!isSaving && withArrow && <ArrowRight className="h-4 w-4" />}
       </button>
     </div>
   );
@@ -92,12 +127,91 @@ export function Tooltip({ text }: { text: string }) {
   );
 }
 
+// Round lavender badge used for the form and section icons
+export function IconBadge({ children, size = "md" }: { children: ReactNode; size?: "sm" | "md" }) {
+  return (
+    <span
+      className={`flex shrink-0 items-center justify-center rounded-full bg-[#EDE9FE] text-[#6D28D9] ${
+        size === "sm" ? "h-9 w-9" : "h-11 w-11"
+      }`}
+    >
+      {children}
+    </span>
+  );
+}
+
 // Large section divider ("Prior Marital History", "Declarations"...)
-export function SectionTitle({ children, first }: { children: ReactNode; first?: boolean }) {
+export function SectionTitle({
+  children,
+  first,
+  icon,
+}: {
+  children: ReactNode;
+  first?: boolean;
+  icon?: ReactNode;
+}) {
   return (
     <div
-      className={`mb-6 border-b-2 border-slate-100 pb-2.5 text-[1.2rem] font-bold tracking-tight text-slate-900 ${first ? "" : "mt-12"}`}
+      className={`mb-6 flex items-center gap-3 border-b-2 border-slate-100 pb-2.5 ${first ? "" : "mt-12"}`}
     >
+      {icon && <IconBadge size="sm">{icon}</IconBadge>}
+      <span className="text-[1.2rem] font-bold tracking-tight text-slate-900">{children}</span>
+    </div>
+  );
+}
+
+// A whole section boxed into its own card, with an icon badge on its heading
+export function SectionCard({
+  title,
+  icon,
+  tooltip,
+  children,
+}: {
+  title: ReactNode;
+  icon?: ReactNode;
+  tooltip?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_3px_rgba(15,23,42,0.04)] sm:p-6">
+      <div className="mb-5 flex items-center gap-3">
+        {icon && <IconBadge size="sm">{icon}</IconBadge>}
+        <h3 className="flex items-center gap-2 text-[1.05rem] font-bold tracking-tight text-slate-900">
+          {title}
+          {tooltip && <Tooltip text={tooltip} />}
+        </h3>
+      </div>
+      {/* The last block's own bottom margin would double up with the card padding */}
+      <div className="[&>*:last-child]:mb-0">{children}</div>
+    </div>
+  );
+}
+
+// A long-form question presented as a numbered card, with its field inside
+export function NumberedQuestion({
+  number,
+  question,
+  htmlFor,
+  children,
+}: {
+  number: number;
+  question: ReactNode;
+  htmlFor?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="mb-5 rounded-2xl border border-slate-200 bg-slate-50/70 p-5 sm:p-6">
+      <div className="mb-3.5 flex items-start gap-3">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#DDD6FE] bg-[#EDE9FE] text-[0.8rem] font-bold text-[#6D28D9]">
+          {number}
+        </span>
+        <label
+          htmlFor={htmlFor}
+          className="text-[0.925rem] font-semibold leading-relaxed text-slate-800"
+        >
+          {question}
+        </label>
+      </div>
       {children}
     </div>
   );

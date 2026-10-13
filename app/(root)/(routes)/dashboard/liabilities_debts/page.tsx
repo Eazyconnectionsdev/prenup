@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { Wallet } from "lucide-react";
 import { useQuestionnaire } from "@/components/questionnaire/useQuestionnaire";
 import { FormShell, LoadingState, SubmitBar } from "@/components/questionnaire/QuestionnaireUI";
 import {
@@ -34,11 +35,17 @@ export default function LiabilitiesForm() {
     <FormShell
       title="Your Personal Liabilities"
       stepLabel={`Step ${stepInfo.number} of ${stepInfo.total}`}
+      icon={<Wallet className="h-5 w-5" />}
       description="Please tell us about any debts or financial obligations that you are personally responsible for, including debts jointly signed with another person that remain your responsibility."
     >
       <form onSubmit={handleSubmit} noValidate>
         <LiabilitiesFields data={data} onChange={setData} />
-        <SubmitBar isSaving={isSaving} label="Save & continue" />
+        <SubmitBar
+          isSaving={isSaving}
+          label="Save & continue"
+          withArrow
+          backHref={stepInfo.prevPath}
+        />
       </form>
     </FormShell>
   );

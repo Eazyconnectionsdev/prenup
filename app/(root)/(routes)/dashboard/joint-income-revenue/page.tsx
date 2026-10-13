@@ -1,11 +1,15 @@
 "use client"
 
 import React, { useState, useEffect } from "react";
+import { Banknote, TrendingUp } from "lucide-react";
 import {
   emptyTreatment,
   makeId,
   inputClasses,
-  PartHeader,
+  FieldLabel,
+  FormShell,
+  SectionCard,
+  SubmitBar,
   YesNoToggle,
   MatrixBox,
   RowItem,
@@ -13,7 +17,7 @@ import {
   makeToggleHandler,
   updateRow,
   removeRow,
-} from "@/components/Formprimitives";
+} from "@/components/questionnaire/QuestionnaireUI";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import { AppDispatch, RootState } from "@/store/store";
@@ -46,6 +50,7 @@ export default function SharedIncomeForm({ onContinue }: SharedIncomeFormProps =
   const [sharedIncomeRows, setSharedIncomeRows] = useState<SharedIncomeRow[]>([]);
   const [submitted, setSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleToggle = makeToggleHandler(setHasSharedIncome, setSharedIncomeRows, makeSharedIncomeRow);
 
@@ -58,6 +63,7 @@ export default function SharedIncomeForm({ onContinue }: SharedIncomeFormProps =
     };
 
     try {
+      setIsSaving(true);
       await Axios.post(`/cases/${caseId}/questionnaire/joint-income-and-revenue`, payload);
       setSubmitted(true);
       toast.success("Joint income saved.");
@@ -66,6 +72,8 @@ export default function SharedIncomeForm({ onContinue }: SharedIncomeFormProps =
       onContinue?.();
     } catch (error) {
       toast.error(getErrorMessage(error, "Couldn't save joint income."));
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -106,31 +114,26 @@ export default function SharedIncomeForm({ onContinue }: SharedIncomeFormProps =
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 px-5 py-10">
-      <div className="mx-auto max-w-4xl">
-        <div className="rounded-2xl bg-white p-11 shadow-[0_10px_25px_-5px_rgba(15,23,42,0.08)]">
-          <h2 className="mb-2 text-[1.45rem] font-extrabold tracking-tight text-slate-900">
-            Shared Income & Revenue
-          </h2>
-          <p className="mb-8 text-[0.95rem] leading-relaxed text-slate-500">
-            Please declare any income that you and your partner receive jointly and how you would like that income
-            to be treated under your prenuptial agreement.
-          </p>
+    <FormShell
+      title="Shared Income & Revenue"
+      stepLabel="Section 3 • Joint Information"
+      icon={<Banknote className="h-5 w-5" />}
+      description="Please declare any income that you and your partner receive jointly and how you would like that income to be treated under your prenuptial agreement."
+    >
+      <JointStatusBanner />
 
-          <JointStatusBanner />
-
-          <form onSubmit={handleSubmit} noValidate>
-            <fieldset disabled={!canEdit} className="m-0 min-w-0 border-0 p-0">
-            <PartHeader tooltip="Declare any income that you and your partner receive jointly, such as rental income, business income, dividends, royalties, trust distributions or investment income.">
-              Shared Income
-            </PartHeader>
-            <div className="mb-4">
-              <label className="mb-2 block text-[0.95rem] font-semibold text-slate-800">
-                Do you and your partner receive any income jointly, such as rental income, business income,
-                dividends, trust distributions, royalties or investment income?
-              </label>
-              <YesNoToggle name="has_shared_income" value={hasSharedIncome} onChange={handleToggle} />
-            </div>
+      <form onSubmit={handleSubmit} noValidate>
+        <fieldset disabled={!canEdit} className="m-0 min-w-0 border-0 p-0">
+          <SectionCard
+            title="Shared Income"
+            icon={<TrendingUp className="h-5 w-5" />}
+            tooltip="Declare any income that you and your partner receive jointly, such as rental income, business income, dividends, royalties, trust distributions or investment income."
+          >
+            <FieldLabel>
+              Do you and your partner receive any income jointly, such as rental income, business
+              income, dividends, trust distributions, royalties or investment income?
+            </FieldLabel>
+            <YesNoToggle name="has_shared_income" value={hasSharedIncome} onChange={handleToggle} />
 
             {hasSharedIncome === "Yes" && (
               <MatrixBox
@@ -176,24 +179,20 @@ export default function SharedIncomeForm({ onContinue }: SharedIncomeFormProps =
                 ))}
               </MatrixBox>
             )}
+          </SectionCard>
+        </fieldset>
 
-            </fieldset>
+        {canEdit && (
+          <SubmitBar
+            isSaving={isSaving}
+            label="Save & continue"
+            withArrow
+            backHref="/dashboard/joint-assets"
+          />
+        )}
+      </form>
 
-            {canEdit && (
-              <div className="flex justify-end">
-                <button
-                  type="submit"
-                  className="mt-8 rounded-[10px] bg-indigo-600 px-10 py-3.5 font-semibold text-white shadow-[0_4px_12px_rgba(79,70,229,0.2)] transition hover:bg-indigo-700"
-                >
-                  Save and Continue
-                </button>
-              </div>
-            )}
-          </form>
-
-          {submitted && <p className="mt-4 text-right text-sm text-emerald-600">Saved. Ready for Section 4c.</p>}
-        </div>
-      </div>
-    </div>
+      {submitted && <p className="mt-4 text-right text-sm text-emerald-600">Saved. Ready for Section 4c.</p>}
+    </FormShell>
   );
 }

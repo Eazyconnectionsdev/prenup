@@ -77,6 +77,7 @@ export default function Sidebar({ activeItem = '/management/admin' }: SidebarPro
       <nav className="flex-1 overflow-y-auto px-2 py-3 pb-20">
         <ul className="space-y-1">
           {mainNavItems.map(item => (
+
             <NavEntry key={item.href} item={item} isExpanded={isExpanded} isActive={activeItem === item.href} />
           ))}
         </ul>
@@ -92,7 +93,9 @@ export default function Sidebar({ activeItem = '/management/admin' }: SidebarPro
         <div className="my-3 border-t" />
 
         <ul className="space-y-1 mt-2">
+
           {bottomNavItems.map(item => (
+
             <NavEntry key={item.href} item={item} isExpanded={isExpanded} isActive={activeItem === item.href} />
           ))}
         </ul>

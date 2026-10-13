@@ -2,11 +2,23 @@
 
 import React, { useEffect, useState } from "react";
 import {
+  Boxes,
+  Briefcase,
+  Building2,
+  ChartColumnIncreasing,
+  FileText,
+  Gem,
+  Home,
+  Landmark,
+} from "lucide-react";
+import {
   emptyTreatment,
   makeId,
   inputClasses,
   textareaClasses,
-  PartHeader,
+  FormShell,
+  SectionCard,
+  SubmitBar,
   YesNoToggle,
   MatrixBox,
   RowItem,
@@ -15,7 +27,7 @@ import {
   makeToggleHandler,
   updateRow,
   removeRow,
-} from "@/components/Formprimitives";
+} from "@/components/questionnaire/QuestionnaireUI";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import { AppDispatch, RootState } from "@/store/store";
@@ -221,6 +233,7 @@ export default function SharedAssetsForm() {
   >([]);
 
   const [submitted, setSubmitted] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleSharedRealEstateToggle = makeToggleHandler(
     setHasSharedRealEstate,
@@ -282,6 +295,7 @@ export default function SharedAssetsForm() {
     };
 
     try {
+      setIsSaving(true);
       await Axios.post(`/cases/${caseId}/questionnaire/joint-assets`, payload);
       setSubmitted(true);
       toast.success("Joint assets saved.");
@@ -289,6 +303,8 @@ export default function SharedAssetsForm() {
       if (caseId) dispatch(getCasesDetails(caseId));
     } catch (error) {
       toast.error(getErrorMessage(error, "Couldn't save joint assets."));
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -346,26 +362,22 @@ useEffect(() => {
 }, [caseId]);
 
   return (
-    <div className="min-h-screen bg-slate-100 px-5 py-10">
-      <div className="mx-auto max-w-4xl">
-        <div className="rounded-2xl bg-white p-11 shadow-[0_10px_25px_-5px_rgba(15,23,42,0.08)]">
-          <h2 className="mb-2 text-[1.35rem] font-extrabold tracking-tight text-slate-900">
-            Shared Assets
-          </h2>
-          <p className="mb-8 text-[0.95rem] leading-relaxed text-slate-500">
-            Please tell us about any assets, property, or financial interests
-            that you and your partner currently own or hold together, and how
-            you would like them to be treated under your prenuptial agreement.
-          </p>
-
+    <FormShell
+      title="Shared Assets"
+      stepLabel="Section 3 • Joint Information"
+      icon={<Landmark className="h-5 w-5" />}
+      description="Please tell us about any assets, property, or financial interests that you and your partner currently own or hold together, and how you would like them to be treated under your prenuptial agreement."
+    >
           <JointStatusBanner />
 
           <form onSubmit={handleSubmit} noValidate>
             <fieldset disabled={!canEdit} className="m-0 min-w-0 border-0 p-0">
             {/* CURRENT LIVING ARRANGEMENTS */}
-            <PartHeader tooltip="Tell us about your current living arrangements. This helps us understand your current circumstances. Property ownership and how it should be treated under your agreement will be collected separately.">
-              Current Living Arrangements
-            </PartHeader>
+            <SectionCard
+              title="Current Living Arrangements"
+              icon={<Home className="h-5 w-5" />}
+              tooltip="Tell us about your current living arrangements. This helps us understand your current circumstances. Property ownership and how it should be treated under your agreement will be collected separately."
+            >
             <div className="mb-4">
               <label className="mb-2 block text-[0.95rem] font-semibold text-slate-800">
                 Which of the following best describes your current living
@@ -437,10 +449,13 @@ useEffect(() => {
               )}
             </div>
 
+            </SectionCard>
             {/* SHARED PROPERTY & REAL ESTATE */}
-            <PartHeader tooltip="Declare any property or real estate that you and your partner jointly own or have a shared financial interest in.">
-              Shared Property & Real Estate
-            </PartHeader>
+            <SectionCard
+              title="Shared Property & Real Estate"
+              icon={<Building2 className="h-5 w-5" />}
+              tooltip="Declare any property or real estate that you and your partner jointly own or have a shared financial interest in."
+            >
             <div className="mb-4">
               <label className="mb-2 block text-[0.95rem] font-semibold text-slate-800">
                 Do you and your partner jointly own, partly own, or have a
@@ -618,10 +633,13 @@ useEffect(() => {
               </MatrixBox>
             )}
 
+            </SectionCard>
             {/* SHARED SAVINGS & INVESTMENTS */}
-            <PartHeader tooltip="Declare any bank accounts, savings, investments or other financial accounts that you own jointly with your partner.">
-              Shared Savings & Investments
-            </PartHeader>
+            <SectionCard
+              title="Shared Savings & Investments"
+              icon={<ChartColumnIncreasing className="h-5 w-5" />}
+              tooltip="Declare any bank accounts, savings, investments or other financial accounts that you own jointly with your partner."
+            >
             <div className="mb-4">
               <label className="mb-2 block text-[0.95rem] font-semibold text-slate-800">
                 Do you jointly hold any bank accounts, savings, investments or
@@ -717,10 +735,13 @@ useEffect(() => {
               </MatrixBox>
             )}
 
+            </SectionCard>
             {/* SHARED BUSINESS INTERESTS */}
-            <PartHeader tooltip="Declare any businesses, companies or partnerships that you and your partner jointly own or operate.">
-              Shared Business Interests
-            </PartHeader>
+            <SectionCard
+              title="Shared Business Interests"
+              icon={<Briefcase className="h-5 w-5" />}
+              tooltip="Declare any businesses, companies or partnerships that you and your partner jointly own or operate."
+            >
             <div className="mb-4">
               <label className="mb-2 block text-[0.95rem] font-semibold text-slate-800">
                 Do you jointly own or operate a business together?
@@ -878,10 +899,13 @@ useEffect(() => {
               </MatrixBox>
             )}
 
+            </SectionCard>
             {/* SHARED INTELLECTUAL PROPERTY */}
-            <PartHeader tooltip="Declare any intellectual property that you and your partner jointly own, such as patents, trademarks, copyrights, software, websites or licensing rights.">
-              Shared Intellectual Property
-            </PartHeader>
+            <SectionCard
+              title="Shared Intellectual Property"
+              icon={<FileText className="h-5 w-5" />}
+              tooltip="Declare any intellectual property that you and your partner jointly own, such as patents, trademarks, copyrights, software, websites or licensing rights."
+            >
             <div className="mb-4">
               <label className="mb-2 block text-[0.95rem] font-semibold text-slate-800">
                 Do you jointly own any intellectual property or licensing rights
@@ -991,10 +1015,13 @@ useEffect(() => {
               </MatrixBox>
             )}
 
+            </SectionCard>
             {/* SHARED HIGH-VALUE BELONGINGS */}
-            <PartHeader tooltip="Personal property items valued individually over £5,000.">
-              Shared High-Value Personal Belongings
-            </PartHeader>
+            <SectionCard
+              title="Shared High-Value Personal Belongings"
+              icon={<Gem className="h-5 w-5" />}
+              tooltip="Personal property items valued individually over £5,000."
+            >
             <div className="mb-4">
               <label className="mb-2 block text-[0.95rem] font-semibold text-slate-800">
                 Do you jointly own any high-value personal belongings valued at
@@ -1076,10 +1103,13 @@ useEffect(() => {
               </MatrixBox>
             )}
 
+            </SectionCard>
             {/* OTHER SHARED ASSETS */}
-            <PartHeader tooltip="Declare any other joint assets, inheritances, trust interests, or shared financial rights not covered above.">
-              Other Shared Assets
-            </PartHeader>
+            <SectionCard
+              title="Other Shared Assets"
+              icon={<Boxes className="h-5 w-5" />}
+              tooltip="Declare any other joint assets, inheritances, trust interests, or shared financial rights not covered above."
+            >
             <div className="mb-4">
               <label className="mb-2 block text-[0.95rem] font-semibold text-slate-800">
                 Have we missed anything? Do you and your partner jointly own or
@@ -1150,17 +1180,11 @@ useEffect(() => {
               </MatrixBox>
             )}
 
+            </SectionCard>
             </fieldset>
 
             {canEdit && (
-              <div className="flex justify-end">
-                <button
-                  type="submit"
-                  className="mt-8 rounded-[10px] bg-indigo-600 px-10 py-3.5 font-semibold text-white shadow-[0_4px_12px_rgba(79,70,229,0.2)] transition hover:bg-indigo-700"
-                >
-                  Save and Continue
-                </button>
-              </div>
+              <SubmitBar isSaving={isSaving} label="Save & continue" withArrow />
             )}
           </form>
 
@@ -1169,9 +1193,6 @@ useEffect(() => {
               Shared assets saved successfully.
             </div>
           )}
-
-        </div>
-      </div>
-    </div>
+    </FormShell>
   );
 }

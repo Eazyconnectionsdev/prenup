@@ -2,10 +2,19 @@
 
 import React, { ReactNode } from "react";
 import {
+  Boxes,
+  Briefcase,
+  ChartColumnIncreasing,
+  FileText,
+  Gem,
+  Home,
+  Umbrella,
+} from "lucide-react";
+import {
   FieldLabel,
   MatrixBox,
-  PartHeader,
   RowItem,
+  SectionCard,
   TreatmentSelect,
   ValueWithUnsure,
   YesNoToggle,
@@ -287,16 +296,22 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
     />
   );
 
-  // Header + yes/no question + list of rows for one asset category
+  // One asset category as its own card: heading, yes/no question, list of rows
   const category = <K extends ListKey>(
     key: K,
-    cfg: { title: string; tooltip: string; question: string; matrixTitle: string; addLabel: string },
+    cfg: {
+      title: string;
+      icon: ReactNode;
+      tooltip: string;
+      question: string;
+      matrixTitle: string;
+      addLabel: string;
+    },
     renderRow: (row: RowOf<K>) => ReactNode,
   ) => {
     const enabled = data[CATEGORIES[key].flag] === "Yes";
     return (
-      <>
-        <PartHeader tooltip={cfg.tooltip}>{cfg.title}</PartHeader>
+      <SectionCard title={cfg.title} icon={cfg.icon} tooltip={cfg.tooltip}>
         <FieldLabel>{cfg.question}</FieldLabel>
         <YesNoToggle
           name={`has_${key}`}
@@ -317,7 +332,7 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
             ))}
           </MatrixBox>
         )}
-      </>
+      </SectionCard>
     );
   };
 
@@ -331,6 +346,7 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
         "realEstate",
         {
           title: "Property & Real Estate",
+          icon: <Home className="h-5 w-5" />,
           tooltip: "Properties owned personally or with third parties that should be kept separate.",
           question: ask(
             "Do you own, partly own, or have a financial interest in any real estate / properties?",
@@ -408,6 +424,7 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
         "savings",
         {
           title: "Savings & Investments",
+          icon: <ChartColumnIncreasing className="h-5 w-5" />,
           tooltip: "Personal bank accounts, cash savings, premium bonds, or investment portfolios.",
           question: ask(
             "Do you currently hold any personal bank accounts, cash savings, premium bonds, or investment portfolios?",
@@ -435,6 +452,7 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
         "pensions",
         {
           title: "Pensions & Retirement Funds",
+          icon: <Umbrella className="h-5 w-5" />,
           tooltip: "Private, corporate, or state pension pots or retirement annuities.",
           question: ask(
             "Do you hold any private, corporate, or state pension pots or retirement annuities?",
@@ -461,6 +479,7 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
         "businesses",
         {
           title: "Business Interests",
+          icon: <Briefcase className="h-5 w-5" />,
           tooltip: "Businesses where this person is a director, shareholder, partner, or sole trader.",
           question: ask(
             "Are you a director, shareholder, partner, or sole trader in any active or dormant business?",
@@ -517,6 +536,7 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
         "ipAssets",
         {
           title: "Intellectual Property",
+          icon: <FileText className="h-5 w-5" />,
           tooltip: "Patents, trademarks, copyrights, licensing rights or other valuable IP.",
           question: ask(
             "Do you personally own any intellectual property or licensing rights that have financial value?",
@@ -557,6 +577,7 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
         "chattels",
         {
           title: "High-Value Personal Belongings",
+          icon: <Gem className="h-5 w-5" />,
           tooltip: "Personal property items valued individually over £5,000.",
           question: ask(
             "Do you own any personal belongings valued individually over £5,000 (such as vehicles, jewellery, artwork, or cryptocurrency)?",
@@ -584,6 +605,7 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
         "otherAssets",
         {
           title: "Other Personal Assets",
+          icon: <Boxes className="h-5 w-5" />,
           tooltip: "Any other assets, inheritances, trust interests, or financial rights not covered above.",
           question: ask(
             "Have we missed anything? Do you own or expect to receive any other assets, financial interests, inheritances, or property not listed above?",

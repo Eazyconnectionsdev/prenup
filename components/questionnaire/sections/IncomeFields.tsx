@@ -1,11 +1,12 @@
 "use client";
 
 import React from "react";
+import { Briefcase, Home, TrendingUp } from "lucide-react";
 import {
   FieldLabel,
   MatrixBox,
-  PartHeader,
   RowItem,
+  SectionCard,
   TreatmentSelect,
   YesNoToggle,
   emptyTreatment,
@@ -114,91 +115,100 @@ export function IncomeFields({ data, onChange, readOnly }: Props) {
 
   return (
     <>
-      <PartHeader tooltip="Annual salary or wages before tax. Bonuses, commissions, dividends, rental and other income are collected separately below.">
-        Employment Income
-      </PartHeader>
-      <div className="mb-6">
-        <FieldLabel htmlFor="grossAnnualIncome">
-          {ask(
-            "What is your current annual gross employment income (before tax)?",
-            "Current annual gross employment income (before tax)",
-          )}
-        </FieldLabel>
-        <input
-          id="grossAnnualIncome"
-          type="number"
-          min={0}
-          placeholder="£ Amount in GBP"
-          value={data.grossAnnualIncome}
-          onChange={(e) => set({ grossAnnualIncome: e.target.value })}
-          disabled={readOnly}
-          className={inputClasses}
-        />
-      </div>
+      <SectionCard
+        title="Employment Income"
+        icon={<Briefcase className="h-5 w-5" />}
+        tooltip="Annual salary or wages before tax. Bonuses, commissions, dividends, rental and other income are collected separately below."
+      >
+        <div className="mb-6">
+          <FieldLabel htmlFor="grossAnnualIncome">
+            {ask(
+              "What is your current annual gross employment income (before tax)?",
+              "Current annual gross employment income (before tax)",
+            )}
+          </FieldLabel>
+          <input
+            id="grossAnnualIncome"
+            type="number"
+            min={0}
+            placeholder="£ Amount in GBP"
+            value={data.grossAnnualIncome}
+            onChange={(e) => set({ grossAnnualIncome: e.target.value })}
+            disabled={readOnly}
+            className={inputClasses}
+          />
+        </div>
 
-      <div className="mb-6">
+        <div>
+          <FieldLabel>
+            {ask(
+              "How would you like your employment income to be treated under this agreement?",
+              "How their employment income should be treated under this agreement",
+            )}
+          </FieldLabel>
+          <TreatmentSelect
+            id="salary"
+            fields={data.salaryTreatment}
+            onChange={(f) => set({ salaryTreatment: f })}
+            options={SALARY_TREATMENT_OPTIONS}
+            readOnly={readOnly}
+          />
+        </div>
+      </SectionCard>
+
+      <SectionCard
+        title={<>Bonuses &amp; Employment Incentives</>}
+        icon={<TrendingUp className="h-5 w-5" />}
+        tooltip="Variable items like bonuses, regular overtime, commissions, or corporate incentives."
+      >
         <FieldLabel>
           {ask(
-            "How would you like your employment income to be treated under this agreement?",
-            "How their employment income should be treated under this agreement",
+            "Apart from your base salary, do you regularly receive bonuses, commissions, share options, share awards (RSUs), profit-sharing payments, or other employment incentives?",
+            "Apart from base salary, do they regularly receive bonuses, commissions, share options, share awards (RSUs), profit-sharing payments, or other employment incentives?",
           )}
         </FieldLabel>
-        <TreatmentSelect
-          id="salary"
-          fields={data.salaryTreatment}
-          onChange={(f) => set({ salaryTreatment: f })}
-          options={SALARY_TREATMENT_OPTIONS}
+        <YesNoToggle
+          name="has_primary_bonus"
+          value={data.hasPrimaryBonus}
+          onChange={toggle("hasPrimaryBonus", "primaryIncomeRows")}
           readOnly={readOnly}
         />
-      </div>
+        {data.hasPrimaryBonus === "Yes" &&
+          renderRows(
+            "primaryIncomeRows",
+            "Bonus & incentive income",
+            "Add variable income",
+            "Description (e.g. Annual Bonus)",
+            "Estimated annual amount (£)",
+          )}
+      </SectionCard>
 
-      <PartHeader tooltip="Variable items like bonuses, regular overtime, commissions, or corporate incentives.">
-        Bonuses &amp; Employment Incentives
-      </PartHeader>
-      <FieldLabel>
-        {ask(
-          "Apart from your base salary, do you regularly receive bonuses, commissions, share options, share awards (RSUs), profit-sharing payments, or other employment incentives?",
-          "Apart from base salary, do they regularly receive bonuses, commissions, share options, share awards (RSUs), profit-sharing payments, or other employment incentives?",
-        )}
-      </FieldLabel>
-      <YesNoToggle
-        name="has_primary_bonus"
-        value={data.hasPrimaryBonus}
-        onChange={toggle("hasPrimaryBonus", "primaryIncomeRows")}
-        readOnly={readOnly}
-      />
-      {data.hasPrimaryBonus === "Yes" &&
-        renderRows(
-          "primaryIncomeRows",
-          "Bonus & incentive income",
-          "Add variable income",
-          "Description (e.g. Annual Bonus)",
-          "Estimated annual amount (£)",
-        )}
-
-      <PartHeader tooltip="Recurring income paid individually from investments, trust dividends, or property yields.">
-        Alternative Income Streams
-      </PartHeader>
-      <FieldLabel>
-        {ask(
-          "Do you personally receive income from sources other than your employment, such as rental property income, dividends, trust distributions, business income, royalties, maintenance payments, pension income, or other investment income?",
-          "Do they personally receive income from sources other than employment, such as rental property income, dividends, trust distributions, business income, royalties, maintenance payments, pension income, or other investment income?",
-        )}
-      </FieldLabel>
-      <YesNoToggle
-        name="has_alternative_income"
-        value={data.hasAlternativeIncome}
-        onChange={toggle("hasAlternativeIncome", "altIncomeRows")}
-        readOnly={readOnly}
-      />
-      {data.hasAlternativeIncome === "Yes" &&
-        renderRows(
-          "altIncomeRows",
-          "Alternative income sources",
-          "Add income source",
-          "Source name (e.g. Dividend, Rental Yield)",
-          "Annual income (£)",
-        )}
+      <SectionCard
+        title="Alternative Income Streams"
+        icon={<Home className="h-5 w-5" />}
+        tooltip="Recurring income paid individually from investments, trust dividends, or property yields."
+      >
+        <FieldLabel>
+          {ask(
+            "Do you personally receive income from sources other than your employment, such as rental property income, dividends, trust distributions, business income, royalties, maintenance payments, pension income, or other investment income?",
+            "Do they personally receive income from sources other than employment, such as rental property income, dividends, trust distributions, business income, royalties, maintenance payments, pension income, or other investment income?",
+          )}
+        </FieldLabel>
+        <YesNoToggle
+          name="has_alternative_income"
+          value={data.hasAlternativeIncome}
+          onChange={toggle("hasAlternativeIncome", "altIncomeRows")}
+          readOnly={readOnly}
+        />
+        {data.hasAlternativeIncome === "Yes" &&
+          renderRows(
+            "altIncomeRows",
+            "Alternative income sources",
+            "Add income source",
+            "Source name (e.g. Dividend, Rental Yield)",
+            "Annual income (£)",
+          )}
+      </SectionCard>
     </>
   );
 }

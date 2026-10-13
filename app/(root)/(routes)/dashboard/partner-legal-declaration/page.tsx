@@ -1,14 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { FileText, ShieldCheck } from "lucide-react";
 import { useQuestionnaire } from "@/components/questionnaire/useQuestionnaire";
 import {
+  cardTextareaClasses,
   CheckCard,
-  FieldLabel,
   FormShell,
   LoadingState,
+  NumberedQuestion,
   SectionTitle,
-  textareaClasses,
 } from "@/components/questionnaire/QuestionnaireUI";
 import {
   DECLARATIONS,
@@ -35,25 +36,36 @@ export default function PartnerLegalDeclarationsView() {
     <FormShell
       readOnly
       title="Partner's Legal Declarations"
+      icon={<FileText className="h-5 w-5" />}
       description="A read-only view of the legal declarations your partner has provided."
     >
-      <div className="mb-7">
-        <FieldLabel>
-          A brief overview of what you are both aiming to achieve with this agreement and the
-          primary reasons for putting it in place.
-        </FieldLabel>
-        <textarea rows={4} value={formData.agreementObjectives} disabled className={textareaClasses} />
-      </div>
+      <NumberedQuestion
+        number={1}
+        question="A brief overview of what you are both aiming to achieve with this agreement and the primary reasons for putting it in place."
+      >
+        <textarea
+          rows={4}
+          value={formData.agreementObjectives}
+          disabled
+          className={cardTextareaClasses}
+        />
+      </NumberedQuestion>
 
-      <div className="mb-7">
-        <FieldLabel>
-          A summary of current living arrangements and any significant future plans (e.g., upcoming
-          property purchases, relocating abroad, or major career changes).
-        </FieldLabel>
-        <textarea rows={4} value={formData.livingSituationFuture} disabled className={textareaClasses} />
-      </div>
+      <NumberedQuestion
+        number={2}
+        question="A summary of current living arrangements and any significant future plans (e.g., upcoming property purchases, relocating abroad, or major career changes)."
+      >
+        <textarea
+          rows={4}
+          value={formData.livingSituationFuture}
+          disabled
+          className={cardTextareaClasses}
+        />
+      </NumberedQuestion>
 
-      <SectionTitle>Declarations of Understanding</SectionTitle>
+      <SectionTitle icon={<ShieldCheck className="h-5 w-5" />}>
+        Declarations of Understanding
+      </SectionTitle>
 
       {DECLARATIONS.map((d) => (
         <CheckCard
