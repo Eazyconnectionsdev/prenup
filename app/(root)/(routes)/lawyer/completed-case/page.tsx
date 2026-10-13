@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Eye } from 'lucide-react';
+import Axios from "@/lib/ApiConfig";
 import type { LawyerCase, LawyerPersona } from "@/types/lawyer";
 import type { CompletedCasesViewProps } from "@/types/lawyer/pages/completed-case";
 
@@ -540,6 +541,42 @@ const CompletedCasesView: React.FC<CompletedCasesViewProps> = ({
 }) => {
 
   const [cases, setCases] = useState<LawyerCase[]>(MOCK_INITIAL_CASES);
+
+  useEffect(() => {
+    const fetchCompletedCases = async () => {
+      try {
+        const { data } = await Axios.get("/lawyer/completed/list");
+        if (Array.isArray(data) && data.length > 0) {
+          const mapped: LawyerCase[] = data.map((item: any) => ({
+            id: item.caseNumber || item._id,
+            service: item.service || "Standard Digital",
+            status: "CLOSED",
+            p1Name: item.owner ? `${item.owner.firstName || ""} ${item.owner.lastName || ""}`.trim() : "Unknown",
+            p2Name: item.invitedUser ? `${item.invitedUser.firstName || ""} ${item.invitedUser.lastName || ""}`.trim() : "Unknown",
+            p1Firm: "Blake Cassels LLP",
+            p2Firm: "Torys LLP",
+            p1Lawyer: item.assignedLawyerP1?.name || "Robert Miller, Esq.",
+            p2Lawyer: item.assignedLawyerP2?.name || "Mark Sterling, Esq.",
+            currentVersion: item.currentVersion || "v2.0",
+            publishedVersion: item.publishedVersion || "v2.0",
+            lastActivity: item.completedAt ? new Date(item.completedAt).toISOString().split("T")[0] : "Recently",
+            daysInStatus: 0,
+            p1Forms: P1_FORM_MOCK,
+            p2Forms: P2_FORM_MOCK,
+            versions: [],
+            notes: [],
+            appendices: { A: [], B: [], C: [] },
+            emails: [],
+          }));
+          setCases(mapped);
+        }
+      } catch (err) {
+        console.error("Failed to fetch completed cases:", err);
+      }
+    };
+
+    fetchCompletedCases();
+  }, []);
 
   const getLawyerName = (persona: LawyerPersona) => {
     if (persona === 'L1') return 'Robert Miller, Esq.';

@@ -53,7 +53,7 @@ export const LawyerSidebar: React.FC = () => {
     let cancelled = false;
     const loadCounts = async () => {
       try {
-        const response = await Axios.get("/case-manager/cases");
+        const response = await Axios.get("/lawyer/cases");
         if (cancelled) return;
         const list: any[] = Array.isArray(response.data) ? response.data : [];
         const completed = list.filter((c) => isCompleted(c.workflowStatus)).length;

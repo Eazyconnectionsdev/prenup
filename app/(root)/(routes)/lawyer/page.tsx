@@ -14,7 +14,7 @@ const LawyerPage = () => {
   useEffect(() => {
     const fetchCases = async () => {
       try {
-        const response = await Axios.get("/case-manager/cases");
+        const response = await Axios.get("/lawyer/cases");
         const list: any[] = Array.isArray(response.data) ? response.data : [];
         setCases(
           list.map((item) => ({

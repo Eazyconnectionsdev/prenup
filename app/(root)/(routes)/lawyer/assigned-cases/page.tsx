@@ -103,10 +103,10 @@ const LawyerCasesPage = () => {
 
         if (status && status !== "ALL") {
           response = await Axios.get(
-            `/case-manager/dashboard/stages/${status}/cases`
+            `/lawyer/dashboard/stages/${status}/cases`
           );
         } else {
-          response = await Axios.get("/case-manager/cases");
+          response = await Axios.get("/lawyer/cases");
         }
 
         const formattedCases: LawyerRowCase[] = response.data.map((item: any) => ({

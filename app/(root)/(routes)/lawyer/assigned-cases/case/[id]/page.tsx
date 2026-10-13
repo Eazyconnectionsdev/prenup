@@ -35,7 +35,7 @@ export default function CaseDetailPage() {
       setLoading(true);
 
       const { data } = await Axios.get(
-        `/case-manager/${caseId}`
+        `/lawyer/${caseId}`
       );
       console.log("case full data", data)
       setCaseData(data);
@@ -50,7 +50,7 @@ export default function CaseDetailPage() {
     try {
       if (updatedData) {
         await Axios.put(
-          `/case-manager/${caseId}`,
+          `/cases/${caseId}`,
           updatedData
         );
       }
@@ -94,7 +94,7 @@ export default function CaseDetailPage() {
     },
     {
       id: "notes",
-      label: "CM Notes",
+      label: "Notes",
     },
   ];
 
@@ -166,7 +166,7 @@ export default function CaseDetailPage() {
           )}
 
           {activeTab === "notes" && (
-            <NotesTab />
+            <NotesTab caseId={caseId} />
           )}
         </div>
       </div>
