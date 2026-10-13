@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { UserRound } from "lucide-react";
 import { useQuestionnaire } from "@/components/questionnaire/useQuestionnaire";
 import { FormShell, LoadingState } from "@/components/questionnaire/QuestionnaireUI";
 import {
@@ -28,6 +29,7 @@ export default function PartnerPersonalInfoView() {
     <FormShell
       readOnly
       title="Partner's Personal Information"
+      icon={<UserRound className="h-5 w-5" />}
       description="A read-only view of the personal information your partner has provided."
     >
       <PersonalInfoFields data={formData} readOnly />

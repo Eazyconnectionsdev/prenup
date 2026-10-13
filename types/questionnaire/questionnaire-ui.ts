@@ -8,6 +8,8 @@ export interface FormShellProps {
   description: ReactNode;
   stepLabel?: string;
   readOnly?: boolean;
+  // Shown in a round badge beside the heading when the form has one
+  icon?: ReactNode;
   children: ReactNode;
 }
 

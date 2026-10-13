@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { Banknote } from "lucide-react";
 import { useQuestionnaire } from "@/components/questionnaire/useQuestionnaire";
 import { FormShell, LoadingState, SubmitBar } from "@/components/questionnaire/QuestionnaireUI";
 import {
@@ -36,11 +37,17 @@ export default function IncomeRevenueForm() {
     <FormShell
       title="Your Income & Revenue"
       stepLabel={`Step ${stepInfo.number} of ${stepInfo.total}`}
+      icon={<Banknote className="h-5 w-5" />}
       description="Please tell us about all income you personally receive, including employment income, bonuses, investments, rental income and any other regular income sources."
     >
       <form onSubmit={handleSubmit} noValidate>
         <IncomeFields data={data} onChange={setData} />
-        <SubmitBar isSaving={isSaving} label={`Save & continue`} />
+        <SubmitBar
+          isSaving={isSaving}
+          label={`Save & continue`}
+          withArrow
+          backHref={stepInfo.prevPath}
+        />
       </form>
     </FormShell>
   );

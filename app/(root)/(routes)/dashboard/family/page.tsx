@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Trash2 } from "lucide-react";
+import { Baby, History, PawPrint, Trash2, UsersRound } from "lucide-react";
 import { useQuestionnaire } from "@/components/questionnaire/useQuestionnaire";
 import {
   FieldLabel,
@@ -9,7 +9,7 @@ import {
   LoadingState,
   Notice,
   RadioCard,
-  SectionTitle,
+  SectionCard,
   SubmitBar,
   inputClasses,
   makeId,
@@ -81,11 +81,11 @@ export default function FamilyDependentsForm() {
     <FormShell
       title="Family & Dependents"
       stepLabel={`Step ${stepInfo.number} of ${stepInfo.total}`}
+      icon={<UsersRound className="h-5 w-5" />}
       description="Tell us about any previous marriages or civil partnerships, your children, your future family plans, and any family pets you would like this agreement to cover."
     >
       <form onSubmit={handleSubmit} noValidate>
-        <SectionTitle first>Prior Marital History</SectionTitle>
-        <div className="mb-7">
+        <SectionCard title="Prior Marital History" icon={<History className="h-5 w-5" />}>
           <FieldLabel>
             Have you previously been married or in a civil partnership before this relationship?
           </FieldLabel>
@@ -131,10 +131,9 @@ export default function FamilyDependentsForm() {
               advise you on the appropriate timing.
             </Notice>
           )}
-        </div>
+        </SectionCard>
 
-        <SectionTitle>Current Children</SectionTitle>
-        <div className="mb-7">
+        <SectionCard title="Current Children" icon={<Baby className="h-5 w-5" />}>
           <FieldLabel>
             Do you have any children, including biological, adopted, or stepchildren, from this
             relationship or a previous relationship?
@@ -151,120 +150,123 @@ export default function FamilyDependentsForm() {
               />
             ))}
           </div>
-        </div>
 
-        {formData.hasLivingChildren === "Yes" && (
-          <div className="mb-7 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-6">
-            <div className="mb-4 text-[0.8rem] font-bold uppercase tracking-wide text-slate-500">
-              Children&apos;s details
-            </div>
-
-            {children.map((child) => (
-              <div
-                key={child.id}
-                className="mb-3 grid grid-cols-1 items-center gap-3.5 rounded-[10px] border border-slate-200 bg-white p-4 sm:grid-cols-[2fr_1.5fr_2fr_auto]"
-              >
-                <input
-                  type="text"
-                  placeholder="Child's full name"
-                  value={child.fullName}
-                  onChange={(e) => updateChildRow(child.id, "fullName", e.target.value)}
-                  className={inputClasses}
-                />
-                <input
-                  type="date"
-                  value={child.dob}
-                  onChange={(e) => updateChildRow(child.id, "dob", e.target.value)}
-                  className={inputClasses}
-                />
-                <select
-                  value={child.parentalRelationship}
-                  onChange={(e) =>
-                    updateChildRow(
-                      child.id,
-                      "parentalRelationship",
-                      e.target.value as ParentalRelationship,
-                    )
-                  }
-                  className={inputClasses}
-                >
-                  <option value="">Select parental relationship</option>
-                  {PARENTAL_RELATIONSHIP_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={() => setChildren((prev) => prev.filter((c) => c.id !== child.id))}
-                  aria-label="Remove child"
-                  className="flex h-9 w-9 items-center justify-center justify-self-start rounded-full text-slate-400 transition hover:bg-red-50 hover:text-red-500"
-                >
-                  <Trash2 className="h-[18px] w-[18px]" />
-                </button>
+          {formData.hasLivingChildren === "Yes" && (
+            <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-6">
+              <div className="mb-4 text-[0.8rem] font-bold uppercase tracking-wide text-slate-500">
+                Children&apos;s details
               </div>
-            ))}
 
-            <button
-              type="button"
-              onClick={() => setChildren((prev) => [...prev, makeChildRow()])}
-              className="flex w-full items-center justify-center gap-2 rounded-[10px] border-2 border-dashed border-indigo-400 bg-white/60 px-6 py-3 font-semibold text-indigo-600 transition hover:border-solid hover:border-indigo-600 hover:bg-indigo-50"
+              {children.map((child) => (
+                <div
+                  key={child.id}
+                  className="mb-3 grid grid-cols-1 items-center gap-3.5 rounded-[10px] border border-slate-200 bg-white p-4 sm:grid-cols-[2fr_1.5fr_2fr_auto]"
+                >
+                  <input
+                    type="text"
+                    placeholder="Child's full name"
+                    value={child.fullName}
+                    onChange={(e) => updateChildRow(child.id, "fullName", e.target.value)}
+                    className={inputClasses}
+                  />
+                  <input
+                    type="date"
+                    value={child.dob}
+                    onChange={(e) => updateChildRow(child.id, "dob", e.target.value)}
+                    className={inputClasses}
+                  />
+                  <select
+                    value={child.parentalRelationship}
+                    onChange={(e) =>
+                      updateChildRow(
+                        child.id,
+                        "parentalRelationship",
+                        e.target.value as ParentalRelationship,
+                      )
+                    }
+                    className={inputClasses}
+                  >
+                    <option value="">Select parental relationship</option>
+                    {PARENTAL_RELATIONSHIP_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setChildren((prev) => prev.filter((c) => c.id !== child.id))}
+                    aria-label="Remove child"
+                    className="flex h-9 w-9 items-center justify-center justify-self-start rounded-full text-slate-400 transition hover:bg-red-50 hover:text-red-500"
+                  >
+                    <Trash2 className="h-[18px] w-[18px]" />
+                  </button>
+                </div>
+              ))}
+
+              <button
+                type="button"
+                onClick={() => setChildren((prev) => [...prev, makeChildRow()])}
+                className="flex w-full items-center justify-center gap-2 rounded-[10px] border-2 border-dashed border-indigo-400 bg-white/60 px-6 py-3 font-semibold text-indigo-600 transition hover:border-solid hover:border-indigo-600 hover:bg-indigo-50"
+              >
+                + Add child
+              </button>
+            </div>
+          )}
+        </SectionCard>
+
+        <SectionCard
+          title={<>Future Family Plans &amp; Pets</>}
+          icon={<PawPrint className="h-5 w-5" />}
+        >
+          <div className="mb-6">
+            <FieldLabel htmlFor="futureParentalIntentions">
+              Do you and your partner plan, or think you may decide in the future, to have or adopt
+              children together?
+            </FieldLabel>
+            <select
+              id="futureParentalIntentions"
+              value={formData.futureParentalIntentions}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  futureParentalIntentions: e.target.value as ParentalIntention,
+                }))
+              }
+              className={inputClasses}
             >
-              + Add child
-            </button>
-          </div>
-        )}
-
-        <SectionTitle>Future Family Plans &amp; Pets</SectionTitle>
-
-        <div className="mb-7">
-          <FieldLabel htmlFor="futureParentalIntentions">
-            Do you and your partner plan, or think you may decide in the future, to have or adopt
-            children together?
-          </FieldLabel>
-          <select
-            id="futureParentalIntentions"
-            value={formData.futureParentalIntentions}
-            onChange={(e) =>
-              setFormData((prev) => ({
-                ...prev,
-                futureParentalIntentions: e.target.value as ParentalIntention,
-              }))
-            }
-            className={inputClasses}
-          >
-            <option value="" disabled>
-              Select an option...
-            </option>
-            {PARENTAL_INTENTION_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
+              <option value="" disabled>
+                Select an option...
               </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="mb-7">
-          <FieldLabel>
-            Do you currently own, or expect to have, any pets whose ownership or care you would
-            like to include in this agreement?
-          </FieldLabel>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {(["Yes", "No"] as const).map((opt) => (
-              <RadioCard
-                key={opt}
-                id={`pets_${opt}`}
-                name="has_family_pets"
-                label={opt}
-                checked={formData.hasFamilyPets === opt}
-                onChange={() => setFormData((prev) => ({ ...prev, hasFamilyPets: opt }))}
-              />
-            ))}
+              {PARENTAL_INTENTION_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
           </div>
-        </div>
 
-        <SubmitBar isSaving={isSaving} label={`Save & continue`} />
+          <div>
+            <FieldLabel>
+              Do you currently own, or expect to have, any pets whose ownership or care you would
+              like to include in this agreement?
+            </FieldLabel>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {(["Yes", "No"] as const).map((opt) => (
+                <RadioCard
+                  key={opt}
+                  id={`pets_${opt}`}
+                  name="has_family_pets"
+                  label={opt}
+                  checked={formData.hasFamilyPets === opt}
+                  onChange={() => setFormData((prev) => ({ ...prev, hasFamilyPets: opt }))}
+                />
+              ))}
+            </div>
+          </div>
+        </SectionCard>
+
+        <SubmitBar isSaving={isSaving} label={`Save & continue`} withArrow />
       </form>
     </FormShell>
   );

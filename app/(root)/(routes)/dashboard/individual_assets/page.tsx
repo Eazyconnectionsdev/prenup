@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { Landmark } from "lucide-react";
 import { useQuestionnaire } from "@/components/questionnaire/useQuestionnaire";
 import { FormShell, LoadingState, SubmitBar } from "@/components/questionnaire/QuestionnaireUI";
 import {
@@ -44,11 +45,17 @@ export default function IndividualAssetsForm() {
     <FormShell
       title="Your Individual Assets"
       stepLabel={`Step ${stepInfo.number} of ${stepInfo.total}`}
+      icon={<Landmark className="h-5 w-5" />}
       description="Please tell us about the assets you personally own or partly own, including any owned with another person such as a parent, family member, business partner or trust."
     >
       <form onSubmit={handleSubmit} noValidate>
         <AssetsFields data={data} onChange={setData} />
-        <SubmitBar isSaving={isSaving} label={`Save & continue`} />
+        <SubmitBar
+          isSaving={isSaving}
+          label={`Save & continue`}
+          withArrow
+          backHref={stepInfo.prevPath}
+        />
       </form>
     </FormShell>
   );

@@ -11,6 +11,101 @@ import { getCasesDetails } from "@/store/asyncThunk/casesThunk";
 import { updateApproval, updateJointInformationStatus } from "@/store/slices/casesSlice";
 import { getErrorMessage } from "@/lib/api/http-error";
 import { useJointSectionStatus } from "@/hooks/useJointSectionStatus";
+import {
+  getSectionProgress,
+  isFormFilled,
+  JOINT_FINANCIAL_KEYS,
+  MATRIMONIAL_KEYS,
+  MY_PARTNER_KEYS,
+} from "@/lib/progressCalculator";
+import {
+  FUTURE_ASSETS_LABELS,
+  labelFor,
+  REVIEW_TRIGGER_LABELS,
+  SPOUSAL_MAINTENANCE_LABELS,
+} from "@/lib/matrimonialAgreementLabels";
+import type { SectionProgress } from "@/types/lib/progress-calculator";
+
+// One form inside a review section, and what to show for it
+type FormRow = {
+  key: string;
+  label: string;
+  // Shown once the form has been filled in
+  detail: string;
+  // Where to go to fill it in, when the signed-in partner owns the form
+  href?: string;
+};
+
+function StatusBadge({ progress }: { progress: SectionProgress }) {
+  if (progress.isComplete) {
+    return (
+      <span className="flex items-center gap-1.5 rounded-full bg-[#DCFCE7] px-3 py-1 text-xs font-semibold text-[#16A34A]">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-3.5 w-3.5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+        Completed
+      </span>
+    );
+  }
+
+  return (
+    <span
+      className="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-[#FEF3C7] px-3 py-1 text-xs font-semibold text-[#B45309]"
+      title={`${progress.completed} of ${progress.total} forms completed`}
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3.5 w-3.5">
+        <circle cx="12" cy="12" r="9" />
+        <path strokeLinecap="round" d="M12 7v5l3 3" />
+      </svg>
+      Pending
+      <span className="font-medium text-[#92400E]/70">
+        {progress.completed}/{progress.total}
+      </span>
+    </span>
+  );
+}
+
+// The forms of one section, each marked with what has actually been saved
+function FormRowList({
+  section,
+  rows,
+  columns = "sm:grid-cols-2",
+}: {
+  section?: Record<string, any>;
+  rows: FormRow[];
+  columns?: string;
+}) {
+  return (
+    <div className={`grid gap-3 text-xs ${columns}`}>
+      {rows.map((row) => {
+        const filled = isFormFilled(section?.[row.key]);
+        return (
+          <div
+            key={`${row.key}-${row.label}`}
+            className={`rounded-lg p-3 ${filled ? "bg-[#FAF9FF]" : "border border-dashed border-[#FDE68A] bg-[#FFFBEB]"}`}
+          >
+            <span className="font-semibold text-[#1E1B3C]">{row.label}:</span>
+            {filled ? (
+              <div className="mt-1 text-[#6B6B80]">{row.detail}</div>
+            ) : (
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-[#B45309]">
+                <span>Not completed yet</span>
+                {row.href && (
+                  <Link
+                    href={row.href}
+                    className="font-semibold text-[#6D28D9] hover:underline"
+                  >
+                    Complete now →
+                  </Link>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function FinalReviewConfirmationPage() {
   const router = useRouter();
@@ -23,7 +118,6 @@ export default function FinalReviewConfirmationPage() {
   const isUser1 = user?.endUserType === "user1";
   const isUser2 = user?.endUserType === "user2";
 
-  // Whose turn it is to edit / review the joint section
   const {
     myId,
     isOwner,
@@ -34,21 +128,17 @@ export default function FinalReviewConfirmationPage() {
     isWaitingOnPartner,
   } = useJointSectionStatus();
 
-  // Section data from Redux
   const myData = isUser1 ? cases.myInformation : cases.partnerInformation;
   const partnerData = isUser1 ? cases.partnerInformation : cases.myInformation;
   const jointData = cases.jointInformation;
   const matrimonialData = (jointData as any)?.matrimonialAgreement;
 
-  // Accordion open/close state for the 4 sections
-  const [openSection, setOpenSection] = useState<string | null>("my-info");
+  const [openSection, setOpenSection] = useState<string | null>("");
 
-  // Modals state
   const [showExhibitBModal, setShowExhibitBModal] = useState(false);
   const [showExhibitDModal, setShowExhibitDModal] = useState(false);
   const [exhibitDConfirmed, setExhibitDConfirmed] = useState(false);
 
-  // Loading and action state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
   const [showDisapproveModal, setShowDisapproveModal] = useState(false);
@@ -56,42 +146,158 @@ export default function FinalReviewConfirmationPage() {
   const [isDisapproving, setIsDisapproving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  // Local state tracking P2 editing mode if they clicked "Make Changes"
   const [p2MadeChanges, setP2MadeChanges] = useState(false);
-  // Local state tracking P1 submission in current session (in addition to backend flags)
   const [justSubmittedByP1, setJustSubmittedByP1] = useState(false);
 
-  // Refresh case on load
   useEffect(() => {
     if (caseId) {
       dispatch(getCasesDetails(caseId));
     }
   }, [dispatch, caseId]);
 
-  // Status checks
-  const hasData = (obj?: Record<string, unknown>) =>
-    Boolean(obj && Object.keys(obj).length > 0);
+  const myProgress = getSectionProgress(myData, MY_PARTNER_KEYS);
+  const partnerProgress = getSectionProgress(partnerData, MY_PARTNER_KEYS);
+  const jointProgress = getSectionProgress(jointData, JOINT_FINANCIAL_KEYS);
+  const matrimonialProgress = getSectionProgress(jointData, MATRIMONIAL_KEYS);
 
-  // Every joint form has to be filled in before an approval request can be sent
-  const isJointComplete =
-    hasData((cases?.jointInformation as any)?.jointAssets) &&
-    hasData((cases?.jointInformation as any)?.jointIncomeAndRevenue) &&
-    hasData((cases?.jointInformation as any)?.jointLiabilitiesAndDebts);
+  const isJointComplete = jointProgress.isComplete;
+  const isMatrimonialComplete = matrimonialProgress.isComplete;
 
-  const isMatrimonialComplete = hasData(matrimonialData);
+  const areAllSectionsComplete =
+    myProgress.isComplete &&
+    partnerProgress.isComplete &&
+    isJointComplete &&
+    isMatrimonialComplete;
 
   const isUser1Approved = Boolean(cases?.approval?.user1Approved);
   const isUser2Approved = Boolean(cases?.approval?.user2Approved);
 
   const isMutualApproved = isUser1Approved && isUser2Approved;
 
-  // The approval request has gone out and the partner owes a review
   const isWaitingForPartnerReview = iAmWaitingForReview || justSubmittedByP1;
 
-  // Only the partner holding the pen can send the request, and only once
-  // every joint form is filled in
-  const canSendForReview =
-    canEdit && isJointComplete && isMatrimonialComplete && !isWaitingForPartnerReview;
+  const canSendForReview = canEdit && areAllSectionsComplete && !isWaitingForPartnerReview;
+  const canApprove = isMyTurnToApprove && areAllSectionsComplete;
+  const hasPartnerJoined = Boolean(cases?.invitedUser?._id);
+
+  // Why the action button is disabled, in the order the user can fix it
+  const blockedReason = !areAllSectionsComplete
+    ? !myProgress.isComplete
+      ? ""
+      : !partnerProgress.isComplete
+        ? hasPartnerJoined
+          ? "Waiting for your partner to complete their information."
+          : "Invite your partner so they can complete their information."
+        : !isJointComplete
+          ? "Complete all three joint financial forms to continue."
+          : "Complete the Matrimonial Agreement & Intentions to continue."
+    : !canEdit && !isMyTurnToApprove
+      ? "Your partner is editing the information right now."
+      : null;
+
+  // "My Information" is always the signed-in partner's own section, so each
+  // unfinished form links to where they can fill it in.
+  const myName = myData?.personalInformation?.firstName
+    ? `${myData.personalInformation.firstName} ${myData.personalInformation.lastName ?? ""}`
+    : user?.firstName
+      ? `${user.firstName} ${user.lastName ?? ""}`
+      : "Provided";
+
+  const myRows: FormRow[] = [
+    { key: "personalInformation", label: "Personal Details", detail: myName, href: "/dashboard/personal-info" },
+    {
+      key: "legalDeclaration",
+      label: "Legal Declaration",
+      detail: "Full disclosure & statutory declarations accepted",
+      href: "/dashboard/legal-declaration",
+    },
+    {
+      key: "familyAndDependents",
+      label: "Dependents & Family",
+      detail: "Registered & reviewed",
+      href: "/dashboard/family",
+    },
+    {
+      key: "individualAssets",
+      label: "Individual Assets",
+      detail: "Assets disclosed",
+      href: "/dashboard/individual_assets",
+    },
+    {
+      key: "incomeAndRevenue",
+      label: "Income & Revenue",
+      detail: "Income disclosed",
+      href: "/dashboard/income_revenue",
+    },
+    {
+      key: "liabilitiesAndDebts",
+      label: "Liabilities & Debts",
+      detail: "Debts disclosed",
+      href: "/dashboard/liabilities_debts",
+    },
+  ];
+
+  // The other party's forms — read-only, so no links
+  const partnerRows: FormRow[] = [
+    {
+      key: "personalInformation",
+      label: "Partner Details",
+      detail: partnerData?.personalInformation?.firstName
+        ? `${partnerData.personalInformation.firstName} ${partnerData.personalInformation.lastName ?? ""}`
+        : "Provided by partner",
+    },
+    { key: "legalDeclaration", label: "Legal Declaration", detail: "Declarations accepted" },
+    { key: "familyAndDependents", label: "Dependents & Family", detail: "Registered & reviewed" },
+    { key: "individualAssets", label: "Individual Assets", detail: "Assets disclosed" },
+    { key: "incomeAndRevenue", label: "Income & Revenue", detail: "Revenue streams disclosed" },
+    { key: "liabilitiesAndDebts", label: "Liabilities & Debts", detail: "Debt schedules disclosed" },
+  ];
+
+  // Joint forms are editable by whoever holds the pen
+  const jointRows: FormRow[] = [
+    {
+      key: "jointAssets",
+      label: "Joint Assets",
+      detail: (jointData as any)?.jointAssets?.livingArrangement
+        ? `Living arrangements: ${(jointData as any).jointAssets.livingArrangement}`
+        : "Properties & accounts disclosed",
+      href: canEdit ? "/dashboard/joint-assets" : undefined,
+    },
+    {
+      key: "jointIncomeAndRevenue",
+      label: "Joint Income & Revenue",
+      detail: "Shared income disclosed",
+      href: canEdit ? "/dashboard/joint-income-revenue" : undefined,
+    },
+    {
+      key: "jointLiabilitiesAndDebts",
+      label: "Joint Liabilities & Debts",
+      detail: "Shared debts & treatment specified",
+      href: canEdit ? "/dashboard/joint-liabilities-debts" : undefined,
+    },
+  ];
+
+  // All of these come from the one Matrimonial Agreement form
+  const matrimonialRows: FormRow[] = [
+    {
+      key: "matrimonialAgreement",
+      label: "Future Assets & Debts",
+      detail: labelFor(FUTURE_ASSETS_LABELS, matrimonialData?.futureAssetsTreatment),
+      href: canEdit ? "/dashboard/matrimonial-agreement" : undefined,
+    },
+    {
+      key: "matrimonialAgreement",
+      label: "Spousal Maintenance",
+      detail: labelFor(SPOUSAL_MAINTENANCE_LABELS, matrimonialData?.spousalMaintenanceIntention),
+      href: canEdit ? "/dashboard/matrimonial-agreement" : undefined,
+    },
+    {
+      key: "matrimonialAgreement",
+      label: "Agreement Review Triggers",
+      detail: labelFor(REVIEW_TRIGGER_LABELS, matrimonialData?.reviewTriggerType),
+      href: canEdit ? "/dashboard/matrimonial-agreement" : undefined,
+    },
+  ];
 
   // Handlers
   // Clicking "Make Changes" while the partner is waiting on your review is a
@@ -323,9 +529,6 @@ export default function FinalReviewConfirmationPage() {
     );
   }
 
-  // ----------------------------------------------------
-  // PARTNER SENT IT BACK: they hold the pen until they resubmit
-  // ----------------------------------------------------
   if (partnerDisapproved && isWaitingOnPartner) {
     const reason = cases?.approval?.disapprovalReason;
     return (
@@ -376,11 +579,7 @@ export default function FinalReviewConfirmationPage() {
     );
   }
 
-  // ----------------------------------------------------
-  // CASE 2: APPROVAL REQUEST SENT AND WAITING (EXHIBIT C)
-  // ----------------------------------------------------
-  // Only the person who sent the request waits here — and only once they have
-  // actually sent it. Filling in the last form no longer gets you this screen.
+
   if (isWaitingForPartnerReview && !isMyTurnToApprove) {
     return (
       <div className="min-h-screen bg-[#F8F9FC] px-4 py-8 md:px-8">
@@ -508,18 +707,11 @@ export default function FinalReviewConfirmationPage() {
     );
   }
 
-  // ----------------------------------------------------
-  // CASE 3: MAIN REVIEW VIEW (EXHIBIT A)
-  // Shown for P1 (before submit) and P2 (during partner review)
-  // ----------------------------------------------------
   return (
     <div className="min-h-screen bg-[#F8F9FC] px-4 py-8 md:px-8">
       <div className="mx-auto max-w-4xl space-y-6">
         {/* Top Header */}
         <div>
-          <div className="text-xs font-semibold uppercase tracking-wider text-[#9494AA]">
-            4. Final Review & Confirmation
-          </div>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-[#1E1B3C] md:text-3xl">
             Review your information
           </h1>
@@ -553,12 +745,7 @@ export default function FinalReviewConfirmationPage() {
               </div>
 
               <div className="flex items-center gap-3">
-                <span className="flex items-center gap-1.5 rounded-full bg-[#DCFCE7] px-3 py-1 text-xs font-semibold text-[#16A34A]">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-3.5 w-3.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                  Completed
-                </span>
+                <StatusBadge progress={myProgress} />
                 <span className="text-[#9494AA]">
                   <svg
                     viewBox="0 0 24 24"
@@ -575,43 +762,16 @@ export default function FinalReviewConfirmationPage() {
 
             {openSection === "my-info" && (
               <div className="mt-4 border-t border-[#F1F1F6] pt-4">
-                <div className="grid gap-3 sm:grid-cols-2 text-xs">
-                  <div className="rounded-lg bg-[#FAF9FF] p-3">
-                    <span className="font-semibold text-[#1E1B3C]">Personal Details:</span>
-                    <div className="mt-1 text-[#6B6B80]">
-                      {myData?.personalInformation?.firstName
-                        ? `${myData.personalInformation.firstName} ${myData.personalInformation.lastName ?? ""}`
-                        : user?.firstName
-                        ? `${user.firstName} ${user.lastName ?? ""}`
-                        : "Provided"}
-                    </div>
-                  </div>
-                  <div className="rounded-lg bg-[#FAF9FF] p-3">
-                    <span className="font-semibold text-[#1E1B3C]">Legal Declaration:</span>
-                    <div className="mt-1 text-[#6B6B80]">Full disclosure & statutory declarations accepted</div>
-                  </div>
-                  <div className="rounded-lg bg-[#FAF9FF] p-3">
-                    <span className="font-semibold text-[#1E1B3C]">Dependents & Family:</span>
-                    <div className="mt-1 text-[#6B6B80]">Registered & reviewed</div>
-                  </div>
-                  <div className="rounded-lg bg-[#FAF9FF] p-3">
-                    <span className="font-semibold text-[#1E1B3C]">Individual Financial Disclosure:</span>
-                    <div className="mt-1 text-[#6B6B80]">Assets, income & liabilities disclosed</div>
-                  </div>
-                </div>
+                <FormRowList section={myData} rows={myRows} />
 
                 <div className="mt-4 flex justify-end">
-                  {isUser1 ? (
-                    <button
-                      type="button"
-                      onClick={handleP1MakeChanges}
-                      className="text-xs font-semibold text-[#6D28D9] hover:underline"
-                    >
-                      Edit My Information →
-                    </button>
-                  ) : (
-                    <span className="text-xs text-[#9494AA]">View only (Partner disclosure)</span>
-                  )}
+                  <button
+                    type="button"
+                    onClick={isUser2 ? handleP2MakeChanges : handleP1MakeChanges}
+                    className="text-xs font-semibold text-[#6D28D9] hover:underline"
+                  >
+                    Edit My Information →
+                  </button>
                 </div>
               </div>
             )}
@@ -641,12 +801,7 @@ export default function FinalReviewConfirmationPage() {
               </div>
 
               <div className="flex items-center gap-3">
-                <span className="flex items-center gap-1.5 rounded-full bg-[#DCFCE7] px-3 py-1 text-xs font-semibold text-[#16A34A]">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-3.5 w-3.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                  Completed
-                </span>
+                <StatusBadge progress={partnerProgress} />
                 <span className="text-[#9494AA]">
                   <svg
                     viewBox="0 0 24 24"
@@ -663,32 +818,27 @@ export default function FinalReviewConfirmationPage() {
 
             {openSection === "partner-info" && (
               <div className="mt-4 border-t border-[#F1F1F6] pt-4">
-                <div className="grid gap-3 sm:grid-cols-2 text-xs">
-                  <div className="rounded-lg bg-[#FAF9FF] p-3">
-                    <span className="font-semibold text-[#1E1B3C]">Partner Details:</span>
-                    <div className="mt-1 text-[#6B6B80]">
-                      {partnerData?.personalInformation?.firstName
-                        ? `${partnerData.personalInformation.firstName} ${partnerData.personalInformation.lastName ?? ""}`
-                        : "Provided by partner"}
-                    </div>
-                  </div>
-                  <div className="rounded-lg bg-[#FAF9FF] p-3">
-                    <span className="font-semibold text-[#1E1B3C]">Partner Disclosure:</span>
-                    <div className="mt-1 text-[#6B6B80]">Assets, revenue streams & debt schedules completed</div>
-                  </div>
-                </div>
+                <FormRowList section={partnerData} rows={partnerRows} />
 
                 <div className="mt-4 flex justify-end">
-                  {isUser2 ? (
-                    <button
-                      type="button"
-                      onClick={handleP2MakeChanges}
+                  {partnerProgress.isComplete ? (
+                    <span className="text-xs text-[#9494AA]">
+                      Shared by partner (Read-only)
+                    </span>
+                  ) : hasPartnerJoined ? (
+                    <span className="text-xs text-[#B45309]">
+                      Your partner still has{" "}
+                      {partnerProgress.total - partnerProgress.completed} form
+                      {partnerProgress.total - partnerProgress.completed === 1 ? "" : "s"}{" "}
+                      to complete
+                    </span>
+                  ) : (
+                    <Link
+                      href="/dashboard/invite-partner"
                       className="text-xs font-semibold text-[#6D28D9] hover:underline"
                     >
-                      Edit My Partner Information →
-                    </button>
-                  ) : (
-                    <span className="text-xs text-[#9494AA]">Shared by partner (Read-only)</span>
+                      Invite your partner →
+                    </Link>
                   )}
                 </div>
               </div>
@@ -720,12 +870,7 @@ export default function FinalReviewConfirmationPage() {
               </div>
 
               <div className="flex items-center gap-3">
-                <span className="flex items-center gap-1.5 rounded-full bg-[#DCFCE7] px-3 py-1 text-xs font-semibold text-[#16A34A]">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-3.5 w-3.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                  Completed
-                </span>
+                <StatusBadge progress={jointProgress} />
                 <span className="text-[#9494AA]">
                   <svg
                     viewBox="0 0 24 24"
@@ -742,30 +887,25 @@ export default function FinalReviewConfirmationPage() {
 
             {openSection === "joint-info" && (
               <div className="mt-4 border-t border-[#F1F1F6] pt-4">
-                <div className="grid gap-3 sm:grid-cols-3 text-xs">
-                  <div className="rounded-lg bg-[#FAF9FF] p-3">
-                    <span className="font-semibold text-[#1E1B3C]">Living Arrangements:</span>
-                    <div className="mt-1 text-[#6B6B80]">
-                      {(jointData as any)?.jointAssets?.livingArrangement ?? "Recorded"}
-                    </div>
-                  </div>
-                  <div className="rounded-lg bg-[#FAF9FF] p-3">
-                    <span className="font-semibold text-[#1E1B3C]">Shared Assets:</span>
-                    <div className="mt-1 text-[#6B6B80]">Properties & accounts disclosed</div>
-                  </div>
-                  <div className="rounded-lg bg-[#FAF9FF] p-3">
-                    <span className="font-semibold text-[#1E1B3C]">Shared Liabilities:</span>
-                    <div className="mt-1 text-[#6B6B80]">Shared debts & treatment specified</div>
-                  </div>
-                </div>
+                <FormRowList
+                  section={jointData}
+                  rows={jointRows}
+                  columns="sm:grid-cols-3"
+                />
 
                 <div className="mt-4 flex justify-end">
-                  <Link
-                    href="/dashboard/joint-assets"
-                    className="text-xs font-semibold text-[#6D28D9] hover:underline"
-                  >
-                    Edit Joint Information →
-                  </Link>
+                  {canEdit ? (
+                    <Link
+                      href="/dashboard/joint-assets"
+                      className="text-xs font-semibold text-[#6D28D9] hover:underline"
+                    >
+                      Edit Joint Information →
+                    </Link>
+                  ) : (
+                    <span className="text-xs text-[#9494AA]">
+                      Your partner is editing the joint information (Read-only)
+                    </span>
+                  )}
                 </div>
               </div>
             )}
@@ -794,12 +934,7 @@ export default function FinalReviewConfirmationPage() {
               </div>
 
               <div className="flex items-center gap-3">
-                <span className="flex items-center gap-1.5 rounded-full bg-[#DCFCE7] px-3 py-1 text-xs font-semibold text-[#16A34A]">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-3.5 w-3.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                  Completed
-                </span>
+                <StatusBadge progress={matrimonialProgress} />
                 <span className="text-[#9494AA]">
                   <svg
                     viewBox="0 0 24 24"
@@ -816,28 +951,21 @@ export default function FinalReviewConfirmationPage() {
 
             {openSection === "matrimonial-info" && (
               <div className="mt-4 border-t border-[#F1F1F6] pt-4">
-                <div className="grid gap-3 sm:grid-cols-2 text-xs">
-                  <div className="rounded-lg bg-[#FAF9FF] p-3">
-                    <span className="font-semibold text-[#1E1B3C]">Separate Property Approach:</span>
-                    <div className="mt-1 text-[#6B6B80]">
-                      {matrimonialData?.separatePropertyIntention ?? "Ring-fence all separate property"}
-                    </div>
-                  </div>
-                  <div className="rounded-lg bg-[#FAF9FF] p-3">
-                    <span className="font-semibold text-[#1E1B3C]">Spousal Maintenance:</span>
-                    <div className="mt-1 text-[#6B6B80]">
-                      {matrimonialData?.spousalMaintenanceIntention ?? "Clean break waiver agreed"}
-                    </div>
-                  </div>
-                </div>
+                <FormRowList section={jointData} rows={matrimonialRows} />
 
                 <div className="mt-4 flex justify-end">
-                  <Link
-                    href="/dashboard/matrimonial-agreement"
-                    className="text-xs font-semibold text-[#6D28D9] hover:underline"
-                  >
-                    Edit Matrimonial Intentions →
-                  </Link>
+                  {canEdit ? (
+                    <Link
+                      href="/dashboard/matrimonial-agreement"
+                      className="text-xs font-semibold text-[#6D28D9] hover:underline"
+                    >
+                      Edit Matrimonial Intentions →
+                    </Link>
+                  ) : (
+                    <span className="text-xs text-[#9494AA]">
+                      Your partner is editing this section (Read-only)
+                    </span>
+                  )}
                 </div>
               </div>
             )}
@@ -845,23 +973,27 @@ export default function FinalReviewConfirmationPage() {
         </div>
 
         {/* Ready to submit / partner review info card (matching Exhibit A) */}
-        <div className="flex items-start gap-3.5 rounded-2xl border border-[#BFDBFE] bg-[#EFF6FF] p-5">
-          <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#3B82F6] text-white text-xs font-bold">
-            i
+        {!areAllSectionsComplete ? (
+          <></>
+        ) : (
+          <div className="flex items-start gap-3.5 rounded-2xl border border-[#BFDBFE] bg-[#EFF6FF] p-5">
+            <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#3B82F6] text-white text-xs font-bold">
+              i
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-[#1E3A8A]">
+                {isMyTurnToApprove
+                  ? "Partner review and approval required"
+                  : "Ready to ask your partner to approve?"}
+              </h3>
+              <p className="mt-1 text-xs leading-relaxed text-[#2563EB] md:text-sm">
+                {isMyTurnToApprove
+                  ? "Please review all 4 sections carefully. You can approve the package as presented, or click Make Changes to adjust your questionnaire before sending back for mutual review."
+                  : "Nothing has been sent to your partner yet. When you send the approval request, your complete information is made available to them for review. They can approve it or make changes — and if they make changes, you will review and approve those before the final confirmation."}
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-sm font-bold text-[#1E3A8A]">
-              {isMyTurnToApprove
-                ? "Partner review and approval required"
-                : "Ready to ask your partner to approve?"}
-            </h3>
-            <p className="mt-1 text-xs leading-relaxed text-[#2563EB] md:text-sm">
-              {isMyTurnToApprove
-                ? "Please review all 4 sections carefully. You can approve the package as presented, or click Make Changes to adjust your questionnaire before sending back for mutual review."
-                : "Nothing has been sent to your partner yet. When you send the approval request, your complete information is made available to them for review. They can approve it or make changes — and if they make changes, you will review and approve those before the final confirmation."}
-            </p>
-          </div>
-        </div>
+        )}
 
         {actionError && (
           <p className="mb-3 text-sm font-medium text-red-500">{actionError}</p>
@@ -895,51 +1027,62 @@ export default function FinalReviewConfirmationPage() {
           </div>
 
           <div>
-            {isMyTurnToApprove ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setShowExhibitDModal(true)}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#16A34A] py-3.5 text-sm font-bold text-white shadow-lg shadow-[#16A34A]/25 transition hover:bg-[#15803D]"
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-4 w-4">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>Approve</span>
-                </button>
-                
-              </>
+            {canApprove ? (
+              <button
+                type="button"
+                onClick={() => setShowExhibitDModal(true)}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#16A34A] py-3.5 text-sm font-bold text-white shadow-lg shadow-[#16A34A]/25 transition hover:bg-[#15803D]"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-4 w-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Approve</span>
+              </button>
             ) : canSendForReview ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setShowExhibitBModal(true)}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#16A34A] py-3.5 text-sm font-bold text-white shadow-lg shadow-[#16A34A]/25 transition hover:bg-[#15803D]"
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 10l18-7-7 18-3-7-8-4z" />
-                  </svg>
-                  <span>
-                    {partnerDisapproved
-                      ? "Resend Approval Request"
-                      : "Send Approval Request"}
-                  </span>
-                </button>
-                
-              </>
+              <button
+                type="button"
+                onClick={() => setShowExhibitBModal(true)}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#16A34A] py-3.5 text-sm font-bold text-white shadow-lg shadow-[#16A34A]/25 transition hover:bg-[#15803D]"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 10l18-7-7 18-3-7-8-4z" />
+                </svg>
+                <span>
+                  {partnerDisapproved
+                    ? "Resend Approval Request"
+                    : "Send Approval Request"}
+                </span>
+              </button>
             ) : (
+              /* Nothing can be sent or approved until every form is filled in */
               <>
                 <button
                   type="button"
                   disabled
+                  title={blockedReason ?? undefined}
                   className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl bg-[#E7E7F2] py-3.5 text-sm font-bold text-[#9494AA]"
                 >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 10l18-7-7 18-3-7-8-4z" />
-                  </svg>
-                  <span>Send Approval Request</span>
+                  {isMyTurnToApprove ? (
+                    <>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-4 w-4">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span>Approve</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 10l18-7-7 18-3-7-8-4z" />
+                      </svg>
+                      <span>Send Approval Request</span>
+                    </>
+                  )}
                 </button>
-                
+                {blockedReason && (
+                  <p className="mt-2 text-center text-xs text-[#B45309]">
+                    {blockedReason}
+                  </p>
+                )}
               </>
             )}
           </div>
@@ -1010,7 +1153,7 @@ export default function FinalReviewConfirmationPage() {
               </button>
               <button
                 type="button"
-                disabled={isSubmitting}
+                disabled={isSubmitting || !canSendForReview}
                 onClick={handleConfirmSubmitForPartnerReview}
                 className="flex w-1/2 items-center justify-center gap-1.5 rounded-xl bg-[#16A34A] py-3 text-xs font-bold text-white shadow-md transition hover:bg-[#15803D] disabled:opacity-60"
               >

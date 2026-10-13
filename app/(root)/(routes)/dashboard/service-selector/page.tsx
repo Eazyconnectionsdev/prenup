@@ -34,8 +34,8 @@ type Service = {
   short: string;
   heading: string;
   subheading: string;
-  question: string;
-  situations: Situation[];
+  question: string | null;
+  situations: Situation[] | null;
   accent: string;
 };
 
@@ -89,30 +89,14 @@ const SERVICES: Service[] = [
       "For couples who live together or plan to live together without marrying.",
     heading: "Cohabitation Agreement",
     subheading: "Tell us a little more about your living arrangements.",
-    question: "What is your living situation?",
+    question: null,
     accent: "from-emerald-400 to-teal-600",
-    situations: [
-      {
-        id: "living-together",
-        title: "We live together",
-        description: "We already share a home.",
-      },
-      {
-        id: "moving-in",
-        title: "Moving in together",
-        description: "We are planning to move in together.",
-      },
-    ],
+    situations: null,
   },
 ];
 
 const CONFIRMATIONS = [
   { id: "residency", label: "I reside in England or Wales." },
-  {
-    id: "final",
-    label:
-      "I understand that I cannot make changes to my service once submitted.",
-  },
 ];
 
 function ServiceIcon({ id }: { id: ServiceId }) {
@@ -220,7 +204,9 @@ export default function ServiceSelector({
   const isCaseOwner =
     user?.endUserType === "user1" ||
     Boolean(
-      user?._id && cases.owner?._id && String(cases.owner._id) === String(user._id),
+      user?._id &&
+      cases.owner?._id &&
+      String(cases.owner._id) === String(user._id),
     );
 
   const [choice, setChoice] = useState<ServiceSelection | null>(null);
@@ -245,8 +231,7 @@ export default function ServiceSelector({
         if (!active) return;
         setSavedType(res.completed ? res.agreementType : null);
       })
-      .catch(() => {
-      })
+      .catch(() => {})
       .finally(() => {
         if (active) setCheckedOnboarding(true);
       });
@@ -260,7 +245,8 @@ export default function ServiceSelector({
 
   const serviceId: ServiceId =
     choice?.service ?? existingChoice?.service ?? defaultService;
-  const situation: string = choice?.situation ?? existingChoice?.situation ?? "";
+  const situation: string =
+    choice?.situation ?? existingChoice?.situation ?? "";
 
   const service = useMemo(
     () => SERVICES.find((s) => s.id === serviceId)!,
@@ -316,7 +302,10 @@ export default function ServiceSelector({
       }
     } catch (error) {
       toast.error(
-        getErrorMessage(error, "Unable to save your selection. Please try again."),
+        getErrorMessage(
+          error,
+          "Unable to save your selection. Please try again.",
+        ),
       );
     } finally {
       setIsSaving(false);
@@ -336,7 +325,9 @@ export default function ServiceSelector({
       <div className="relative mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-10">
         <div className="mb-8 text-center lg:mb-12">
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-            {isReadOnly ? "Your selected service" : "Which agreement is right for you?"}
+            {isReadOnly
+              ? "Your selected service"
+              : "Which agreement is right for you?"}
           </h1>
         </div>
 
@@ -415,7 +406,6 @@ export default function ServiceSelector({
                 </button>
               );
             })}
-
           </div>
 
           <div
@@ -436,7 +426,9 @@ export default function ServiceSelector({
               </div>
             </div>
 
-            <div className="my-8 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
+            {service.question !== null && (
+              <div className="my-8 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
+            )}
 
             {/* Situation */}
             <fieldset>
@@ -444,7 +436,7 @@ export default function ServiceSelector({
                 {service.question}
               </legend>
               <div className="grid gap-3 sm:grid-cols-2">
-                {service.situations.map((opt) => {
+                {service?.situations?.map((opt) => {
                   const active = situation === opt.id;
                   return (
                     <label
@@ -497,7 +489,7 @@ export default function ServiceSelector({
                 Please confirm the following
               </legend>
               <div className="space-y-3">
-                {CONFIRMATIONS.map((c) => {
+                {CONFIRMATIONS?.map((c) => {
                   const checked = !!confirmed[c.id];
                   return (
                     <label

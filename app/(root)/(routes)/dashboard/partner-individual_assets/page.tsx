@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Landmark } from "lucide-react";
 import { useQuestionnaire } from "@/components/questionnaire/useQuestionnaire";
 import { FormShell, LoadingState } from "@/components/questionnaire/QuestionnaireUI";
 import {
@@ -25,6 +26,7 @@ export default function PartnerIndividualAssetsView() {
     <FormShell
       readOnly
       title="Partner's Individual Assets"
+      icon={<Landmark className="h-5 w-5" />}
       description="A read-only view of the individual assets your partner has declared."
     >
       <AssetsFields data={data} readOnly />

@@ -44,6 +44,7 @@ export function getStep(slug: QuestionnaireStepSlug) {
   const index = QUESTIONNAIRE_STEPS.findIndex((s) => s.slug === slug);
   const step = QUESTIONNAIRE_STEPS[index];
   const next = QUESTIONNAIRE_STEPS[index + 1];
+  const previous = index > 0 ? QUESTIONNAIRE_STEPS[index - 1] : undefined;
 
   return {
     ...step,
@@ -52,5 +53,8 @@ export function getStep(slug: QuestionnaireStepSlug) {
     // undefined on the last step (no automatic redirect after it)
     nextPath: next ? `/dashboard/${next.slug}` : undefined,
     nextTitle: next ? next.title : undefined,
+    // undefined on the first step, which has nothing to go back to
+    prevPath: previous ? `/dashboard/${previous.slug}` : undefined,
+    prevTitle: previous ? previous.title : undefined,
   };
 }
