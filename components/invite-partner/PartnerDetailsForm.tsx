@@ -128,7 +128,7 @@ export const PartnerDetailsForm: React.FC<PartnerDetailsFormProps> = ({
             <button
               type="submit"
               disabled={isSending || locked}
-              className="px-6 py-3.5 rounded-xl bg-white text-[#0F172A] border border-[#CBD5E1] text-xs md:text-sm font-extrabold uppercase tracking-wider hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md flex items-center space-x-2 disabled:opacity-70 cursor-pointer"
+              className="px-6 py-3.5 rounded-xl bg-white text-white border border-[#CBD5E1] text-xs md:text-sm font-extrabold uppercase tracking-wider hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md flex items-center space-x-2 disabled:opacity-70 cursor-pointer bg-gradient-to-br from-[#8B87FF] to-[#5B55F6] shadow-[0_4px_12px_rgba(91,85,246,0.45)]"
             >
               <span>
                 {isSending
