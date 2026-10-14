@@ -252,9 +252,9 @@ function NotesPanel({
 function Section1TopBarSettings() {
   const [settings, setSettings] = useState({
     topBar1Enabled: true,
-    topBar1Toggle: false,
+    topBar1Text: "",
     topBar2Enabled: true,
-    topBar2Toggle: false,
+    topBar2Text: "",
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -267,9 +267,9 @@ function Section1TopBarSettings() {
       if (res.data) {
         setSettings({
           topBar1Enabled: Boolean(res.data.topBar1Enabled ?? true),
-          topBar1Toggle: Boolean(res.data.topBar1Toggle ?? false),
+          topBar1Text: res.data.topBar1Text ?? "",
           topBar2Enabled: Boolean(res.data.topBar2Enabled ?? true),
-          topBar2Toggle: Boolean(res.data.topBar2Toggle ?? false),
+          topBar2Text: res.data.topBar2Text ?? "",
         });
       }
     } catch (err) {
@@ -307,7 +307,7 @@ function Section1TopBarSettings() {
           </div>
           <div>
             <h2 className="text-sm font-bold text-slate-800">Section 1 — TopBar Controls</h2>
-            <p className="text-xs text-slate-500">Enable/disable and toggle visibility of global TopBar items</p>
+            <p className="text-xs text-slate-500">Enable/disable and configure text for global TopBar items</p>
           </div>
         </div>
 
@@ -335,21 +335,23 @@ function Section1TopBarSettings() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100">
-                <th className="text-left py-2.5 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                <th className="text-left py-2.5 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wide w-48">
                   TopBar Element
                 </th>
-                <th className="text-center py-2.5 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                <th className="text-center py-2.5 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wide w-44">
                   Enable / Disable
                 </th>
-                <th className="text-center py-2.5 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                  Toggle Visibility
+                <th className="text-left py-2.5 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                  text to show in tobBar
                 </th>
               </tr>
             </thead>
             <tbody>
               {/* TopBar-1 */}
               <tr className="border-b border-slate-50">
-                <td className="py-3 px-3 font-semibold text-slate-700">TopBar-1 Navigation</td>
+                <td className="py-3 px-3 font-semibold text-slate-700 whitespace-nowrap">
+                  TopBar-1 Navigation
+                </td>
                 <td className="py-3 px-3 text-center">
                   <div className="flex items-center justify-center gap-2">
                     <button
@@ -370,31 +372,22 @@ function Section1TopBarSettings() {
                     </span>
                   </div>
                 </td>
-                <td className="py-3 px-3 text-center">
-                  <div className="flex items-center justify-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setSettings((s) => ({ ...s, topBar1Toggle: !s.topBar1Toggle }))}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
-                        settings.topBar1Toggle ? "bg-emerald-500" : "bg-slate-300"
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          settings.topBar1Toggle ? "translate-x-6" : "translate-x-1"
-                        }`}
-                      />
-                    </button>
-                    <span className={`text-xs font-semibold ${settings.topBar1Toggle ? "text-emerald-600" : "text-slate-400"}`}>
-                      {settings.topBar1Toggle ? "Visible" : "Hidden"}
-                    </span>
-                  </div>
+                <td className="py-3 px-3">
+                  <input
+                    type="text"
+                    value={settings.topBar1Text}
+                    onChange={(e) => setSettings((s) => ({ ...s, topBar1Text: e.target.value }))}
+                    placeholder="Enter text to show in TopBar-1..."
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs focus:outline-none focus:border-violet-500 bg-white text-slate-800 placeholder:text-slate-400"
+                  />
                 </td>
               </tr>
 
               {/* TopBar-2 */}
               <tr>
-                <td className="py-3 px-3 font-semibold text-slate-700">TopBar-2 Navigation</td>
+                <td className="py-3 px-3 font-semibold text-slate-700 whitespace-nowrap">
+                  TopBar-2 Navigation
+                </td>
                 <td className="py-3 px-3 text-center">
                   <div className="flex items-center justify-center gap-2">
                     <button
@@ -415,25 +408,14 @@ function Section1TopBarSettings() {
                     </span>
                   </div>
                 </td>
-                <td className="py-3 px-3 text-center">
-                  <div className="flex items-center justify-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setSettings((s) => ({ ...s, topBar2Toggle: !s.topBar2Toggle }))}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
-                        settings.topBar2Toggle ? "bg-emerald-500" : "bg-slate-300"
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          settings.topBar2Toggle ? "translate-x-6" : "translate-x-1"
-                        }`}
-                      />
-                    </button>
-                    <span className={`text-xs font-semibold ${settings.topBar2Toggle ? "text-emerald-600" : "text-slate-400"}`}>
-                      {settings.topBar2Toggle ? "Visible" : "Hidden"}
-                    </span>
-                  </div>
+                <td className="py-3 px-3">
+                  <input
+                    type="text"
+                    value={settings.topBar2Text}
+                    onChange={(e) => setSettings((s) => ({ ...s, topBar2Text: e.target.value }))}
+                    placeholder="Enter text to show in TopBar-2..."
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs focus:outline-none focus:border-violet-500 bg-white text-slate-800 placeholder:text-slate-400"
+                  />
                 </td>
               </tr>
             </tbody>

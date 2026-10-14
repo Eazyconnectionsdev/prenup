@@ -10,7 +10,6 @@ import CMActionsTab from "./components/CMActionsTabs";
 import TimelineTab from "./components/TimelineTab";
 import EmailsTab from "./components/EmailsTab";
 import AuditTab from "./components/AuditTab";
-import NotesTab from "./components/NotesTab";
 
 import Axios from "@/lib/ApiConfig";
 
@@ -178,10 +177,6 @@ export default function CaseDetailPage() {
 
           {activeTab === "audit" && (
             <AuditTab caseData={caseData} />
-          )}
-
-          {activeTab === "notes" && (
-            <NotesTab />
           )}
         </div>
       </div>
