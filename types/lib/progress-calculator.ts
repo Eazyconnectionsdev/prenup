@@ -9,3 +9,10 @@ export interface ProgressResult {
   total: number;
   percentage: number;
 }
+
+// How far one of the Final Review sections has got
+export interface SectionProgress {
+  completed: number;
+  total: number;
+  isComplete: boolean;
+}

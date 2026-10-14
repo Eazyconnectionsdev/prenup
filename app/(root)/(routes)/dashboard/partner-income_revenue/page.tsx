@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Banknote } from "lucide-react";
 import { useQuestionnaire } from "@/components/questionnaire/useQuestionnaire";
 import { FormShell, LoadingState } from "@/components/questionnaire/QuestionnaireUI";
 import {
@@ -25,6 +26,7 @@ export default function PartnerIncomeRevenueView() {
     <FormShell
       readOnly
       title="Partner's Income & Revenue"
+      icon={<Banknote className="h-5 w-5" />}
       description="A read-only view of the income and revenue your partner has declared."
     >
       <IncomeFields data={data} readOnly />

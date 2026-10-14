@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { Baby, History, PawPrint, UsersRound } from "lucide-react";
 import { useQuestionnaire } from "@/components/questionnaire/useQuestionnaire";
 import {
   FieldLabel,
   FormShell,
   LoadingState,
   RadioCard,
-  SectionTitle,
+  SectionCard,
   inputClasses,
 } from "@/components/questionnaire/QuestionnaireUI";
 import {
@@ -40,10 +41,10 @@ export default function PartnerFamilyDependentsView() {
     <FormShell
       readOnly
       title="Partner's Family & Dependents"
+      icon={<UsersRound className="h-5 w-5" />}
       description="A read-only view of the family and dependents information your partner has provided."
     >
-      <SectionTitle first>Prior Marital History</SectionTitle>
-      <div className="mb-7">
+      <SectionCard title="Prior Marital History" icon={<History className="h-5 w-5" />}>
         <FieldLabel>Previously married or in a civil partnership before this relationship?</FieldLabel>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {PRIOR_MARRIAGE_OPTIONS.map((opt) => (
@@ -71,10 +72,9 @@ export default function PartnerFamilyDependentsView() {
             </span>
           </div>
         )}
-      </div>
+      </SectionCard>
 
-      <SectionTitle>Current Children</SectionTitle>
-      <div className="mb-7">
+      <SectionCard title="Current Children" icon={<Baby className="h-5 w-5" />}>
         <FieldLabel>
           Any children, including biological, adopted, or stepchildren, from this relationship or a
           previous relationship?
@@ -91,67 +91,73 @@ export default function PartnerFamilyDependentsView() {
             />
           ))}
         </div>
-      </div>
 
-      {formData.hasLivingChildren === "Yes" && (
-        <div className="mb-7 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-6">
-          <div className="mb-4 text-[0.8rem] font-bold uppercase tracking-wide text-slate-500">
-            Children&apos;s details
-          </div>
-          {children.map((child) => (
-            <div
-              key={child.id}
-              className="mb-3 grid grid-cols-1 items-center gap-3.5 rounded-[10px] border border-slate-200 bg-white p-4 sm:grid-cols-3"
-            >
-              <input
-                type="text"
-                placeholder="Child's full name"
-                value={child.fullName}
-                disabled
-                className={inputClasses}
-              />
-              <input type="date" value={child.dob} disabled className={inputClasses} />
-              <select value={child.parentalRelationship} disabled className={inputClasses}>
-                <option value="">Parental relationship</option>
-                {PARENTAL_RELATIONSHIP_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
+        {formData.hasLivingChildren === "Yes" && (
+          <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-6">
+            <div className="mb-4 text-[0.8rem] font-bold uppercase tracking-wide text-slate-500">
+              Children&apos;s details
             </div>
-          ))}
-        </div>
-      )}
+            {children.map((child) => (
+              <div
+                key={child.id}
+                className="mb-3 grid grid-cols-1 items-center gap-3.5 rounded-[10px] border border-slate-200 bg-white p-4 sm:grid-cols-3"
+              >
+                <input
+                  type="text"
+                  placeholder="Child's full name"
+                  value={child.fullName}
+                  disabled
+                  className={inputClasses}
+                />
+                <input type="date" value={child.dob} disabled className={inputClasses} />
+                <select value={child.parentalRelationship} disabled className={inputClasses}>
+                  <option value="">Parental relationship</option>
+                  {PARENTAL_RELATIONSHIP_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ))}
+          </div>
+        )}
+      </SectionCard>
 
-      <SectionTitle>Future Family Plans &amp; Pets</SectionTitle>
-      <div className="mb-7">
-        <FieldLabel>Plans to have or adopt children together in the future?</FieldLabel>
-        <select value={formData.futureParentalIntentions} disabled className={inputClasses}>
-          <option value="">Not answered</option>
-          {PARENTAL_INTENTION_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="mb-2">
-        <FieldLabel>Any pets whose ownership or care should be included in this agreement?</FieldLabel>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {(["Yes", "No"] as const).map((opt) => (
-            <RadioCard
-              key={opt}
-              id={`pets_${opt}`}
-              name="has_family_pets"
-              label={opt}
-              checked={formData.hasFamilyPets === opt}
-              readOnly
-            />
-          ))}
+      <SectionCard
+        title={<>Future Family Plans &amp; Pets</>}
+        icon={<PawPrint className="h-5 w-5" />}
+      >
+        <div className="mb-6">
+          <FieldLabel>Plans to have or adopt children together in the future?</FieldLabel>
+          <select value={formData.futureParentalIntentions} disabled className={inputClasses}>
+            <option value="">Not answered</option>
+            {PARENTAL_INTENTION_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
         </div>
-      </div>
+
+        <div>
+          <FieldLabel>
+            Any pets whose ownership or care should be included in this agreement?
+          </FieldLabel>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {(["Yes", "No"] as const).map((opt) => (
+              <RadioCard
+                key={opt}
+                id={`pets_${opt}`}
+                name="has_family_pets"
+                label={opt}
+                checked={formData.hasFamilyPets === opt}
+                readOnly
+              />
+            ))}
+          </div>
+        </div>
+      </SectionCard>
     </FormShell>
   );
 }

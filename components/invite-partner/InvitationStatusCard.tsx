@@ -39,7 +39,7 @@ export const InvitationStatusCard: React.FC<InvitationStatusCardProps> = ({
 
   return (
     <aside className="bg-[#ffffff] border-2 border-[#E7E7F2] rounded-3xl p-6 md:p-8 space-y-6 shadow-md sticky top-6">
-      <div className="border-b border-[#E2D9CC] pb-4">
+      <div className="pb-4">
         <h2 className="text-sm font-extrabold tracking-[0.18em] text-[#0F172A] uppercase">
           INVITATION STATUS
         </h2>
@@ -156,8 +156,8 @@ export const InvitationStatusCard: React.FC<InvitationStatusCardProps> = ({
           )}
         </div>
       ) : (
-        <div className="bg-[#0F172A] border-2 border-[#1E293B] rounded-2xl p-6 text-center space-y-3 shadow-md text-white">
-          <div className="w-12 h-12 rounded-full border border-[#C5A880] text-[#0F172A] mx-auto flex items-center justify-center text-xl font-serif-legal font-bold bg-[#C5A880]">
+        <div className="bg-gradient-to-b from-[#1B1E52] via-[#15183F] to-[#101233] border-2 border-[#1E293B] rounded-2xl p-6 text-center space-y-3 shadow-md text-white">
+          <div className="w-12 h-12 rounded-full border border-[#5B55F6] text-white mx-auto flex items-center justify-center text-xl font-normal bg-gradient-to-br from-[#8B87FF] to-[#5B55F6] shadow-[0_4px_12px_rgba(91,85,246,0.45)]">
             ✉
           </div>
           <h3 className="text-base font-extrabold text-white">

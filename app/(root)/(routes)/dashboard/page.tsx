@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { BookOpen } from "lucide-react";
 import { useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import { RootState } from "@/store/store";
@@ -114,6 +115,16 @@ const steps: StepConfig[] = [
   },
 ];
 
+// Each step gets its own tile colour, keyed by id so it stays put when the
+// invite step is filtered out for the invited partner
+const STEP_TILES: Record<StepId, string> = {
+  invite: "from-[#FBBF24] to-[#F59E0B]",
+  questionnaire: "from-[#FB7185] to-[#E11D48]",
+  partner_questionnaire: "from-[#34D399] to-[#059669]",
+  joint_questionnaire: "from-[#60A5FA] to-[#2563EB]",
+  final_review: "from-[#A78BFA] to-[#7C3AED]",
+};
+
 const legalAdvisers = [
   {
     name: "David Miller, QC",
@@ -178,13 +189,32 @@ function DownloadIcon() {
   );
 }
 
-function ProgressPill({ label, value }: { label: string; value: string }) {
+// Donut showing the same overall percentage as the bar beside it
+function ProgressRing({ percent }: { percent: number }) {
+  const radius = 22;
+  const circumference = 2 * Math.PI * radius;
+  const filled = (circumference * Math.min(Math.max(percent, 0), 100)) / 100;
+
   return (
-    <div className="rounded-xl border border-[#E7E7F2] bg-white px-4 py-2.5">
-      <div className="text-[10px] font-semibold uppercase tracking-wide text-[#9494AA]">
-        {label}
-      </div>
-      <div className="mt-0.5 text-sm font-semibold text-[#1E1B3C]">{value}</div>
+    <div className="relative h-14 w-14 flex-shrink-0">
+      <svg viewBox="0 0 56 56" className="h-14 w-14 -rotate-90">
+        <circle cx="28" cy="28" r={radius} fill="none" stroke="#EDEDF5" strokeWidth="5" />
+        <circle
+          cx="28"
+          cy="28"
+          r={radius}
+          fill="none"
+          stroke="#6D28D9"
+          strokeWidth="5"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={circumference - filled}
+          className="transition-[stroke-dashoffset] duration-500 ease-out"
+        />
+      </svg>
+      <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-[#1E1B3C]">
+        {percent}%
+      </span>
     </div>
   );
 }
@@ -492,45 +522,56 @@ export default function PrenupDashboard() {
   return (
     <div className=" h-full bg-[#F6F6FB]">
       <div className="mx-auto max-w-5xl px-8 py-8">
-        <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
-          <div>
-            <h1 className="text-2xl font-semibold text-[#1E1B3C]">
-              Welcome , {user.firstName} 👋
-            </h1>
-            <p className="mt-1 text-sm text-[#6B6B80]">
-              {allStepsDone
-                ? "Here is the current status of your prenuptial agreement."
-                : "Your prenup is taking shape."}
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <div className="rounded-xl border border-[#E7E7F2] bg-white px-4 py-2.5">
-              <div className="text-[10px] font-semibold uppercase tracking-wide text-[#9494AA]">
-                Overall progress
+        <div>
+          <h1 className="text-[1.75rem] font-bold tracking-tight text-[#1E1B3C]">
+            Welcome , {user.firstName} 👋
+          </h1>
+          <p className="mt-1 text-sm text-[#6B6B80]">
+            {allStepsDone
+              ? "Here is the current status of your prenuptial agreement."
+              : "Your prenup is taking shape."}
+          </p>
+        </div>
+
+        <div className="mt-6 grid gap-4 md:grid-cols-3">
+          <div className="flex h-full items-center gap-4 rounded-2xl border border-[#E7E7F2] bg-white p-4">
+            <ProgressRing percent={progressResult?.percentage || 0} />
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-bold text-[#1E1B3C]">Overall progress</div>
+              <div className="text-[11px] text-[#9494AA]">
+                {progressResult?.completed || 0} of {progressResult?.total || 0} steps complete
               </div>
-              <div className="mt-1.5 flex items-center gap-2">
-                <span className="text-sm font-semibold text-[#1E1B3C]">
-                  {progressResult?.percentage || 0}%
-                </span>
-                <div className="h-1.5 w-24 overflow-hidden rounded-full bg-[#EDEDF5]">
-                  <div
-                    className="h-full rounded-full bg-[#6D28D9] transition-all duration-500 ease-out"
-                    style={{ width: `${progressResult?.percentage || 0}%` }}
-                  />
-                </div>
+              <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[#EDEDF5]">
+                <div
+                  className="h-full rounded-full bg-[#6D28D9] transition-all duration-500 ease-out"
+                  style={{ width: `${progressResult?.percentage || 0}%` }}
+                />
               </div>
             </div>
-            <ServiceStatus
-              service={agreementTypeShortLabel(cases?.agreementType)}
-              serviceTitle={agreementTypeLabel(cases?.agreementType)}
-            />
+          </div>
 
+          <ServiceStatus
+            service={agreementTypeShortLabel(cases?.agreementType)}
+            serviceTitle={agreementTypeLabel(cases?.agreementType)}
+          />
+
+          <div className="flex h-full items-center gap-3 rounded-2xl border border-[#E7E7F2] bg-white p-4">
+            <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[#EDE9FE] text-[#6D28D9]">
+              <BookOpen className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <div className="text-sm font-bold text-[#1E1B3C]">Need help?</div>
+              <div className="text-xs text-[#8A8AA0]">Visit our guidance resources.</div>
+            </div>
           </div>
         </div>
 
         {!allStepsDone && (
-          <div className="mt-8 rounded-2xl border border-[#E7E7F2] bg-white p-6">
-            <p className="text-sm text-[#6B6B80]">
+          <div className="mt-8 bg-white p-5 rounded-2xl shadow-sm">
+            <h2 className="text-lg font-bold tracking-tight text-[#1E1B3C]">
+              Your Prenup Journey
+            </h2>
+            <p className="mt-1 text-sm text-[#6B6B80]">
               Welcome to your dashboard! This page will help guide you through your prenup journey.
             </p>
 
@@ -538,37 +579,39 @@ export default function PrenupDashboard() {
               {visibleSteps.map((step, i) => {
                 const isDone = effectiveCompleted.has(step.id);
                 const isActive = i === currentIndex;
-                const isLocked = i > currentIndex;
 
                 return (
                   <div
                     key={step.id}
-                    className={`flex items-center justify-between rounded-xl border px-4 py-3.5 transition-colors ${
+                    className={`flex items-center gap-4 rounded-2xl border px-4 py-4 transition-colors ${
                       isActive
                         ? "border-[#DDD6FE] bg-[#FAF9FF]"
                         : "border-[#EDEDF5] bg-white"
                     }`}
                   >
-                    <div className="flex items-center gap-3.5">
-                      <div
-                        className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${
-                          isDone
-                            ? "bg-[#DCFCE7] text-[#16A34A]"
-                            : isLocked
-                              ? "bg-[#F1F1F6] text-[#B4B4C4]"
-                              : "bg-[#EDE9FE] text-[#6D28D9]"
-                        }`}
-                      >
-                        {step.icon}
+                    <div
+                      className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-sm ${
+                        STEP_TILES[step.id]
+                      }`}
+                    >
+                      {step.icon}
+                    </div>
+
+                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#EDE9FE] text-sm font-bold text-[#6D28D9]">
+                      {i + 1}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-semibold text-[#1E1B3C]">
+                        {step.title}
                       </div>
-                      <div>
-                        <div className="text-sm font-semibold text-[#1E1B3C]">
-                          {step.title}
-                        </div>
-                        <div className="mt-0.5 max-w-md text-xs text-[#8A8AA0]">
-                          {step.description}
-                        </div>
+                      <div className="mt-0.5 max-w-md text-xs text-[#8A8AA0]">
+                        {step.description}
                       </div>
+                    </div>
+
+                    <div className="hidden w-28 flex-shrink-0 text-right text-xs font-medium text-[#8A8AA0] lg:block">
+                      {isDone ? "Completed" : isActive ? "In progress" : "Not started"}
                     </div>
 
                     {renderStepButton(step)}

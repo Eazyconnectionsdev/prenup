@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { UserRound } from "lucide-react";
 import { toast } from "react-toastify";
 import { useQuestionnaire } from "@/components/questionnaire/useQuestionnaire";
 import { FormShell, LoadingState, SubmitBar } from "@/components/questionnaire/QuestionnaireUI";
@@ -52,11 +53,12 @@ export default function PersonalInfoForm() {
     <FormShell
       title="Personal Information"
       stepLabel={`Step ${stepInfo.number} of ${stepInfo.total}`}
+      icon={<UserRound className="h-5 w-5" />}
       description="Complete this section using your own personal and financial information only. Your partner will complete a separate questionnaire using their own information."
     >
       <form onSubmit={handleSubmit} noValidate>
         <PersonalInfoFields data={formData} onChange={setFormData} />
-        <SubmitBar isSaving={isSaving} label={`Save & continue`} />
+        <SubmitBar isSaving={isSaving} label={`Save & continue`} withArrow />
       </form>
     </FormShell>
   );

@@ -34,8 +34,8 @@ type Service = {
   short: string;
   heading: string;
   subheading: string;
-  question: string;
-  situations: Situation[];
+  question: string | null;
+  situations: Situation[] | null;
   accent: string;
 };
 
@@ -89,34 +89,18 @@ const SERVICES: Service[] = [
       "For couples who live together or plan to live together without marrying.",
     heading: "Cohabitation Agreement",
     subheading: "Tell us a little more about your living arrangements.",
-    question: "What is your living situation?",
+    question: null,
     accent: "from-emerald-400 to-teal-600",
-    situations: [
-      {
-        id: "living-together",
-        title: "We live together",
-        description: "We already share a home.",
-      },
-      {
-        id: "moving-in",
-        title: "Moving in together",
-        description: "We are planning to move in together.",
-      },
-    ],
+    situations: null,
   },
 ];
 
 const CONFIRMATIONS = [
   { id: "residency", label: "I reside in England or Wales." },
-  {
-    id: "final",
-    label:
-      "I understand that I cannot make changes to my service once submitted.",
-  },
 ];
 
 function ServiceIcon({ id }: { id: ServiceId }) {
-  const common = "h-6 w-6 text-white";
+  const common = "h-5 w-5 text-white";
   if (id === "prenup")
     return (
       <svg
@@ -167,7 +151,7 @@ function ServiceIcon({ id }: { id: ServiceId }) {
   );
 }
 
-function CheckIcon({ className = "h-3.5 w-3.5" }: { className?: string }) {
+function CheckIcon({ className = "h-3 w-3" }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 20 20"
@@ -192,7 +176,7 @@ function ArrowRight() {
       fill="none"
       stroke="currentColor"
       strokeWidth={2.2}
-      className="h-5 w-5 transition-transform group-hover:translate-x-1"
+      className="h-4 w-4 transition-transform group-hover:translate-x-1"
     >
       <path
         d="M4 10h12m-5-5 5 5-5 5"
@@ -220,7 +204,9 @@ export default function ServiceSelector({
   const isCaseOwner =
     user?.endUserType === "user1" ||
     Boolean(
-      user?._id && cases.owner?._id && String(cases.owner._id) === String(user._id),
+      user?._id &&
+      cases.owner?._id &&
+      String(cases.owner._id) === String(user._id),
     );
 
   const [choice, setChoice] = useState<ServiceSelection | null>(null);
@@ -245,8 +231,7 @@ export default function ServiceSelector({
         if (!active) return;
         setSavedType(res.completed ? res.agreementType : null);
       })
-      .catch(() => {
-      })
+      .catch(() => {})
       .finally(() => {
         if (active) setCheckedOnboarding(true);
       });
@@ -260,7 +245,8 @@ export default function ServiceSelector({
 
   const serviceId: ServiceId =
     choice?.service ?? existingChoice?.service ?? defaultService;
-  const situation: string = choice?.situation ?? existingChoice?.situation ?? "";
+  const situation: string =
+    choice?.situation ?? existingChoice?.situation ?? "";
 
   const service = useMemo(
     () => SERVICES.find((s) => s.id === serviceId)!,
@@ -316,7 +302,10 @@ export default function ServiceSelector({
       }
     } catch (error) {
       toast.error(
-        getErrorMessage(error, "Unable to save your selection. Please try again."),
+        getErrorMessage(
+          error,
+          "Unable to save your selection. Please try again.",
+        ),
       );
     } finally {
       setIsSaving(false);
@@ -333,24 +322,26 @@ export default function ServiceSelector({
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-slate-50">
-      <div className="relative mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-10">
-        <div className="mb-8 text-center lg:mb-12">
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-            {isReadOnly ? "Your selected service" : "Which agreement is right for you?"}
+      <div className="relative mx-auto max-w-5xl px-4 py-6 sm:px-20 lg:py-8">
+        <div className="mb-6 text-center lg:mb-8">
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+            {isReadOnly
+              ? "Your selected service"
+              : "Which agreement is right for you?"}
           </h1>
         </div>
 
         {isReadOnly && (
-          <div className="mx-auto mb-8 flex max-w-3xl items-start gap-3 rounded-2xl border border-violet-200 bg-violet-50/70 px-5 py-4">
-            <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-violet-600 text-white">
+          <div className="mx-auto mb-6 flex max-w-2xl items-start gap-2.5 rounded-xl border border-violet-200 bg-violet-50/70 px-4 py-3">
+            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-violet-600 text-white">
               <CheckIcon />
             </span>
-            <div className="text-sm text-slate-700">
+            <div className="text-[13px] text-slate-700">
               <span className="font-semibold text-slate-900">
                 {chosenLabel ?? "Your service"}
               </span>{" "}
               is the service on this case.
-              <div className="mt-0.5 text-slate-500">
+              <div className="mt-0.5 text-xs text-slate-500">
                 {isCaseOwner
                   ? "Your selection has been submitted, so it can no longer be changed here."
                   : "It was chosen by the partner who started the case."}
@@ -359,11 +350,11 @@ export default function ServiceSelector({
           </div>
         )}
 
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,380px)_1fr] lg:gap-8">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,320px)_1fr] lg:gap-6">
           <div
             role="radiogroup"
             aria-label="Service"
-            className="flex flex-col gap-3"
+            className="flex flex-col gap-2.5"
           >
             {SERVICES.map((s) => {
               const active = s.id === serviceId;
@@ -375,7 +366,7 @@ export default function ServiceSelector({
                   aria-checked={active}
                   disabled={isReadOnly}
                   onClick={() => selectService(s.id)}
-                  className={`group relative flex w-full items-start gap-4 rounded-2xl border p-5 text-left transition-all duration-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-violet-300 ${
+                  className={`group relative flex w-full items-start gap-3 rounded-xl border p-4 text-left transition-all duration-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-violet-300 ${
                     active
                       ? "border-violet-500 bg-white shadow-xl shadow-violet-200/60"
                       : isReadOnly
@@ -384,10 +375,10 @@ export default function ServiceSelector({
                   } ${isReadOnly ? "cursor-default" : ""}`}
                 >
                   {active && (
-                    <span className="absolute inset-y-4 left-0 w-1 rounded-r-full bg-gradient-to-b from-violet-500 to-indigo-600" />
+                    <span className="absolute inset-y-3 left-0 w-[3px] rounded-r-full bg-gradient-to-b from-violet-500 to-indigo-600" />
                   )}
                   <span
-                    className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${s.accent} shadow-md transition-transform duration-200 ${
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${s.accent} shadow-md transition-transform duration-200 ${
                       active ? "scale-105" : "group-hover:scale-105"
                     }`}
                   >
@@ -395,16 +386,16 @@ export default function ServiceSelector({
                   </span>
                   <span className="min-w-0 flex-1">
                     <span
-                      className={`block font-semibold ${active ? "text-violet-700" : "text-slate-900"}`}
+                      className={`block text-sm font-semibold ${active ? "text-violet-700" : "text-slate-900"}`}
                     >
                       {s.title}
                     </span>
-                    <span className="mt-1 block text-sm leading-relaxed text-slate-500">
+                    <span className="mt-0.5 block text-xs leading-relaxed text-slate-500">
                       {s.short}
                     </span>
                   </span>
                   <span
-                    className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-all ${
+                    className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-all ${
                       active
                         ? "border-violet-600 bg-violet-600 text-white"
                         : "border-slate-300 text-transparent"
@@ -415,41 +406,42 @@ export default function ServiceSelector({
                 </button>
               );
             })}
-
           </div>
 
           <div
             key={service.id}
-            className="animate-[fadeIn_.35s_ease-out] rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60 sm:p-8 lg:p-10"
+            className="animate-[fadeIn_.35s_ease-out] rounded-2xl border border-slate-200 bg-white p-5 shadow-lg shadow-slate-200/60 sm:p-6 lg:p-7"
           >
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <span
-                className={`flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${service.accent} shadow-lg`}
+                className={`flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${service.accent} shadow-lg`}
               >
                 <ServiceIcon id={service.id} />
               </span>
               <div>
-                <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+                <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">
                   {service.heading}
                 </h2>
-                <p className="mt-1 text-slate-500">{service.subheading}</p>
+                <p className="mt-0.5 text-sm text-slate-500">{service.subheading}</p>
               </div>
             </div>
 
-            <div className="my-8 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
+            {service.question !== null && (
+              <div className="my-6 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
+            )}
 
             {/* Situation */}
             <fieldset>
-              <legend className="mb-4 text-base font-semibold text-slate-900">
+              <legend className="mb-3 text-sm font-semibold text-slate-900">
                 {service.question}
               </legend>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {service.situations.map((opt) => {
+              <div className="grid gap-2.5 sm:grid-cols-2">
+                {service?.situations?.map((opt) => {
                   const active = situation === opt.id;
                   return (
                     <label
                       key={opt.id}
-                      className={`relative flex items-start gap-3 rounded-2xl border-2 p-4 transition-all ${
+                      className={`relative flex items-start gap-2.5 rounded-xl border-2 p-3.5 transition-all ${
                         isReadOnly ? "cursor-default" : "cursor-pointer"
                       } ${
                         active
@@ -469,19 +461,19 @@ export default function ServiceSelector({
                         className="peer sr-only"
                       />
                       <span
-                        className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-all peer-focus-visible:ring-4 peer-focus-visible:ring-violet-200 ${
+                        className={`mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-2 transition-all peer-focus-visible:ring-4 peer-focus-visible:ring-violet-200 ${
                           active ? "border-violet-600" : "border-slate-300"
                         }`}
                       >
                         <span
-                          className={`h-2.5 w-2.5 rounded-full bg-violet-600 transition-transform ${active ? "scale-100" : "scale-0"}`}
+                          className={`h-2 w-2 rounded-full bg-violet-600 transition-transform ${active ? "scale-100" : "scale-0"}`}
                         />
                       </span>
                       <span>
-                        <span className="block font-semibold text-slate-900">
+                        <span className="block text-sm font-semibold text-slate-900">
                           {opt.title}
                         </span>
-                        <span className="mt-0.5 block text-sm text-slate-500">
+                        <span className="mt-0.5 block text-xs text-slate-500">
                           {opt.description}
                         </span>
                       </span>
@@ -492,17 +484,17 @@ export default function ServiceSelector({
             </fieldset>
 
             {/* Confirmations — only asked when the selection can still be made */}
-            <fieldset className={`mt-8 ${isReadOnly ? "hidden" : ""}`}>
-              <legend className="mb-4 text-base font-semibold text-slate-900">
+            <fieldset className={`mt-6 ${isReadOnly ? "hidden" : ""}`}>
+              <legend className="mb-3 text-sm font-semibold text-slate-900">
                 Please confirm the following
               </legend>
-              <div className="space-y-3">
-                {CONFIRMATIONS.map((c) => {
+              <div className="space-y-2.5">
+                {CONFIRMATIONS?.map((c) => {
                   const checked = !!confirmed[c.id];
                   return (
                     <label
                       key={c.id}
-                      className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-colors ${
+                      className={`flex cursor-pointer items-center gap-2.5 rounded-lg border px-3.5 py-2.5 transition-colors ${
                         checked
                           ? "border-violet-200 bg-violet-50/50"
                           : "border-slate-200 hover:bg-slate-50"
@@ -520,15 +512,15 @@ export default function ServiceSelector({
                         className="peer sr-only"
                       />
                       <span
-                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 transition-all peer-focus-visible:ring-4 peer-focus-visible:ring-violet-200 ${
+                        className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded border-2 transition-all peer-focus-visible:ring-4 peer-focus-visible:ring-violet-200 ${
                           checked
                             ? "border-violet-600 bg-violet-600 text-white"
                             : "border-slate-300 bg-white text-transparent"
                         }`}
                       >
-                        <CheckIcon className="h-3 w-3" />
+                        <CheckIcon className="h-2.5 w-2.5" />
                       </span>
-                      <span className="text-sm text-slate-700">{c.label}</span>
+                      <span className="text-[13px] text-slate-700">{c.label}</span>
                     </label>
                   );
                 })}
@@ -540,7 +532,7 @@ export default function ServiceSelector({
               <button
                 type="button"
                 onClick={() => router.push("/dashboard")}
-                className="group mt-8 flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-6 py-4 text-base font-semibold text-slate-700 transition-all hover:bg-slate-50 focus:outline-none focus-visible:ring-4 focus-visible:ring-violet-300"
+                className="group mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50 focus:outline-none focus-visible:ring-4 focus-visible:ring-violet-300"
               >
                 Back to dashboard
                 <ArrowRight />
@@ -551,13 +543,13 @@ export default function ServiceSelector({
                   type="button"
                   disabled={!canContinue}
                   onClick={handleContinue}
-                  className="group mt-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-4 text-base font-semibold text-white shadow-lg shadow-violet-300/50 transition-all hover:shadow-xl hover:shadow-violet-300/70 hover:brightness-110 focus:outline-none focus-visible:ring-4 focus-visible:ring-violet-300 disabled:cursor-not-allowed disabled:from-slate-300 disabled:to-slate-300 disabled:shadow-none"
+                  className="group mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-md shadow-violet-300/50 transition-all hover:shadow-xl hover:shadow-violet-300/70 hover:brightness-110 focus:outline-none focus-visible:ring-4 focus-visible:ring-violet-300 disabled:cursor-not-allowed disabled:from-slate-300 disabled:to-slate-300 disabled:shadow-none"
                 >
                   {isSaving ? "Saving..." : "Continue"}
                   {!isSaving && <ArrowRight />}
                 </button>
                 {!canContinue && (
-                  <p className="mt-3 text-center text-xs text-slate-400">
+                  <p className="mt-2.5 text-center text-[11px] text-slate-400">
                     {isSaving
                       ? "Saving your selection..."
                       : situation
@@ -568,11 +560,11 @@ export default function ServiceSelector({
               </>
             )}
 
-            <div className="mt-6 flex items-center justify-center gap-2 text-xs text-slate-500">
+            <div className="mt-5 flex items-center justify-center gap-2 text-[11px] text-slate-500">
               <svg
                 viewBox="0 0 20 20"
                 fill="currentColor"
-                className="h-4 w-4 text-emerald-500"
+                className="h-3.5 w-3.5 text-emerald-500"
               >
                 <path
                   fillRule="evenodd"

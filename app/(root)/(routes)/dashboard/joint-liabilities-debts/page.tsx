@@ -2,11 +2,16 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft, ArrowRight, CreditCard, Wallet } from "lucide-react";
 import {
   emptyTreatment,
   makeId,
   inputClasses,
-  PartHeader,
+  FieldLabel,
+  FormShell,
+  SectionCard,
+  SubmitBar,
   YesNoToggle,
   MatrixBox,
   RowItem,
@@ -14,7 +19,7 @@ import {
   makeToggleHandler,
   updateRow,
   removeRow,
-} from "@/components/Formprimitives";
+} from "@/components/questionnaire/QuestionnaireUI";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState, AppDispatch } from "@/store/store";
 import Axios from "@/lib/ApiConfig";
@@ -182,18 +187,16 @@ export default function SharedLiabilitiesForm({
   }
 
   const formBody = (
-    <>
-      <PartHeader tooltip="Declare any liabilities that you and your partner hold jointly, including mortgages, loans, credit cards or other shared financial obligations.">
-        Shared Financial Obligations
-      </PartHeader>
-      <div className="mb-4">
-        <label className="mb-2 block text-[0.95rem] font-semibold text-slate-800">
-          Do you and your partner jointly hold any liabilities, including
-          mortgages, loans, credit cards, finance agreements or other financial
-          obligations?
-        </label>
-        <YesNoToggle name="has_shared_debts" value={hasSharedDebts} onChange={handleToggle} />
-      </div>
+    <SectionCard
+      title="Shared Financial Obligations"
+      icon={<CreditCard className="h-5 w-5" />}
+      tooltip="Declare any liabilities that you and your partner hold jointly, including mortgages, loans, credit cards or other shared financial obligations."
+    >
+      <FieldLabel>
+        Do you and your partner jointly hold any liabilities, including mortgages, loans, credit
+        cards, finance agreements or other financial obligations?
+      </FieldLabel>
+      <YesNoToggle name="has_shared_debts" value={hasSharedDebts} onChange={handleToggle} />
 
       {hasSharedDebts === "Yes" && (
         <MatrixBox
@@ -250,58 +253,53 @@ export default function SharedLiabilitiesForm({
           ))}
         </MatrixBox>
       )}
-    </>
+    </SectionCard>
   );
 
   return (
-    <div className="min-h-screen bg-slate-100 px-5 py-10">
-      <div className="mx-auto max-w-4xl">
-        <div className="rounded-2xl bg-white p-11 shadow-[0_10px_25px_-5px_rgba(15,23,42,0.08)]">
-          <h2 className="mb-2 text-[1.45rem] font-extrabold tracking-tight text-slate-900">
-            Shared Liabilities & Outstanding Debts
-          </h2>
-          <p className="mb-8 text-[0.95rem] leading-relaxed text-slate-500">
-            Please declare any liabilities, loans or financial obligations that
-            you and your partner hold jointly and specify how they should be
-            treated under your prenuptial agreement.
-          </p>
+    <FormShell
+      title="Shared Liabilities & Outstanding Debts"
+      stepLabel="Section 3 • Joint Information"
+      icon={<Wallet className="h-5 w-5" />}
+      description="Please declare any liabilities, loans or financial obligations that you and your partner hold jointly and specify how they should be treated under your prenuptial agreement."
+    >
+      <JointStatusBanner isReviewPage />
+      {actionError && <p className="mb-4 text-sm font-medium text-red-500">{actionError}</p>}
 
-          <JointStatusBanner isReviewPage />
-          {actionError && (
-            <p className="mb-4 text-sm font-medium text-red-500">{actionError}</p>
-          )}
-
-          {canEditForm ? (
-            <form onSubmit={handleSubmit} noValidate>
-              {formBody}
-              <div className="flex justify-end">
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="mt-8 rounded-[10px] bg-indigo-600 px-10 py-3.5 font-semibold text-white shadow-[0_4px_12px_rgba(79,70,229,0.2)] transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-70"
-                >
-                  {isSubmitting ? "Saving..." : "Next: Matrimonial Agreement & Review →"}
-                </button>
-              </div>
-            </form>
-          ) : (
-            <div>
-              <fieldset disabled className="border-0 p-0 m-0">
-                {formBody}
-              </fieldset>
-              <div className="mt-8 flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => router.push("/dashboard/matrimonial-agreement")}
-                  className="rounded-[10px] bg-indigo-600 px-10 py-3.5 font-semibold text-white shadow-[0_4px_12px_rgba(79,70,229,0.2)] transition hover:bg-indigo-700"
-                >
-                  Next: Matrimonial Agreement & Review →
-                </button>
-              </div>
-            </div>
-          )}
+      {canEditForm ? (
+        <form onSubmit={handleSubmit} noValidate>
+          {formBody}
+          <SubmitBar
+            isSaving={isSubmitting}
+            label="Next: Matrimonial Agreement & Review"
+            withArrow
+            backHref="/dashboard/joint-income-revenue"
+          />
+        </form>
+      ) : (
+        <div>
+          <fieldset disabled className="m-0 min-w-0 border-0 p-0">
+            {formBody}
+          </fieldset>
+          <div className="mt-10 flex items-center justify-between border-t border-slate-100 pt-6">
+            <Link
+              href="/dashboard/joint-income-revenue"
+              className="inline-flex items-center gap-2 rounded-[10px] border border-slate-300 bg-white px-6 py-3 font-semibold text-slate-600 transition hover:bg-slate-50"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Link>
+            <button
+              type="button"
+              onClick={() => router.push("/dashboard/matrimonial-agreement")}
+              className="inline-flex items-center gap-2 rounded-[10px] bg-indigo-600 px-8 py-3 font-semibold text-white shadow-[0_4px_12px_rgba(79,70,229,0.25)] transition hover:bg-indigo-700"
+            >
+              Next: Matrimonial Agreement & Review
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
         </div>
-      </div>
-    </div>
+      )}
+    </FormShell>
   );
 }

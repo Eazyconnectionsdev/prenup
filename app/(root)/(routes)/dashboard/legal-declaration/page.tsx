@@ -1,15 +1,16 @@
 "use client";
 
 import React, { useState } from "react";
+import { FileText, ShieldCheck } from "lucide-react";
 import { useQuestionnaire } from "@/components/questionnaire/useQuestionnaire";
 import {
+  cardTextareaClasses,
   CheckCard,
-  FieldLabel,
   FormShell,
   LoadingState,
+  NumberedQuestion,
   SectionTitle,
   SubmitBar,
-  textareaClasses,
 } from "@/components/questionnaire/QuestionnaireUI";
 import {
   DECLARATIONS,
@@ -68,14 +69,15 @@ export default function LegalDeclarationsForm() {
     <FormShell
       title="Legal Declarations"
       stepLabel={`Step ${stepInfo.number} of ${stepInfo.total}`}
+      icon={<FileText className="h-5 w-5" />}
       description="Please review and confirm your understanding of the following foundational principles for your agreement."
     >
       <form onSubmit={handleSubmit} noValidate>
-        <div className="mb-7">
-          <FieldLabel htmlFor="agreementObjectives">
-            Please provide a brief overview of what you are both aiming to achieve with this
-            agreement and your primary reasons for putting it in place.
-          </FieldLabel>
+        <NumberedQuestion
+          number={1}
+          htmlFor="agreementObjectives"
+          question="Please provide a brief overview of what you are both aiming to achieve with this agreement and your primary reasons for putting it in place."
+        >
           <textarea
             id="agreementObjectives"
             name="agreementObjectives"
@@ -84,16 +86,16 @@ export default function LegalDeclarationsForm() {
             placeholder="Describe what you both aim to achieve with this agreement..."
             value={formData.agreementObjectives}
             onChange={handleTextChange}
-            className={textareaClasses}
+            className={cardTextareaClasses}
           />
           {firstPersonRegex.test(formData.agreementObjectives) && <ThirdPersonTip />}
-        </div>
+        </NumberedQuestion>
 
-        <div className="mb-7">
-          <FieldLabel htmlFor="livingSituationFuture">
-            Please provide a summary of your current living arrangements and any significant future
-            plans (e.g., upcoming property purchases, relocating abroad, or major career changes).
-          </FieldLabel>
+        <NumberedQuestion
+          number={2}
+          htmlFor="livingSituationFuture"
+          question="Please provide a summary of your current living arrangements and any significant future plans (e.g., upcoming property purchases, relocating abroad, or major career changes)."
+        >
           <textarea
             id="livingSituationFuture"
             name="livingSituationFuture"
@@ -102,12 +104,14 @@ export default function LegalDeclarationsForm() {
             placeholder="Summarise your current living arrangements and any future plans..."
             value={formData.livingSituationFuture}
             onChange={handleTextChange}
-            className={textareaClasses}
+            className={cardTextareaClasses}
           />
           {firstPersonRegex.test(formData.livingSituationFuture) && <ThirdPersonTip />}
-        </div>
+        </NumberedQuestion>
 
-        <SectionTitle>Declarations of Understanding</SectionTitle>
+        <SectionTitle icon={<ShieldCheck className="h-5 w-5" />}>
+          Declarations of Understanding
+        </SectionTitle>
 
         {DECLARATIONS.map((d) => (
           <CheckCard
@@ -121,7 +125,7 @@ export default function LegalDeclarationsForm() {
           />
         ))}
 
-        <SubmitBar isSaving={isSaving} label={`Save & continue`} />
+        <SubmitBar isSaving={isSaving} label={`Save & continue`} withArrow />
       </form>
     </FormShell>
   );
