@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
 import { logOutUser } from "@/store/asyncThunk/authThunk";
+import NotificationTopBars from "./NotificationTopBars";
 
 type TopBarProps = {
   caseId?: string;
@@ -50,6 +51,7 @@ const TopBar = ({
   onNotifications,
 }: TopBarProps) => {
   const { user } = useSelector((state: RootState) => state.auth);
+  const cases = useSelector((state: RootState) => state.cases);
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
 
@@ -57,7 +59,8 @@ const TopBar = ({
   const [copied, setCopied] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const caseNumber = user?.caseNumber || caseId || user?.inviteCaseId;
+  const displayCaseNumber =
+    cases?.caseNumber || user?.caseNumber || caseId || user?.inviteCaseId;
   const initials =
     `${user?.firstName?.charAt(0) ?? ""}${user?.lastName?.charAt(0) ?? ""}`.toUpperCase() || "U";
   const badge = notificationCount > 99 ? "99+" : String(notificationCount);
@@ -70,9 +73,9 @@ const TopBar = ({
   };
 
   const copyCaseId = async () => {
-    if (!caseNumber) return;
+    if (!displayCaseNumber) return;
     try {
-      await navigator.clipboard.writeText(String(caseNumber));
+      await navigator.clipboard.writeText(String(displayCaseNumber));
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
@@ -102,9 +105,11 @@ const TopBar = ({
   }, [onSearchOpen]);
 
   return (
-    <header className="sticky top-0 z-40 flex h-[56px] items-center justify-between gap-4 border-b border-[#EEEEF6] bg-white px-6 backdrop-blur-md">
+    <div className="sticky top-0 z-40 w-full">
+      <NotificationTopBars />
+      <header className="flex h-[56px] items-center justify-between gap-4 border-b border-[#EEEEF6] bg-white px-6 backdrop-blur-md">
       <div className="min-w-0">
-        {caseNumber && (
+        {displayCaseNumber && (
           <button
             type="button"
             onClick={copyCaseId}
@@ -112,7 +117,7 @@ const TopBar = ({
             className="group flex items-center gap-2 rounded-lg border border-[#EEEEF6] bg-white px-2.5 py-1.5 text-[12px] transition-colors duration-200 hover:border-[#DDD9FF]"
           >
             <span className="font-medium text-[#8A8AA0]">Case ID</span>
-            <span className="font-mono font-semibold text-[#1E1B3C]">{caseNumber}</span>
+            <span className="font-mono font-semibold text-[#1E1B3C]">{displayCaseNumber}</span>
             {copied ? (
               <Check className="h-3.5 w-3.5 text-emerald-500" />
             ) : (
@@ -200,6 +205,7 @@ const TopBar = ({
         </div>
       </div>
     </header>
+    </div>
   );
 };
 

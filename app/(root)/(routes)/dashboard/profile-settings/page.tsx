@@ -93,6 +93,10 @@ function SectionTitle({
 
 function ProfileSettingsForm({ user }: { user: Record<string, any> }) {
   const dispatch = useDispatch<AppDispatch>();
+  const cases = useSelector((state: RootState) => state.cases);
+
+  const displayCaseNumber =
+    cases?.caseNumber || user?.caseNumber || user?.inviteCaseId;
 
   const initialForm = useMemo(() => toForm(user), [user]);
   const [form, setForm] = useState<ProfileForm>(initialForm);
@@ -348,13 +352,13 @@ function ProfileSettingsForm({ user }: { user: Record<string, any> }) {
             <Mail className="h-4 w-4 text-[#6D28D9]" />
             <span>Email verified</span>
           </div>
-          {user?.inviteCaseId && (
+          {displayCaseNumber && (
             <div className="flex items-start gap-2.5 text-[#5B5B75]">
               <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#6D28D9]" />
               <span className="break-all">
                 Case{" "}
                 <span className="font-mono text-xs">
-                  {String(user.inviteCaseId)}
+                  {String(displayCaseNumber)}
                 </span>
               </span>
             </div>

@@ -41,7 +41,10 @@ const AuthSlice = createSlice({
         state.isLoading = false;
         state.isAuthenticated = true;
         state.caseId = payload.caseId;
-        state.user = payload.user;
+        state.user = {
+          ...payload.user,
+          caseNumber: payload.user?.caseNumber || payload.caseNumber || state.user?.caseNumber,
+        };
         state.message = payload.message;
         state.submitError = null;
       })
@@ -84,7 +87,10 @@ const AuthSlice = createSlice({
         state.isLoading = false;
         state.isAuthenticated = true;
         state.caseId = payload.caseId;
-        state.user = payload.user;
+        state.user = {
+          ...payload.user,
+          caseNumber: payload.user?.caseNumber || payload.caseNumber || state.user?.caseNumber,
+        };
         state.message = payload.message;
         state.submitError = null;
       })
@@ -127,8 +133,11 @@ const AuthSlice = createSlice({
       .addCase(getFreshProfile.fulfilled, (state, { payload }) => {
         state.isLoading = false;
         state.isAuthenticated = true;
-        state.caseId = payload.user.inviteCaseId;
-        state.user = payload.user;
+        state.caseId = payload.user?.inviteCaseId || payload.caseId || state.caseId;
+        state.user = {
+          ...payload.user,
+          caseNumber: payload.user?.caseNumber || payload.caseNumber || state.user?.caseNumber,
+        };
         state.message = null;
         state.submitError = null;
       })

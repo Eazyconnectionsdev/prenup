@@ -81,6 +81,7 @@ export interface JointInformationSection {
 
 export interface CaseDetails {
   _id: string;
+  caseNumber?: string | null;
   title: string;
   inviteCredentials: unknown;
   owner: userType;
@@ -109,6 +110,7 @@ export interface CaseDetails {
 export interface CasesState {
   isLoading: boolean;
   caseId: string | null;
+  caseNumber: string | null;
   title: string;
   owner: userType | null;
   invitedUser : userType | null;
