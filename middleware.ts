@@ -16,8 +16,6 @@ const AUTH_ROUTES = [
 
 const PUBLIC_ROUTES = [...AUTH_ROUTES];
 
-// Reachable signed in or out: these carry their own one-time token from an
-// email, so bouncing a stale session to its dashboard would strand the user.
 const ALWAYS_ACCESSIBLE_ROUTES = ["/reset-password"];
 
 const ROLE_HOME: Record<string, string> = {
@@ -28,8 +26,6 @@ const ROLE_HOME: Record<string, string> = {
 };
 
 const ROLE_EXTRA_PATHS: Record<string, string[]> = {
-  // Onboarding is no longer part of the signup flow; re-add "/onboarding"
-  // here if end users need to reach it again.
   end_user: [],
 };
 
@@ -39,7 +35,6 @@ async function getRoleFromToken(token: string | undefined): Promise<string | nul
     const { payload } = await jwtVerify(token, JWT_SECRET);
     return typeof payload.role === "string" ? payload.role : null;
   } catch {
-    // Invalid or expired token: treat as signed out.
     return null;
   }
 }
@@ -47,9 +42,17 @@ async function getRoleFromToken(token: string | undefined): Promise<string | nul
 export default async function middleware(req: NextRequest) {
   const { nextUrl } = req;
 
-  // Let proxied API calls go straight to the rewrite (backend handles its own auth)
   if (nextUrl.pathname === "/backend" || nextUrl.pathname.startsWith("/backend/")) {
     return NextResponse.next();
+  }
+
+  if (
+    nextUrl.pathname === DEFAULT_LOGIN_REDIRECT &&
+    nextUrl.searchParams.has("sessionExpired")
+  ) {
+    const response = NextResponse.next();
+    response.cookies.set("access_token", "", { path: "/", maxAge: 0 });
+    return response;
   }
 
   const token = req.cookies.get("access_token")?.value;

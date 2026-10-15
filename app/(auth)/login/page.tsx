@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
@@ -17,6 +18,9 @@ import { setUserProfileData } from "@/store/slices/authSlice";
 import Image from "next/image";
 import Google from "@/images/icons/google.png";
 
+
+// Said once per page load, however often the effect below is run.
+let sessionNoticeShown = false;
 
 export default function LoginPageStatic() {
   const router = useRouter();
@@ -36,6 +40,32 @@ export default function LoginPageStatic() {
     mode: "onTouched",
     defaultValues: { email: "", password: "" },
   });
+
+  // Arriving here because the session was dropped, rather than by choice.
+  // Read off the address bar rather than through useSearchParams, which would
+  // need a Suspense boundary around the whole form.
+  useEffect(() => {
+    if (sessionNoticeShown) return;
+
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has("sessionExpired")) return;
+
+    sessionNoticeShown = true;
+
+    // On the next tick, and without a cleanup to cancel it: the container
+    // that draws toasts mounts along with this page and drops anything
+    // raised before it is registered, and in development the effect is run
+    // twice, which would otherwise take the notice back before it appeared.
+    window.setTimeout(
+      () => toast.info("Your session has ended. Please sign in again."),
+      0,
+    );
+
+    // Drop the flag, so a refresh does not say it a second time.
+    params.delete("sessionExpired");
+    const rest = params.toString();
+    window.history.replaceState(null, "", rest ? `/login?${rest}` : "/login");
+  }, []);
 
   const onSubmit = async (values: LoginFormValues) => {
     clearErrors("root");
