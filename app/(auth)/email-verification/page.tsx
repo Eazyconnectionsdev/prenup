@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import VerificationInput from "react-verification-input";
-import Logo from "@/images/logo.png";
+import BrandLogo from "@/components/brand/BrandLogo";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
 import { emailVerification, resendOtp } from "@/store/asyncThunk/authThunk";
@@ -72,12 +71,13 @@ export default function EmailVerification() {
   return (
     <section className="min-h-screen flex flex-col">
       {/* Logo */}
-      <header className="px-10 py-10">
-        <Link href="/" className="flex items-center gap-2">
-          <Image src={Logo} width={40} height={40} alt="Logo" />
-          <span className="text-lg font-semibold">
-            <span className="font-bold">Eazy</span>Connections
-          </span>
+      <header className="px-4 py-5 sm:px-8">
+        <Link
+          href="/"
+          aria-label="Lets Prenup home"
+          className="inline-flex items-center transition-opacity hover:opacity-80"
+        >
+          <BrandLogo surface="light" height={34} priority />
         </Link>
       </header>
 

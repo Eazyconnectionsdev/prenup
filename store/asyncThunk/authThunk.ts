@@ -200,3 +200,84 @@ export const getPartnerInvite = createAsyncThunk(
     }
   }
 );
+
+// --- Password reset ------------------------------------------------------
+// The backend answers request-reset identically for known and unknown
+// emails, so a fulfilled result never confirms that an account exists.
+export const requestPasswordReset = createAsyncThunk(
+  "auth/requestPasswordReset",
+  async (email: string, { rejectWithValue }) => {
+    try {
+      const { data } = await Axios.post("/auth/request-reset", { email });
+      return data;
+    } catch (error: any) {
+      if (error.response && error.response.data) {
+        return rejectWithValue(error.response.data);
+      }
+      if (error.code === "ECONNABORTED") {
+        return rejectWithValue("The request timed out. Please try again.");
+      }
+      if (!error.response) {
+        return rejectWithValue("Can't reach the server. Check your connection and try again.");
+      }
+      return rejectWithValue("Something went wrong. Please try again.");
+    }
+  }
+);
+
+// Checks an emailed reset link before the form is shown; does not consume it.
+export const validateResetToken = createAsyncThunk(
+  "auth/validateResetToken",
+  async (
+    { email, token }: { email: string; token: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const { data } = await Axios.post("/auth/validate-reset-token", {
+        email,
+        token,
+      });
+      return data;
+    } catch (error: any) {
+      if (error.response && error.response.data) {
+        return rejectWithValue(error.response.data);
+      }
+      if (!error.response) {
+        return rejectWithValue("Can't reach the server. Check your connection and try again.");
+      }
+      return rejectWithValue("Something went wrong. Please try again.");
+    }
+  }
+);
+
+export const resetPassword = createAsyncThunk(
+  "auth/resetPassword",
+  async (
+    {
+      email,
+      token,
+      newPassword,
+    }: { email: string; token: string; newPassword: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const { data } = await Axios.post("/auth/reset-password", {
+        email,
+        token,
+        newPassword,
+      });
+      return data;
+    } catch (error: any) {
+      if (error.response && error.response.data) {
+        return rejectWithValue(error.response.data);
+      }
+      if (error.code === "ECONNABORTED") {
+        return rejectWithValue("The request timed out. Please try again.");
+      }
+      if (!error.response) {
+        return rejectWithValue("Can't reach the server. Check your connection and try again.");
+      }
+      return rejectWithValue("Something went wrong. Please try again.");
+    }
+  }
+);

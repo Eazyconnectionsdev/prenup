@@ -16,6 +16,8 @@ const AUTH_ROUTES = [
 
 const PUBLIC_ROUTES = [...AUTH_ROUTES];
 
+const ALWAYS_ACCESSIBLE_ROUTES = ["/reset-password"];
+
 const ROLE_HOME: Record<string, string> = {
   admin: "/admin",
   case_manager: "/cm",
@@ -24,8 +26,6 @@ const ROLE_HOME: Record<string, string> = {
 };
 
 const ROLE_EXTRA_PATHS: Record<string, string[]> = {
-  // Onboarding is no longer part of the signup flow; re-add "/onboarding"
-  // here if end users need to reach it again.
   end_user: [],
 };
 
@@ -35,7 +35,6 @@ async function getRoleFromToken(token: string | undefined): Promise<string | nul
     const { payload } = await jwtVerify(token, JWT_SECRET);
     return typeof payload.role === "string" ? payload.role : null;
   } catch {
-    // Invalid or expired token: treat as signed out.
     return null;
   }
 }
@@ -43,16 +42,28 @@ async function getRoleFromToken(token: string | undefined): Promise<string | nul
 export default async function middleware(req: NextRequest) {
   const { nextUrl } = req;
 
-  // Let proxied API calls go straight to the rewrite (backend handles its own auth)
   if (nextUrl.pathname === "/backend" || nextUrl.pathname.startsWith("/backend/")) {
     return NextResponse.next();
+  }
+
+  if (
+    nextUrl.pathname === DEFAULT_LOGIN_REDIRECT &&
+    nextUrl.searchParams.has("sessionExpired")
+  ) {
+    const response = NextResponse.next();
+    response.cookies.set("access_token", "", { path: "/", maxAge: 0 });
+    return response;
   }
 
   const token = req.cookies.get("access_token")?.value;
   const role = await getRoleFromToken(token);
 
   const isLoggedIn = role !== null;
-  const isAuthRoute = AUTH_ROUTES.includes(nextUrl.pathname);
+  const isAlwaysAccessible = ALWAYS_ACCESSIBLE_ROUTES.includes(
+    nextUrl.pathname,
+  );
+  const isAuthRoute =
+    AUTH_ROUTES.includes(nextUrl.pathname) && !isAlwaysAccessible;
   const isPublicRoute = PUBLIC_ROUTES.includes(nextUrl.pathname);
 
   if (!isLoggedIn && !isPublicRoute) {
@@ -68,7 +79,9 @@ export default async function middleware(req: NextRequest) {
   }
 
   const extraPaths = role ? (ROLE_EXTRA_PATHS[role] ?? []) : [];
-  const isExtraPath = extraPaths.some((p) => nextUrl.pathname.startsWith(p));
+  const isExtraPath =
+    isAlwaysAccessible ||
+    extraPaths.some((p) => nextUrl.pathname.startsWith(p));
 
   if (
     isLoggedIn &&
