@@ -1,5 +1,4 @@
 export type StepId =
-  | "invite"
   | "questionnaire"
   | "partner_questionnaire"
   | "joint_questionnaire"

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import BrandLogo from '@/components/brand/BrandLogo';
 import { cn } from '@/lib/utils'
 import {
   Home,
@@ -57,18 +58,13 @@ export default function Sidebar({ activeItem = '/management/admin' }: SidebarPro
     >
       {/* Logo / title */}
       <div className="flex items-center gap-3 p-4">
-        <div className="flex h-10 w-10 items-center justify-center rounded-md bg-indigo-50">
-          <svg viewBox="0 0 40 40" className="h-8 w-8">
-            <circle cx="14" cy="20" r="10" fill="none" stroke="#6366f1" strokeWidth="2" />
-            <circle cx="26" cy="20" r="10" fill="none" stroke="#06b6d4" strokeWidth="2" />
-          </svg>
-        </div>
-
-        {isExpanded && (
+        {isExpanded ? (
           <div className="flex flex-col">
-            <span className="text-sm font-bold text-slate-800">Hello Prenup</span>
-            <span className="text-xs text-slate-500">CM</span>
+            <BrandLogo surface="light" height={30} priority />
+            <span className="mt-1.5 text-xs text-slate-500">CM</span>
           </div>
+        ) : (
+          <BrandLogo surface="light" variant="mark" height={32} priority />
         )}
       </div>
 

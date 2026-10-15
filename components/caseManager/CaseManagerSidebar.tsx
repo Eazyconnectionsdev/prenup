@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import BrandLogo from "@/components/brand/BrandLogo";
 import { usePathname, useRouter } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
 import { LogOut } from "lucide-react";
@@ -69,18 +70,11 @@ export const CaseManagerSidebar: React.FC = () => {
     <aside className="w-[240px] bg-[#0d1527] border-r border-[#1e293b] fixed top-0 bottom-0 left-0 z-50 flex flex-col justify-between p-5 text-slate-200">
       <div>
         {/* Logo & Header */}
-        <div className="flex items-center gap-3 mb-8 pt-2">
-          <div className="w-9 h-9 rounded-full border border-rose-400 bg-[#0a101f] text-rose-300 font-serif font-bold text-sm flex items-center justify-center shadow-xs">
-            LP
-          </div>
-          <div className="flex flex-col">
-            <h1 className="font-serif text-lg font-bold text-white tracking-wide leading-none">
-              LetsPrenup
-            </h1>
-            <span className="text-[9px] uppercase tracking-wider text-rose-300 font-bold mt-1">
-              CASE MANAGER PORTAL V1.0
-            </span>
-          </div>
+        <div className="mb-8 pt-2">
+          <BrandLogo surface="dark" height={26} priority />
+          <span className="mt-2 block text-[9px] uppercase tracking-wider text-rose-300 font-bold">
+            CASE MANAGER PORTAL V1.0
+          </span>
         </div>
 
         {/* Navigation Items */}

@@ -243,20 +243,22 @@ export default function ServiceSelector({
   const existingType = savedType ?? cases.agreementType;
   const existingChoice = fromAgreementType(existingType);
 
-  const serviceId: ServiceId =
-    choice?.service ?? existingChoice?.service ?? defaultService;
-  const situation: string =
-    choice?.situation ?? existingChoice?.situation ?? "";
+  const serviceId: ServiceId = choice?.service ?? existingChoice?.service ?? defaultService;
+  const situation: string = choice?.situation ?? existingChoice?.situation ?? "";
 
   const service = useMemo(
     () => SERVICES.find((s) => s.id === serviceId)!,
     [serviceId],
   );
+  
   const allConfirmed = CONFIRMATIONS.every((c) => confirmed[c.id]);
+
+  const requiresSituation = Boolean(service.situations?.length);
 
   const isReadOnly = !isCaseOwner || Boolean(savedType);
   const chosenLabel = agreementTypeLabel(existingType);
-  const canContinue = Boolean(situation) && allConfirmed && !isSaving;
+  const canContinue =
+    (!requiresSituation || Boolean(situation)) && allConfirmed && !isSaving;
 
   const selectService = (id: ServiceId) => {
     if (id === serviceId || isReadOnly) return;
@@ -431,57 +433,59 @@ export default function ServiceSelector({
             )}
 
             {/* Situation */}
-            <fieldset>
-              <legend className="mb-3 text-sm font-semibold text-slate-900">
-                {service.question}
-              </legend>
-              <div className="grid gap-2.5 sm:grid-cols-2">
-                {service?.situations?.map((opt) => {
-                  const active = situation === opt.id;
-                  return (
-                    <label
-                      key={opt.id}
-                      className={`relative flex items-start gap-2.5 rounded-xl border-2 p-3.5 transition-all ${
-                        isReadOnly ? "cursor-default" : "cursor-pointer"
-                      } ${
-                        active
-                          ? "border-violet-600 bg-violet-50/70 shadow-md shadow-violet-100"
-                          : isReadOnly
-                            ? "border-slate-200 opacity-60"
-                            : "border-slate-200 hover:border-violet-300 hover:bg-slate-50"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="situation"
-                        value={opt.id}
-                        checked={active}
-                        disabled={isReadOnly}
-                        onChange={() => selectSituation(opt.id)}
-                        className="peer sr-only"
-                      />
-                      <span
-                        className={`mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-2 transition-all peer-focus-visible:ring-4 peer-focus-visible:ring-violet-200 ${
-                          active ? "border-violet-600" : "border-slate-300"
+            {requiresSituation && (
+              <fieldset>
+                <legend className="mb-3 text-sm font-semibold text-slate-900">
+                  {service.question}
+                </legend>
+                <div className="grid gap-2.5 sm:grid-cols-2">
+                  {service?.situations?.map((opt) => {
+                    const active = situation === opt.id;
+                    return (
+                      <label
+                        key={opt.id}
+                        className={`relative flex items-start gap-2.5 rounded-xl border-2 p-3.5 transition-all ${
+                          isReadOnly ? "cursor-default" : "cursor-pointer"
+                        } ${
+                          active
+                            ? "border-violet-600 bg-violet-50/70 shadow-md shadow-violet-100"
+                            : isReadOnly
+                              ? "border-slate-200 opacity-60"
+                              : "border-slate-200 hover:border-violet-300 hover:bg-slate-50"
                         }`}
                       >
-                        <span
-                          className={`h-2 w-2 rounded-full bg-violet-600 transition-transform ${active ? "scale-100" : "scale-0"}`}
+                        <input
+                          type="radio"
+                          name="situation"
+                          value={opt.id}
+                          checked={active}
+                          disabled={isReadOnly}
+                          onChange={() => selectSituation(opt.id)}
+                          className="peer sr-only"
                         />
-                      </span>
-                      <span>
-                        <span className="block text-sm font-semibold text-slate-900">
-                          {opt.title}
+                        <span
+                          className={`mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-2 transition-all peer-focus-visible:ring-4 peer-focus-visible:ring-violet-200 ${
+                            active ? "border-violet-600" : "border-slate-300"
+                          }`}
+                        >
+                          <span
+                            className={`h-2 w-2 rounded-full bg-violet-600 transition-transform ${active ? "scale-100" : "scale-0"}`}
+                          />
                         </span>
-                        <span className="mt-0.5 block text-xs text-slate-500">
-                          {opt.description}
+                        <span>
+                          <span className="block text-sm font-semibold text-slate-900">
+                            {opt.title}
+                          </span>
+                          <span className="mt-0.5 block text-xs text-slate-500">
+                            {opt.description}
+                          </span>
                         </span>
-                      </span>
-                    </label>
-                  );
-                })}
-              </div>
-            </fieldset>
+                      </label>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            )}
 
             {/* Confirmations — only asked when the selection can still be made */}
             <fieldset className={`mt-6 ${isReadOnly ? "hidden" : ""}`}>
@@ -552,9 +556,11 @@ export default function ServiceSelector({
                   <p className="mt-2.5 text-center text-[11px] text-slate-400">
                     {isSaving
                       ? "Saving your selection..."
-                      : situation
-                        ? "Tick both confirmations to continue."
-                        : "Choose an option above to continue."}
+                      : requiresSituation && !situation
+                        ? "Choose an option above to continue."
+                        : CONFIRMATIONS.length > 1
+                          ? "Tick the confirmations above to continue."
+                          : "Tick the confirmation above to continue."}
                   </p>
                 )}
               </>
