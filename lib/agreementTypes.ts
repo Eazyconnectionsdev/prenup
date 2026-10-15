@@ -33,6 +33,26 @@ export const AGREEMENT_TYPE_SHORT_LABELS: Record<AgreementType, string> = {
   "help-choose": "Help Me Choose",
 };
 
+// The dashboard card shows the service on its own line with the situation
+// under it, so the long label is also kept split in two here.
+export const AGREEMENT_TYPE_SERVICE_LABELS: Record<AgreementType, string> = {
+  "prenup-marriage": "Prenup",
+  "prenup-civil": "Prenup",
+  "postnup-marriage": "Postnup",
+  "postnup-civil": "Postnup",
+  cohabitation: "Cohabitation",
+  "help-choose": "Help Me Choose",
+};
+
+export const AGREEMENT_TYPE_SITUATION_LABELS: Record<AgreementType, string> = {
+  "prenup-marriage": "Marriage agreement",
+  "prenup-civil": "Civil partnership agreement",
+  "postnup-marriage": "Marriage agreement",
+  "postnup-civil": "Civil partnership agreement",
+  cohabitation: "Living together agreement",
+  "help-choose": "We will help you choose",
+};
+
 export function isAgreementType(value: unknown): value is AgreementType {
   return (
     typeof value === "string" && value in AGREEMENT_TYPE_LABELS
@@ -53,16 +73,16 @@ const TO_AGREEMENT_TYPE: Record<string, AgreementType> = {
   "prenup:civil-partnership": "prenup-civil",
   "postnup:married": "postnup-marriage",
   "postnup:civil-partnership": "postnup-civil",
-  // Both cohabitation situations are the same agreement in law, and the
-  // backend enum has a single id for it.
-  "cohabitation:living-together": "cohabitation",
-  "cohabitation:moving-in": "cohabitation",
 };
 
 export function toAgreementType(
   service: ServiceId,
   situation: string,
 ): AgreementType | null {
+  // Cohabitation is one agreement in law however the couple describe their
+  // living arrangements, so the selector asks for no situation and the
+  // backend enum has a single id for it.
+  if (service === "cohabitation") return "cohabitation";
   return TO_AGREEMENT_TYPE[`${service}:${situation}`] ?? null;
 }
 
@@ -86,4 +106,14 @@ export function fromAgreementType(
       // "help-choose" has no equivalent here: the selector asks outright.
       return null;
   }
+}
+
+export function agreementTypeServiceLabel(value?: string | null): string | null {
+  return isAgreementType(value) ? AGREEMENT_TYPE_SERVICE_LABELS[value] : null;
+}
+
+export function agreementTypeSituationLabel(
+  value?: string | null,
+): string | null {
+  return isAgreementType(value) ? AGREEMENT_TYPE_SITUATION_LABELS[value] : null;
 }

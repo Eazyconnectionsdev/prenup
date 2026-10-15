@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
 
-import Logo from "@/images/logo.png";
+import BrandLogo from "@/components/brand/BrandLogo";
 import Eye from "@/images/icons/eye.png";
 import EyeOff from "@/images/icons/eye-off.png";
 
@@ -177,17 +177,9 @@ try {
   };
 
   return (<section className="relative flex min-h-screen overflow-hidden bg-white">
-    {/* Logo */} <div className="absolute top-10 left-10 flex items-center gap-3"> <Image
-      src={Logo}
-      alt="LetsPrenup Logo"
-      width={45}
-      height={45}
-    />
-
-
-      <p className="text-[23px] font-medium">
-        <strong>Lets</strong>Prenup
-      </p>
+    {/* Logo */}
+    <div className="absolute top-8 left-8 flex items-center">
+      <BrandLogo surface="light" height={34} priority />
     </div>
 
     {/* Form */}

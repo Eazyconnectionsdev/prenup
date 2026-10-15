@@ -10,11 +10,13 @@ import { AppDispatch, RootState } from "@/store/store";
 import { registerUser } from "@/store/asyncThunk/authThunk";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import { useForm, type FieldErrors } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { normalizePhone } from "@/lib/utils";
 import AuthInput from "@/components/auth/AuthInput";
 import AuthHeader from "@/components/auth/AuthHeader";
+import FieldError from "@/components/auth/FieldError";
+import FormAlert from "@/components/auth/FormAlert";
 import {
   registerSchema,
   type RegisterFormValues,
@@ -35,9 +37,14 @@ export default function SignUpPageStatic() {
   const {
     register,
     handleSubmit,
+    setError,
+    setFocus,
+    clearErrors,
     formState: { errors },
   } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
+    // Validate once a field has been visited so its message appears inline.
+    mode: "onTouched",
     defaultValues: {
       firstName: "",
       lastName: "",
@@ -50,12 +57,9 @@ export default function SignUpPageStatic() {
     },
   });
 
-  const onInvalid = (errs: FieldErrors<RegisterFormValues>) => {
-    const first = Object.values(errs)[0];
-    toast.error(first?.message ?? "Please check the form and try again");
-  };
-
   const onSubmit = async (values: RegisterFormValues) => {
+    clearErrors("root");
+
     const payload = {
       firstName: values.firstName.trim(),
       lastName: values.lastName.trim(),
@@ -79,7 +83,28 @@ export default function SignUpPageStatic() {
         error,
         "Unable to create your account. Please try again.",
       );
-      toast.error(message);
+
+      // Point the server's complaint at the field it is about.
+      if (/email/i.test(message)) {
+        setError("email", { type: "server", message });
+        setFocus("email");
+        return;
+      }
+      if (/password/i.test(message)) {
+        setError("password", { type: "server", message });
+        setFocus("password");
+        return;
+      }
+      if (/phone/i.test(message)) {
+        setError("phone", { type: "server", message });
+        setFocus("phone");
+        return;
+      }
+      if (/terms|privacy/i.test(message)) {
+        setError("acceptedTerms", { type: "server", message });
+        return;
+      }
+      setError("root", { type: "server", message });
     }
   };
 
@@ -88,14 +113,14 @@ export default function SignUpPageStatic() {
       <div className="flex min-w-0 flex-1 flex-col">
         <AuthHeader />
 
-        <main className="flex flex-1 items-center justify-center px-4 sm:px-8">
+        <main className="flex flex-1 items-center justify-center px-4 py-8 sm:px-8">
           <div className="w-full max-w-[480px]">
             <h3 className="text-[26px] sm:text-[32px] text-[#495060] font-medium text-center mb-5">
               Create your free account
             </h3>
 
-            <form onSubmit={handleSubmit(onSubmit, onInvalid)} noValidate>
-              <div className="mt-4 flex items-center justify-center gap-3">
+            <form onSubmit={handleSubmit(onSubmit)} noValidate>
+              {/* <div className="mt-4 flex items-center justify-center gap-3">
                 <button
                   type="button"
                   onClick={() => toast.info("Google sign-in is coming soon")}
@@ -104,19 +129,22 @@ export default function SignUpPageStatic() {
                   <Image src={Google} height={20} width={20} alt="" />
                   Google
                 </button>
-              </div>
+              </div> */}
 
-              <div className="flex items-center px-3 my-8">
+              {/* <div className="flex items-center px-3 my-8">
                 <span className="flex-1 border-b border-[#b8bcc0]"></span>
                 <span className="mx-5 text-xs text-gray-500">
                   Or use your work email
                 </span>
                 <span className="flex-1 border-b border-[#b8bcc0]"></span>
-              </div>
+              </div> */}
+
+              <FormAlert message={errors.root?.message} />
 
               <div className="flex gap-4 mt-4">
                 <div className="w-full">
                   <AuthInput
+                    label="First Name"
                     autoComplete="given-name"
                     placeholder="First Name"
                     error={errors.firstName}
@@ -125,6 +153,7 @@ export default function SignUpPageStatic() {
                 </div>
                 <div className="w-full">
                   <AuthInput
+                    label="Last Name"
                     autoComplete="family-name"
                     placeholder="Last Name"
                     error={errors.lastName}
@@ -135,6 +164,7 @@ export default function SignUpPageStatic() {
 
               <div className="mt-4">
                 <AuthInput
+                  label="Work Email"
                   type="email"
                   autoComplete="email"
                   placeholder="Enter your work email"
@@ -145,6 +175,7 @@ export default function SignUpPageStatic() {
 
               <div className="mt-4">
                 <AuthInput
+                  label="Phone"
                   type="tel"
                   inputMode="tel"
                   autoComplete="tel"
@@ -156,6 +187,7 @@ export default function SignUpPageStatic() {
 
               <div className="mt-4">
                 <AuthInput
+                  label="Password"
                   password
                   autoComplete="new-password"
                   placeholder="Password"
@@ -166,6 +198,7 @@ export default function SignUpPageStatic() {
 
               <div className="mt-4">
                 <AuthInput
+                  label="Confirm Password"
                   password
                   autoComplete="new-password"
                   placeholder="Confirm Password"
@@ -179,26 +212,38 @@ export default function SignUpPageStatic() {
                   <input type="checkbox" {...register("marketingConsent")} />I
                   agree to receive occasional news and updates.
                 </label>
-                <label className="flex items-center text-[14px] text-[#495060] mt-3">
-                  <input
-                    type="checkbox"
-                    className="mr-2"
-                    aria-invalid={!!errors.acceptedTerms}
-                    {...register("acceptedTerms")}
+
+                <div className="mt-3">
+                  <label className="flex items-center text-[14px] text-[#495060]">
+                    <input
+                      type="checkbox"
+                      className="mr-2"
+                      aria-invalid={!!errors.acceptedTerms}
+                      aria-describedby={
+                        errors.acceptedTerms
+                          ? "accepted-terms-error"
+                          : undefined
+                      }
+                      {...register("acceptedTerms")}
+                    />
+                    I accept the{" "}
+                    <span className="text-[#6a69ff] mx-1">
+                      Terms &amp; Conditions
+                    </span>{" "}
+                    and{" "}
+                    <span className="text-[#6a69ff] ml-1">Privacy Policy</span>.
+                  </label>
+                  <FieldError
+                    error={errors.acceptedTerms}
+                    id="accepted-terms-error"
                   />
-                  I accept the{" "}
-                  <span className="text-[#6a69ff] mx-1">
-                    Terms & Conditions
-                  </span>{" "}
-                  and{" "}
-                  <span className="text-[#6a69ff] ml-1">Privacy Policy</span>.
-                </label>
+                </div>
               </div>
 
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full px-6 py-2 mt-4 disabled:bg-[#6a69ff]/50 bg-[#6a69ff] text-white text-[14px] rounded"
+                className="w-full px-6 py-2 mt-4 disabled:bg-[#6a69ff]/50 bg-[#6a69ff] text-white text-[14px] rounded transition-colors hover:bg-[#5958e6]"
               >
                 {isLoading ? <span>Please wait...</span> : "Create Account"}
               </button>
@@ -221,7 +266,7 @@ export default function SignUpPageStatic() {
           </p>
           <p className="text-[#414766] text-[12px] my-4">
             SalesQL can enhance any LinkedIn profile with emails and phone
-            numbers – even if you haven’t connected with them.
+            numbers &ndash; even if you haven&rsquo;t connected with them.
           </p>
           {Points.map((each, idx) => (
             <div className={`flex gap-3 ${idx === 1 ? "my-3" : ""}`} key={idx}>

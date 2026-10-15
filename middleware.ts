@@ -16,6 +16,10 @@ const AUTH_ROUTES = [
 
 const PUBLIC_ROUTES = [...AUTH_ROUTES];
 
+// Reachable signed in or out: these carry their own one-time token from an
+// email, so bouncing a stale session to its dashboard would strand the user.
+const ALWAYS_ACCESSIBLE_ROUTES = ["/reset-password"];
+
 const ROLE_HOME: Record<string, string> = {
   admin: "/admin",
   case_manager: "/cm",
@@ -52,7 +56,11 @@ export default async function middleware(req: NextRequest) {
   const role = await getRoleFromToken(token);
 
   const isLoggedIn = role !== null;
-  const isAuthRoute = AUTH_ROUTES.includes(nextUrl.pathname);
+  const isAlwaysAccessible = ALWAYS_ACCESSIBLE_ROUTES.includes(
+    nextUrl.pathname,
+  );
+  const isAuthRoute =
+    AUTH_ROUTES.includes(nextUrl.pathname) && !isAlwaysAccessible;
   const isPublicRoute = PUBLIC_ROUTES.includes(nextUrl.pathname);
 
   if (!isLoggedIn && !isPublicRoute) {
@@ -68,7 +76,9 @@ export default async function middleware(req: NextRequest) {
   }
 
   const extraPaths = role ? (ROLE_EXTRA_PATHS[role] ?? []) : [];
-  const isExtraPath = extraPaths.some((p) => nextUrl.pathname.startsWith(p));
+  const isExtraPath =
+    isAlwaysAccessible ||
+    extraPaths.some((p) => nextUrl.pathname.startsWith(p));
 
   if (
     isLoggedIn &&

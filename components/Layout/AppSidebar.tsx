@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import BrandLogo from "@/components/brand/BrandLogo";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -22,7 +23,7 @@ import {
 import { AppDispatch, RootState } from "@/store/store";
 import { getCasesDetails } from "@/store/asyncThunk/casesThunk";
 
-type SectionKey = "" | "section1" | "section2" | "section3" | "section4";
+type SectionKey = "section1" | "section2" | "section3" | "section4";
 type LeafDef = { id: string; icon: LucideIcon; label: string };
 
 
@@ -74,27 +75,6 @@ function locateSection(activeLeaf: string): SectionKey | null {
   if (!isPartner && JOINT_LEAF_IDS.includes(id)) return "section3";
   if (MY_LEAF_IDS.includes(id)) return isPartner ? "section2" : "section1";
   return null;
-}
-
-function LogoMark() {
-  return (
-    <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#8B87FF] to-[#5B55F6] shadow-[0_4px_12px_rgba(91,85,246,0.45)]">
-      <svg viewBox="0 0 32 32" fill="none" className="h-[22px] w-[22px]" aria-hidden>
-        <path
-          d="M12 26s-8-5.2-8-11.2A4.8 4.8 0 0112 11.6a4.8 4.8 0 018 3.2C20 20.8 12 26 12 26z"
-          stroke="#FFFFFF"
-          strokeWidth={2}
-          strokeLinejoin="round"
-        />
-        <path
-          d="M20 26s-8-5.2-8-11.2a4.8 4.8 0 018-3.2 4.8 4.8 0 018 3.2C28 20.8 20 26 20 26z"
-          stroke="#DDD9FF"
-          strokeWidth={2}
-          strokeLinejoin="round"
-        />
-      </svg>
-    </span>
-  );
 }
 
 // The violet bar that marks the active item, flush against the sidebar edge
@@ -386,15 +366,18 @@ export default function AppSidebar() {
     activeLeaf.startsWith("final-review-confirmation/");
 
   const [openSection, setOpenSection] = useState<SectionKey | null>(
-    locateSection(activeLeaf) ?? "",
+    locateSection(activeLeaf) ?? null,
   );
-
 
   const [lastPath, setLastPath] = useState(pathname);
   if (pathname !== lastPath) {
     setLastPath(pathname);
     const target = locateSection(activeLeaf);
+    // Open the step that owns the page being viewed. The dashboard home owns
+    // no step, so arriving there closes every step -- the sidebar then looks
+    // the same whether you navigated back to it or loaded it fresh.
     if (target) setOpenSection(target);
+    else if (isDashboardHome) setOpenSection(null);
   }
 
   const isFirstUser = user?.endUserType === "user1";
@@ -451,11 +434,11 @@ export default function AppSidebar() {
 
   return (
     <aside className="flex h-screen w-[315px] flex-shrink-0 flex-col bg-gradient-to-b from-[#1B1E52] via-[#15183F] to-[#101233] font-sans text-white shadow-[8px_0_30px_rgba(10,10,40,0.35)]">
-      <div className="flex items-center gap-2.5 px-5 pb-4 pt-6">
-        <LogoMark />
-        <span className="text-[18px] font-semibold tracking-tight text-white">
-          Let&apos;s Prenup
-        </span>
+      <div className="flex items-center px-5 pb-5 pt-6">
+        {/* The artwork carries the wordmark, so no text beside it. */}
+        <Link href="/dashboard" aria-label="Lets Prenup dashboard">
+          <BrandLogo surface="dark" height={30} priority />
+        </Link>
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 pb-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">

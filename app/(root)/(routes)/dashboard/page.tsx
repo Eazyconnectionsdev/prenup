@@ -1,40 +1,31 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { BookOpen } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  BookOpen,
+  ChartNoAxesCombined,
+  Check,
+  Send,
+  UserRoundCheck,
+  UserRoundPlus,
+} from "lucide-react";
+import { FaUserPlus } from "react-icons/fa6";
+import { LuChartNoAxesCombined } from "react-icons/lu";
 import { useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import { RootState } from "@/store/store";
 import { calculateOverallProgress } from "@/lib/progressCalculator";
 import type { StepConfig, StepId } from "@/types/dashboard/dashboard-home";
 import { useJointSectionStatus } from "@/hooks/useJointSectionStatus";
+import Axios from "@/lib/ApiConfig";
 import { ServiceStatus } from "@/components/ServiceStatus";
-import {
-  agreementTypeLabel,
-  agreementTypeShortLabel,
-} from "@/lib/agreementTypes";
+import StatCard, {
+  statCardActionClasses,
+  statCardBadgeClasses,
+  statCardCaptionClasses,
+} from "@/components/dashboard/StatCard";
 
 const steps: StepConfig[] = [
-  {
-    id: "invite",
-    title: "Invite your partner",
-    description:
-      "Your partner will receive an email inviting them to create a prenup with you.",
-    cta: "Invite fiancé",
-    completedLabel: "View invitation",
-    icon: (
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={1.8}
-        className="h-5 w-5"
-      >
-        <rect x="3" y="5" width="18" height="14" rx="2" />
-        <path d="M3 7l9 6 9-6" />
-      </svg>
-    ),
-  },
   {
     id: "questionnaire",
     title: "Fill out your questionnaire",
@@ -115,15 +106,14 @@ const steps: StepConfig[] = [
   },
 ];
 
-// Each step gets its own tile colour, keyed by id so it stays put when the
-// invite step is filtered out for the invited partner
+// Each step gets its own tile colour, keyed by id
 const STEP_TILES: Record<StepId, string> = {
-  invite: "from-[#FBBF24] to-[#F59E0B]",
-  questionnaire: "from-[#FB7185] to-[#E11D48]",
-  partner_questionnaire: "from-[#34D399] to-[#059669]",
-  joint_questionnaire: "from-[#60A5FA] to-[#2563EB]",
-  final_review: "from-[#A78BFA] to-[#7C3AED]",
+  questionnaire: "from-[#FBBF24] to-[#F59E0B]",
+  partner_questionnaire: "from-[#FB7185] to-[#E11D48]",
+  joint_questionnaire: "from-[#34D399] to-[#059669]",
+  final_review: "from-[#60A5FA] to-[#2563EB]",
 };
+
 
 const legalAdvisers = [
   {
@@ -189,32 +179,81 @@ function DownloadIcon() {
   );
 }
 
-// Donut showing the same overall percentage as the bar beside it
-function ProgressRing({ percent }: { percent: number }) {
-  const radius = 22;
+// The step count sits inside a ring that fills by the same percentage, so
+// the figure beside it never stands alone.
+function ProgressDial({
+  percent,
+  completed,
+  total,
+}: {
+  percent: number;
+  completed: number;
+  total: number;
+}) {
+  const size = 44;
+  const stroke = 3;
+  const center = size / 2;
+  // The stroke straddles the radius, so the ring has to sit half of it
+  // inside the box or it clips against its own viewBox.
+  const radius = center - stroke / 2;
   const circumference = 2 * Math.PI * radius;
   const filled = (circumference * Math.min(Math.max(percent, 0), 100)) / 100;
 
   return (
-    <div className="relative h-14 w-14 flex-shrink-0">
-      <svg viewBox="0 0 56 56" className="h-14 w-14 -rotate-90">
-        <circle cx="28" cy="28" r={radius} fill="none" stroke="#EDEDF5" strokeWidth="5" />
+    <div className="relative h-11 w-11 flex-shrink-0">
+      <svg viewBox={`0 0 ${size} ${size}`} className="h-11 w-11 -rotate-90">
+        <circle cx={center} cy={center} r={center} fill="#F6F6FB" />
         <circle
-          cx="28"
-          cy="28"
+          cx={center}
+          cy={center}
           r={radius}
           fill="none"
-          stroke="#6D28D9"
-          strokeWidth="5"
+          stroke="#EDEDF5"
+          strokeWidth={stroke}
+        />
+        <circle
+          cx={center}
+          cy={center}
+          r={radius}
+          fill="none"
+          stroke="#6D4AFF"
+          strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={circumference - filled}
           className="transition-[stroke-dashoffset] duration-500 ease-out"
         />
       </svg>
-      <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-[#1E1B3C]">
-        {percent}%
+      <span className="absolute inset-0 flex items-center justify-center text-[10px] font-semibold text-[#6B6B80]">
+        {completed} / {total}
       </span>
+    </div>
+  );
+}
+
+// One dash per step, so the row is a count the eye can check as well as a
+// bar. The ring and the percentage already say it as a figure.
+function StepTrack({
+  completed,
+  total,
+}: {
+  completed: number;
+  total: number;
+}) {
+  if (total <= 0) {
+    return <div className="h-1.5 w-full rounded-full bg-[#EDEDF5]" />;
+  }
+
+  return (
+    <div className="flex w-full items-center gap-1" aria-hidden="true">
+      {Array.from({ length: total }, (_, i) => (
+        <span
+          key={i}
+          className={`h-1.5 flex-1 rounded-full transition-colors ${
+            i < completed ? "bg-[#6D4AFF]" : "bg-[#EDEDF5]"
+          }`}
+        />
+      ))}
     </div>
   );
 }
@@ -242,12 +281,18 @@ const DISCLOSURE_KEYS = [
   "liabilitiesAndDebts",
 ];
 
+// What the dashboard needs from GET /cases/:id/invite. The invite page reads
+// the rest of it.
+type InviteSummary = {
+  status?: string;
+  invitee?: { email?: string | null };
+};
+
 // ─── Popup IDs ───────────────────────────────────────────────────────────────
 type PopupId =
   | "p2-joint-initial"
   | "p1-joint-completed"
-  | "p2-wait-for-partner"
-  | "invite-resend";
+  | "p2-wait-for-partner";
 
 export default function PrenupDashboard() {
   const router = useRouter();
@@ -260,10 +305,51 @@ export default function PrenupDashboard() {
   const isUser2 = user?.endUserType === "user2";
 
   // ── Invite / join state ─────────────────────────────────────────────────────
-  // invitation was sent when cases.owner.invitedUser is truthy
-  const isPartnerInvited = Boolean((cases as any)?.owner?.invitedUser);
+  // The invite page goes by the invite record, so this card asks for the same
+  // one instead of trusting the case's `partnerInvited`: that flag is only
+  // ever switched on, and stays on once the invite behind it is gone, which
+  // left the card claiming "Invitation sent" with nothing to resend to.
+  // undefined means the answer is still on its way.
+  const [invite, setInvite] = useState<InviteSummary | null | undefined>(
+    undefined,
+  );
+  const inviteCaseId = user?.inviteCaseId;
+
+  useEffect(() => {
+    // Only the case owner may read it, and P2 has nobody to invite.
+    if (!inviteCaseId || !isUser1) return;
+
+    let cancelled = false;
+    Axios.get(`cases/${inviteCaseId}/invite`)
+      .then(({ data }) => {
+        if (!cancelled) setInvite(data?.invite ?? null);
+      })
+      .catch(() => {
+        // Leave the case's own fields to answer for it.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [inviteCaseId, isUser1]);
+
+  // Until the record arrives, the address the case saved stands in for it:
+  // the same request writes both, so they only disagree once one is cleared.
+  const isPartnerInvited =
+    invite === undefined ? Boolean(cases?.invitedEmail) : invite !== null;
   // P2 has actually joined when invitedUser has a real _id
   const hasP2Joined = Boolean((cases as any)?.invitedUser?._id);
+
+  const partnerName =
+    [cases?.invitedUser?.firstName, cases?.invitedUser?.lastName]
+      .filter(Boolean)
+      .join(" ")
+      .trim() || "Your partner";
+  const partnerEmail =
+    cases?.invitedUser?.email ??
+    invite?.invitee?.email ??
+    cases?.invitedEmail ??
+    "";
 
   // ── Questionnaire completion ─────────────────────────────────────────────────
   const isMyQuestComplete = hasAllKeys(
@@ -315,7 +401,6 @@ export default function PrenupDashboard() {
 
   const effectiveCompleted = useMemo(() => {
     const merged = new Set(completed);
-    if (hasP2Joined) merged.add("invite");
     if (isMyQuestComplete) merged.add("questionnaire");
     if (isPartnerQuestComplete) merged.add("partner_questionnaire");
     if (isJointComplete) merged.add("joint_questionnaire");
@@ -323,62 +408,18 @@ export default function PrenupDashboard() {
     return merged;
   }, [
     completed,
-    hasP2Joined,
     isMyQuestComplete,
     isPartnerQuestComplete,
     isJointComplete,
     isMutualApproved,
   ]);
 
-  const visibleSteps = useMemo(() => {
-    return steps.filter((s) => {
-      if (s.id === "invite") {
-        if (isUser2) return false;
-        if (isPartnerQuestComplete) return false;
-      }
-      return true;
-    });
-  }, [isUser2, isPartnerQuestComplete]);
-
-  const activeIndex = visibleSteps.findIndex(
-    (s) => !effectiveCompleted.has(s.id),
-  );
-  const currentIndex = activeIndex === -1 ? visibleSteps.length : activeIndex;
-  const allStepsDone = visibleSteps.every((s) => effectiveCompleted.has(s.id));
+  const activeIndex = steps.findIndex((s) => !effectiveCompleted.has(s.id));
+  const currentIndex = activeIndex === -1 ? steps.length : activeIndex;
+  const allStepsDone = steps.every((s) => effectiveCompleted.has(s.id));
 
   function renderStepButton(step: StepConfig) {
     const isDone = effectiveCompleted.has(step.id);
-
-    if (step.id === "invite") {
-      if (hasP2Joined) {
-        return (
-          <button
-            disabled
-            className="ml-4 flex-shrink-0 cursor-not-allowed rounded-lg bg-[#DCFCE7] px-4 py-2 text-xs font-semibold text-[#16A34A] opacity-80"
-          >
-            Joined
-          </button>
-        );
-      }
-      if (isPartnerInvited) {
-        return (
-          <button
-            onClick={() => setActivePopup("invite-resend")}
-            className="ml-4 flex-shrink-0 rounded-lg bg-[#16A34A] px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#15803D]"
-          >
-            Resend Invitation
-          </button>
-        );
-      }
-      return (
-        <button
-          onClick={() => router.push("/dashboard/invite-partner")}
-          className="ml-4 flex-shrink-0 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary/90"
-        >
-          Invite fiancé
-        </button>
-      );
-    }
 
     if (step.id === "questionnaire") {
       if (isDone) {
@@ -534,36 +575,92 @@ export default function PrenupDashboard() {
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-3">
-          <div className="flex h-full items-center gap-4 rounded-2xl border border-[#E7E7F2] bg-white p-4">
-            <ProgressRing percent={progressResult?.percentage || 0} />
-            <div className="min-w-0 flex-1">
-              <div className="text-sm font-bold text-[#1E1B3C]">Overall progress</div>
-              <div className="text-[11px] text-[#9494AA]">
-                {progressResult?.completed || 0} of {progressResult?.total || 0} steps complete
-              </div>
-              <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[#EDEDF5]">
-                <div
-                  className="h-full rounded-full bg-[#6D28D9] transition-all duration-500 ease-out"
-                  style={{ width: `${progressResult?.percentage || 0}%` }}
-                />
-              </div>
-            </div>
-          </div>
-
-          <ServiceStatus
-            service={agreementTypeShortLabel(cases?.agreementType)}
-            serviceTitle={agreementTypeLabel(cases?.agreementType)}
+          <StatCard
+            label="Overall progress"
+            icon={<LuChartNoAxesCombined className="h-5 w-5 text-[#6D4AFF]" />}
+            value={
+              <>
+                {progressResult?.percentage || 0}
+                <span className="text-lg">%</span>
+              </>
+            }
+            valueAside={
+              <ProgressDial
+                percent={progressResult?.percentage || 0}
+                completed={progressResult?.completed || 0}
+                total={progressResult?.total || 0}
+              />
+            }
+            subtitle={
+              <StepTrack
+                completed={progressResult?.completed || 0}
+                total={progressResult?.total || 0}
+              />
+            }
+            action={
+              <span className={statCardCaptionClasses}>steps complete</span>
+            }
           />
 
-          <div className="flex h-full items-center gap-3 rounded-2xl border border-[#E7E7F2] bg-white p-4">
-            <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[#EDE9FE] text-[#6D28D9]">
-              <BookOpen className="h-5 w-5" />
-            </span>
-            <div className="min-w-0">
-              <div className="text-sm font-bold text-[#1E1B3C]">Need help?</div>
-              <div className="text-xs text-[#8A8AA0]">Visit our guidance resources.</div>
-            </div>
-          </div>
+          <ServiceStatus agreementType={cases?.agreementType} />
+
+          {isUser2 ? (
+            <StatCard
+              label="Support"
+              icon={<BookOpen className="h-5 w-5 text-[#6D4AFF]" />}
+              value="Need help?"
+              subtitle="Visit our guidance resources."
+            />
+          ) : hasP2Joined ? (
+            <StatCard
+              label="Your partner"
+              icon={<UserRoundCheck className="h-5 w-5 text-[#6D4AFF]" />}
+              value={partnerName}
+              subtitle={partnerEmail || "Partner has joined your case"}
+              subtitleTooltip={partnerEmail || undefined}
+              /* Nothing left to do here, so the slot holds a state, not a
+                 button — which also keeps the card's height steady. */
+              action={
+                <span className={statCardBadgeClasses}>
+                  <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                  Joined
+                </span>
+              }
+            />
+          ) : isPartnerInvited ? (
+            <StatCard
+              label="Invite partner"
+              icon={<Send className="h-5 w-5 text-[#6D4AFF]" />}
+              value="Invitation sent"
+              subtitle={partnerEmail || "Waiting for them to join"}
+              subtitleTooltip={partnerEmail || undefined}
+              action={
+                <button
+                  onClick={() => router.push("/dashboard/invite-partner")}
+                  className={statCardActionClasses}
+                  aria-label="Resend the invitation to your partner"
+                >
+                  Resend
+                </button>
+              }
+            />
+          ) : (
+            <StatCard
+              label="Invite partner"
+              icon={<FaUserPlus className="h-5 w-5 text-[#6D4AFF]" />}
+              value="Invite your partner"
+              subtitle="Send them an email to join"
+              action={
+                <button
+                  onClick={() => router.push("/dashboard/invite-partner")}
+                  className={statCardActionClasses}
+                  aria-label="Invite your partner"
+                >
+                  Invite
+                </button>
+              }
+            />
+          )}
         </div>
 
         {!allStepsDone && (
@@ -576,7 +673,7 @@ export default function PrenupDashboard() {
             </p>
 
             <div className="mt-5 flex flex-col gap-3">
-              {visibleSteps.map((step, i) => {
+              {steps.map((step, i) => {
                 const isDone = effectiveCompleted.has(step.id);
                 const isActive = i === currentIndex;
 
@@ -827,40 +924,6 @@ export default function PrenupDashboard() {
               </>
             )}
 
-            {/* Invite resend — show details, no re-invite option */}
-            {activePopup === "invite-resend" && (
-              <>
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#DCFCE7] text-[#16A34A]">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-5 w-5">
-                    <rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 7l9 6 9-6" />
-                  </svg>
-                </div>
-                <h2 className="mt-4 text-base font-semibold text-[#1E1B3C]">
-                  Invitation Already Sent
-                </h2>
-                <p className="mt-2 text-sm text-[#6B6B80]">
-                  An invitation has already been sent to your partner. They will
-                  receive an email with a link to join your prenup.
-                </p>
-                <div className="mt-4 rounded-xl border border-[#E7E7F2] bg-[#F6F6FB] p-4">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-[#9494AA]">
-                    Invitation details
-                  </div>
-                  <div className="mt-2 text-sm text-[#1E1B3C]">
-                    Status:{" "}
-                    <span className="font-medium text-amber-600">Pending — waiting for partner to join</span>
-                  </div>
-                </div>
-                <div className="mt-5">
-                  <button
-                    onClick={() => setActivePopup(null)}
-                    className="w-full rounded-lg border border-[#E7E7F2] px-4 py-2.5 text-sm font-semibold text-[#6B6B80] hover:bg-[#F6F6FB]"
-                  >
-                    Close
-                  </button>
-                </div>
-              </>
-            )}
           </div>
         </div>
       )}

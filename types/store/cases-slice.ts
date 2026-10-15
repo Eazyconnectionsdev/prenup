@@ -86,6 +86,7 @@ export interface CaseDetails {
   owner: userType;
   invitedUser: userType;
   invitedEmail: string | null;
+  partnerInvited: boolean;
   inviteToken: string | null;
   inviteTokenExpires: string | null;
   preQuestionnaireUser1: PreQuestionnaire;
@@ -112,6 +113,10 @@ export interface CasesState {
   title: string;
   owner: userType | null;
   invitedUser : userType | null;
+  // Set when the owner sends an invite. Distinct from invitedUser, which only
+  // appears once the partner has accepted and registered.
+  partnerInvited: boolean;
+  invitedEmail: string | null;
   status: CaseStatus;
   preQuestionnaireUser1: PreQuestionnaire | Record<string, never>;
   preQuestionnaireUser2: PreQuestionnaire | Record<string, never>;
