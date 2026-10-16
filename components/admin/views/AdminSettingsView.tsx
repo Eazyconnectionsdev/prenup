@@ -342,7 +342,7 @@ function Section1TopBarSettings() {
                   Enable / Disable
                 </th>
                 <th className="text-left py-2.5 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                  text to show in tobBar
+                  Text to show in TopBar
                 </th>
               </tr>
             </thead>
@@ -350,7 +350,13 @@ function Section1TopBarSettings() {
               {/* TopBar-1 */}
               <tr className="border-b border-slate-50">
                 <td className="py-3 px-3 font-semibold text-slate-700 whitespace-nowrap">
-                  TopBar-1 Navigation
+                  <div className="flex items-center gap-2">
+                    <span className="w-3.5 h-3.5 rounded-full bg-gradient-to-r from-[#3730A3] via-[#5B55F6] to-[#7C3AED] shadow-xs shrink-0" title="Theme: Indigo / Violet Gradient" />
+                    <span>TopBar-1</span>
+                    <span className="text-[10px] font-normal px-1.5 py-0.5 rounded bg-violet-50 text-violet-700 border border-violet-100">
+                      Indigo / Violet
+                    </span>
+                  </div>
                 </td>
                 <td className="py-3 px-3 text-center">
                   <div className="flex items-center justify-center gap-2">
@@ -386,7 +392,13 @@ function Section1TopBarSettings() {
               {/* TopBar-2 */}
               <tr>
                 <td className="py-3 px-3 font-semibold text-slate-700 whitespace-nowrap">
-                  TopBar-2 Navigation
+                  <div className="flex items-center gap-2">
+                    <span className="w-3.5 h-3.5 rounded-full bg-gradient-to-r from-[#9D174D] via-[#E02693] to-[#8B23E3] shadow-xs shrink-0" title="Theme: Magenta / Rose Gradient" />
+                    <span>TopBar-2</span>
+                    <span className="text-[10px] font-normal px-1.5 py-0.5 rounded bg-pink-50 text-pink-700 border border-pink-100">
+                      Magenta / Rose
+                    </span>
+                  </div>
                 </td>
                 <td className="py-3 px-3 text-center">
                   <div className="flex items-center justify-center gap-2">

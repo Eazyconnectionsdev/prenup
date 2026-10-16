@@ -129,50 +129,64 @@ export const NotificationTopBars: React.FC = () => {
 
   return (
     <div className="w-full flex flex-col z-50">
-      {/* TopBar-1 Strip */}
+      {/* TopBar-1 Strip (Theme: Indigo / Brand Violet / Purple Gradient) */}
       {showBar1 && (
-        <div className="relative w-full bg-[#0F172A] text-white border-b border-slate-800/80 px-4 py-2 transition-all duration-200">
-          <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-            <div className="w-6 shrink-0" /> {/* Spacer to balance close button */}
-            <div className="flex-1 text-center">
-              <p className="text-xs md:text-sm font-medium tracking-wide text-[#FAF8F5] leading-snug">
-                {settings?.topBar1Text}
-              </p>
+        <aside
+          role="region"
+          aria-label="Announcement notification"
+          className="relative w-full bg-gradient-to-r from-[#3730A3] via-[#5B55F6] to-[#7C3AED] text-white border-b border-white/15 px-3 sm:px-6 py-1 sm:py-1.5 shadow-xs transition-all duration-200"
+        >
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+            <div className="w-5 shrink-0" aria-hidden="true" /> {/* Spacer to balance close button */}
+            <div className="flex-1 min-w-0 text-center">
+              <div className="inline-flex items-center justify-center gap-2 max-w-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-white/90 shadow-[0_0_6px_rgba(255,255,255,0.9)] shrink-0 hidden sm:inline-block" />
+                <p className="text-[11px] sm:text-xs font-medium tracking-wide text-white drop-shadow-xs truncate">
+                  {settings?.topBar1Text}
+                </p>
+              </div>
             </div>
             <button
               type="button"
               onClick={handleCloseBar1}
-              aria-label="Close TopBar-1 notification"
+              aria-label="Close TopBar-1 announcement"
               title="Close"
-              className="w-6 h-6 flex items-center justify-center rounded-md text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer shrink-0"
+              className="w-5 h-5 flex items-center justify-center rounded-full text-white/75 hover:text-white hover:bg-white/20 active:scale-95 transition-all cursor-pointer shrink-0"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-3 h-3 stroke-[2.2]" />
             </button>
           </div>
-        </div>
+        </aside>
       )}
 
-      {/* TopBar-2 Strip */}
+      {/* TopBar-2 Strip (Theme: Berry Rose / Brand Magenta / Purple Gradient) */}
       {showBar2 && (
-        <div className="relative w-full bg-[#8B3A3A] text-white border-b border-[#702E2E] px-4 py-2 transition-all duration-200">
-          <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-            <div className="w-6 shrink-0" /> {/* Spacer to balance close button */}
-            <div className="flex-1 text-center">
-              <p className="text-xs md:text-sm font-medium tracking-wide text-white leading-snug">
-                {settings?.topBar2Text}
-              </p>
+        <aside
+          role="region"
+          aria-label="Special notification"
+          className="relative w-full bg-gradient-to-r from-[#9D174D] via-[#E02693] to-[#8B23E3] text-white border-b border-white/15 px-3 sm:px-6 py-1 sm:py-1.5 shadow-xs transition-all duration-200"
+        >
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+            <div className="w-5 shrink-0" aria-hidden="true" /> {/* Spacer to balance close button */}
+            <div className="flex-1 min-w-0 text-center">
+              <div className="inline-flex items-center justify-center gap-2 max-w-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-white/90 shadow-[0_0_6px_rgba(255,255,255,0.9)] shrink-0 hidden sm:inline-block" />
+                <p className="text-[11px] sm:text-xs font-medium tracking-wide text-white drop-shadow-xs truncate">
+                  {settings?.topBar2Text}
+                </p>
+              </div>
             </div>
             <button
               type="button"
               onClick={handleCloseBar2}
               aria-label="Close TopBar-2 notification"
               title="Close"
-              className="w-6 h-6 flex items-center justify-center rounded-md text-white/70 hover:text-white hover:bg-white/15 transition-colors cursor-pointer shrink-0"
+              className="w-5 h-5 flex items-center justify-center rounded-full text-white/75 hover:text-white hover:bg-white/20 active:scale-95 transition-all cursor-pointer shrink-0"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-3 h-3 stroke-[2.2]" />
             </button>
           </div>
-        </div>
+        </aside>
       )}
     </div>
   );
