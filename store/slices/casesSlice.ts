@@ -79,6 +79,7 @@ const CasesSlice = createSlice({
           state.myInformation = payload.myInformation ?? {};
           state.partnerInformation = payload.partnerInformation ?? {};
           state.jointInformation = payload.jointInformation ?? {};
+          state.stages = payload.stages ?? null;
         },
       )
       .addCase(getCasesDetails.rejected, (state) => {
