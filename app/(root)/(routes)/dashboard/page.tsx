@@ -27,11 +27,33 @@ import StatCard, {
 
 const steps: StepConfig[] = [
   {
-    id: "questionnaire",
-    title: "Fill out your questionnaire",
+    id: "stage_1",
+    stageNumber: "1",
+    title: "Stage 1: Registration and Payment",
     description:
-      "Select your prenup terms. We guide you through state-specific processes.",
-    cta: "Select Terms",
+      "Applicant registered, partner invited & package payment completed.",
+    cta: "View Status",
+    completedLabel: "Completed",
+    icon: (
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.8}
+        className="h-5 w-5"
+      >
+        <rect x="2" y="5" width="20" height="14" rx="2" />
+        <line x1="2" y1="10" x2="22" y2="10" />
+      </svg>
+    ),
+  },
+  {
+    id: "stage_2",
+    stageNumber: "2",
+    title: "Stage 2: Application — Primary Applicant",
+    description:
+      "Personal info, declarations, assets, debts, joint finances & matrimonial agreement (10 sections).",
+    cta: "Fill Application",
     completedLabel: "Completed",
     icon: (
       <svg
@@ -47,10 +69,12 @@ const steps: StepConfig[] = [
     ),
   },
   {
-    id: "partner_questionnaire",
-    title: "Partners Questionnaire",
-    description: "Your partner prenup terms.",
-    cta: "Select Terms",
+    id: "stage_3",
+    stageNumber: "3",
+    title: "Stage 3: Application — Secondary Applicant",
+    description:
+      "Partner personal info, declarations, assets, income & liabilities (6 sections).",
+    cta: "Partner Application",
     completedLabel: "Completed",
     icon: (
       <svg
@@ -67,29 +91,11 @@ const steps: StepConfig[] = [
     ),
   },
   {
-    id: "joint_questionnaire",
-    title: "Joint Questionnaire",
+    id: "stage_4",
+    stageNumber: "4",
+    title: "Stage 4: Partner Review Stage",
     description:
-      "Select your Joint terms. We guide you through state-specific processes.",
-    cta: "Select Terms",
-    completedLabel: "Completed",
-    icon: (
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={1.8}
-        className="h-5 w-5"
-      >
-        <rect x="3" y="7" width="18" height="13" rx="2" />
-        <path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2" />
-      </svg>
-    ),
-  },
-  {
-    id: "final_review",
-    title: "Final Review & Confirmation",
-    description: "Your Contract is Almost done!",
+      "Multi-turn package review, approvals & mutual snapshot.",
     cta: "Review & Confirm",
     completedLabel: "Completed",
     icon: (
@@ -107,7 +113,11 @@ const steps: StepConfig[] = [
 ];
 
 // Each step gets its own tile colour, keyed by id
-const STEP_TILES: Record<StepId, string> = {
+const STEP_TILES: Record<string, string> = {
+  stage_1: "from-[#FBBF24] to-[#F59E0B]",
+  stage_2: "from-[#34D399] to-[#059669]",
+  stage_3: "from-[#FB7185] to-[#E11D48]",
+  stage_4: "from-[#60A5FA] to-[#2563EB]",
   questionnaire: "from-[#FBBF24] to-[#F59E0B]",
   partner_questionnaire: "from-[#FB7185] to-[#E11D48]",
   joint_questionnaire: "from-[#34D399] to-[#059669]",
@@ -396,11 +406,32 @@ export default function PrenupDashboard() {
     jointInformation: cases.jointInformation,
   });
 
+  const isPaymentDone = Boolean(
+    cases?.paymentCompleted ||
+      (cases as any)?.paymentDone ||
+      user?.paymentDone,
+  );
+  const isStage1Complete = isPaymentDone && hasP2Joined;
+  const isStage2Complete =
+    isMyQuestComplete &&
+    hasAllKeys(cases?.myInformation, DISCLOSURE_KEYS) &&
+    isJointComplete;
+  const isStage3Complete =
+    isPartnerQuestComplete &&
+    hasAllKeys(cases?.partnerInformation, DISCLOSURE_KEYS);
+  const isStage4Complete = isMutualApproved;
+
   const [activePopup, setActivePopup] = useState<PopupId | null>(null);
   const [completed] = useState<Set<StepId>>(new Set());
 
   const effectiveCompleted = useMemo(() => {
     const merged = new Set(completed);
+    if (isStage1Complete) merged.add("stage_1");
+    if (isStage2Complete) merged.add("stage_2");
+    if (isStage3Complete) merged.add("stage_3");
+    if (isStage4Complete) merged.add("stage_4");
+
+    // Legacy fallback
     if (isMyQuestComplete) merged.add("questionnaire");
     if (isPartnerQuestComplete) merged.add("partner_questionnaire");
     if (isJointComplete) merged.add("joint_questionnaire");
@@ -408,6 +439,10 @@ export default function PrenupDashboard() {
     return merged;
   }, [
     completed,
+    isStage1Complete,
+    isStage2Complete,
+    isStage3Complete,
+    isStage4Complete,
     isMyQuestComplete,
     isPartnerQuestComplete,
     isJointComplete,
@@ -421,8 +456,41 @@ export default function PrenupDashboard() {
   function renderStepButton(step: StepConfig) {
     const isDone = effectiveCompleted.has(step.id);
 
-    if (step.id === "questionnaire") {
-      if (isDone) {
+    // ── STAGE 1: Registration and Payment ──
+    if (step.id === "stage_1") {
+      if (isStage1Complete) {
+        return (
+          <button
+            onClick={() => router.push("/dashboard/service-selector")}
+            className="ml-4 flex-shrink-0 rounded-lg bg-[#DCFCE7] px-4 py-2 text-xs font-semibold text-[#16A34A] hover:bg-[#BBF7D0]"
+          >
+            Completed
+          </button>
+        );
+      }
+      if (!isPaymentDone) {
+        return (
+          <button
+            onClick={() => router.push("/dashboard/service-selector")}
+            className="ml-4 flex-shrink-0 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary/90"
+          >
+            Complete Payment
+          </button>
+        );
+      }
+      return (
+        <button
+          onClick={() => router.push("/dashboard/invite-partner")}
+          className="ml-4 flex-shrink-0 rounded-lg bg-[#6D28D9] px-4 py-2 text-xs font-semibold text-white hover:bg-[#5B21B6]"
+        >
+          Invite Partner
+        </button>
+      );
+    }
+
+    // ── STAGE 2: Application — Primary Applicant (10 Sections) ──
+    if (step.id === "stage_2" || step.id === "questionnaire") {
+      if (isStage2Complete) {
         return (
           <button
             onClick={() => router.push("/dashboard/personal-info")}
@@ -432,24 +500,54 @@ export default function PrenupDashboard() {
           </button>
         );
       }
+      if (isUser1) {
+        return (
+          <button
+            onClick={() => router.push("/dashboard/personal-info")}
+            className="ml-4 flex-shrink-0 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary/90"
+          >
+            Fill Application
+          </button>
+        );
+      }
       return (
         <button
           onClick={() => router.push("/dashboard/personal-info")}
-          className="ml-4 flex-shrink-0 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary/90"
+          className="ml-4 flex-shrink-0 rounded-lg bg-[#F1F1F6] px-4 py-2 text-xs font-semibold text-[#9494AA] hover:bg-[#E8E8F0]"
         >
-          Select Terms
+          View Details
         </button>
       );
     }
 
-
-    if (step.id === "partner_questionnaire") {
+    // ── STAGE 3: Application — Secondary Applicant (6 Sections) ──
+    if (step.id === "stage_3" || step.id === "partner_questionnaire") {
+      if (isStage3Complete) {
+        return (
+          <button
+            onClick={() => router.push("/dashboard/partner-personal-info")}
+            className="ml-4 flex-shrink-0 rounded-lg bg-[#DCFCE7] px-4 py-2 text-xs font-semibold text-[#16A34A] hover:bg-[#BBF7D0]"
+          >
+            Completed
+          </button>
+        );
+      }
+      if (isUser2) {
+        return (
+          <button
+            onClick={() => router.push("/dashboard/partner-personal-info")}
+            className="ml-4 flex-shrink-0 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary/90"
+          >
+            Fill Application
+          </button>
+        );
+      }
       return (
         <button
           onClick={() => router.push("/dashboard/partner-personal-info")}
           className="ml-4 flex-shrink-0 rounded-lg bg-[#F1F1F6] px-4 py-2 text-xs font-semibold text-[#9494AA] hover:bg-[#E8E8F0]"
         >
-          {isDone ? "Completed" : "Select Terms"}
+          Partner Pending
         </button>
       );
     }
@@ -475,16 +573,6 @@ export default function PrenupDashboard() {
           </button>
         );
       }
-      if (isUser2) {
-        return (
-          <button
-            onClick={() => setActivePopup("p2-joint-initial")}
-            className="ml-4 flex-shrink-0 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary/90"
-          >
-            Select Terms
-          </button>
-        );
-      }
       return (
         <button
           onClick={() => router.push("/dashboard/joint-assets")}
@@ -495,7 +583,8 @@ export default function PrenupDashboard() {
       );
     }
 
-    if (step.id === "final_review") {
+    // ── STAGE 4: Partner Review Stage ──
+    if (step.id === "stage_4" || step.id === "final_review") {
       if (isMutualApproved) {
         return (
           <button
@@ -519,9 +608,7 @@ export default function PrenupDashboard() {
       }
 
       const p1IsWaiting = iAmWaitingForReview && !isMutualApproved;
-      const p2IsWaiting = false;
-
-      if (p1IsWaiting || p2IsWaiting) {
+      if (p1IsWaiting) {
         return (
           <button
             onClick={() => router.push("/dashboard/final-review-confirmation")}

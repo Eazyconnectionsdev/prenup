@@ -1,4 +1,4 @@
-export interface SectionStatus {
+﻿export interface SectionStatus {
   submitted: boolean;
   submittedBy: string | null;
   submittedAt: string | null;
@@ -52,11 +52,28 @@ export interface userType {
   updatedAt: string;
 }
 
+export interface ReviewTimelineItem {
+  action: string;
+  actor?: string | null;
+  actorRole: "PRIMARY" | "SECONDARY" | "SYSTEM";
+  p1Status: string;
+  p2Status: string;
+  mutualStatus: string;
+  timestamp: string;
+  notes?: string | null;
+}
+
 export interface CaseApproval {
   user1Approved: boolean;
   user1ApprovedAt: string | null;
   user2Approved: boolean;
   user2ApprovedAt: string | null;
+  p1ReviewStatus?: "IN_PROGRESS" | "FINAL_SUBMIT" | "IN_REVIEW" | "APPROVED";
+  p2ReviewStatus?: "IN_PROGRESS" | "FINAL_SUBMIT" | "IN_REVIEW" | "APPROVED";
+  mutualApprovalAndSnapshot?: "PENDING" | "COMPLETED";
+  mutualApprovalCompletedAt?: string | null;
+  reviewTimeline?: ReviewTimelineItem[];
+  snapshotData?: any;
   lawyerApproved: boolean;
   lawyerApprovedAt: string | null;
   approvedLawyer: string | null;
@@ -106,6 +123,7 @@ export interface CaseDetails {
   myInformation?: InformationSection;
   partnerInformation?: InformationSection;
   jointInformation?: JointInformationSection;
+  stages?: any;
 }
 
 export interface CasesState {
@@ -124,9 +142,11 @@ export interface CasesState {
   preQuestionnaireUser2: PreQuestionnaire | Record<string, never>;
   approval: CaseApproval | null;
   fullyLocked: boolean;
+  paymentCompleted?: boolean;
   workflowStatus: string;
   agreementType: string | null;
   myInformation: InformationSection;
   partnerInformation: InformationSection;
   jointInformation : JointInformationSection;
+  stages?: any;
 }
