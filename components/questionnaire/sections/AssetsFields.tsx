@@ -299,6 +299,7 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
   // One asset category as its own card: heading, yes/no question, list of rows
   const category = <K extends ListKey>(
     key: K,
+    index: number,
     cfg: {
       title: string;
       icon: ReactNode;
@@ -311,7 +312,7 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
   ) => {
     const enabled = data[CATEGORIES[key].flag] === "Yes";
     return (
-      <SectionCard title={cfg.title} icon={cfg.icon} tooltip={cfg.tooltip}>
+      <SectionCard title={cfg.title} icon={cfg.icon} tooltip={cfg.tooltip} colorIndex={index}>
         <FieldLabel>{cfg.question}</FieldLabel>
         <YesNoToggle
           name={`has_${key}`}
@@ -344,10 +345,12 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
     <>
       {category(
         "realEstate",
+        0,
         {
           title: "Property & Real Estate",
           icon: <Home className="h-5 w-5" />,
-          tooltip: "Properties owned personally or with third parties that should be kept separate.",
+          tooltip:
+            "Include any property or real estate you own or have a financial interest in, including mortgaged properties.",
           question: ask(
             "Do you own, partly own, or have a financial interest in any real estate / properties?",
             "Do they own, partly own, or have a financial interest in any real estate / properties?",
@@ -422,10 +425,12 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
 
       {category(
         "savings",
+        1,
         {
           title: "Savings & Investments",
           icon: <ChartColumnIncreasing className="h-5 w-5" />,
-          tooltip: "Personal bank accounts, cash savings, premium bonds, or investment portfolios.",
+          tooltip:
+            "Include all bank accounts, cash savings, ISAs, premium bonds, stocks, and investment portfolios.",
           question: ask(
             "Do you currently hold any personal bank accounts, cash savings, premium bonds, or investment portfolios?",
             "Do they currently hold any personal bank accounts, cash savings, premium bonds, or investment portfolios?",
@@ -450,10 +455,12 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
 
       {category(
         "pensions",
+        2,
         {
           title: "Pensions & Retirement Funds",
           icon: <Umbrella className="h-5 w-5" />,
-          tooltip: "Private, corporate, or state pension pots or retirement annuities.",
+          tooltip:
+            "Include all private, occupational, personal, and state pension entitlements, along with their Cash Equivalent Transfer Values (CETV).",
           question: ask(
             "Do you hold any private, corporate, or state pension pots or retirement annuities?",
             "Do they hold any private, corporate, or state pension pots or retirement annuities?",
@@ -477,10 +484,12 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
 
       {category(
         "businesses",
+        3,
         {
           title: "Business Interests",
           icon: <Briefcase className="h-5 w-5" />,
-          tooltip: "Businesses where this person is a director, shareholder, partner, or sole trader.",
+          tooltip:
+            "Include any directorships, shares, partnerships, or sole trader businesses you have an interest in.",
           question: ask(
             "Are you a director, shareholder, partner, or sole trader in any active or dormant business?",
             "Are they a director, shareholder, partner, or sole trader in any active or dormant business?",
@@ -534,6 +543,7 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
 
       {category(
         "ipAssets",
+        4,
         {
           title: "Intellectual Property",
           icon: <FileText className="h-5 w-5" />,
@@ -575,10 +585,12 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
 
       {category(
         "chattels",
+        5,
         {
           title: "High-Value Personal Belongings",
           icon: <Gem className="h-5 w-5" />,
-          tooltip: "Personal property items valued individually over £5,000.",
+          tooltip:
+            "Include personal property items with an individual value exceeding £5,000, including cars, artwork, jewellery, and digital assets.",
           question: ask(
             "Do you own any personal belongings valued individually over £5,000 (such as vehicles, jewellery, artwork, or cryptocurrency)?",
             "Do they own any personal belongings valued individually over £5,000 (such as vehicles, jewellery, artwork, or cryptocurrency)?",
@@ -603,10 +615,12 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
 
       {category(
         "otherAssets",
+        6,
         {
           title: "Other Personal Assets",
           icon: <Boxes className="h-5 w-5" />,
-          tooltip: "Any other assets, inheritances, trust interests, or financial rights not covered above.",
+          tooltip:
+            "Include any other financial assets, interests under trusts, inheritances, or entitlements not listed above.",
           question: ask(
             "Have we missed anything? Do you own or expect to receive any other assets, financial interests, inheritances, or property not listed above?",
             "Do they own or expect to receive any other assets, financial interests, inheritances, or property not listed above?",
