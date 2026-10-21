@@ -4,6 +4,23 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
+import {
+  Baby,
+  Briefcase,
+  CalendarClock,
+  FileSignature,
+  Gem,
+  Gift,
+  HeartHandshake,
+  HeartPulse,
+  HelpingHand,
+  Home,
+  Landmark,
+  PackagePlus,
+  Scale,
+  Users,
+} from "lucide-react";
+import { FormShellIllustration, getBadgeGradient, Tooltip } from "@/components/questionnaire/QuestionnaireUI";
 import Axios from "@/lib/ApiConfig";
 import { AppDispatch, RootState } from "@/store/store";
 import { getCasesDetails } from "@/store/asyncThunk/casesThunk";
@@ -30,18 +47,19 @@ import type {
 /* Shared styling (kept in step with the other joint information forms)   */
 /* ---------------------------------------------------------------------- */
 
-const groupClasses = "rounded-xl border border-[#EDEDF5] bg-[#FAF9FF] p-5 md:p-6";
-const labelClasses = "block text-sm font-bold text-[#1E1B3C]";
-const helpClasses = "mt-1 text-xs text-[#6B6B80]";
+const groupClasses =
+  "rounded-2xl border border-slate-200/80 bg-white p-6 sm:p-8 shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_rgba(99,102,241,0.06)] transition-all duration-300";
+const labelClasses = "mb-3 block text-[14px] sm:text-[14.5px] font-bold text-slate-900 tracking-tight leading-relaxed";
+const helpClasses = "mb-3 text-[13px] text-slate-500 leading-relaxed";
 const fieldClasses =
-  "w-full rounded-lg border border-[#D1D1DC] bg-white p-3 text-sm text-[#1E1B3C] focus:border-[#6D28D9] focus:outline-none";
-const subLabelClasses = "mb-1.5 block text-xs font-semibold text-[#1E1B3C]";
-const nestedLabelClasses = "mb-2 block text-xs font-semibold text-[#6B6B80]";
-const captionClasses = "mt-2 text-xs italic text-[#6B6B80]";
+  "w-full rounded-xl border border-slate-200 bg-[#FBFBFE] px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 transition-all focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-500/10 min-h-[46px]";
+const subLabelClasses = "mb-2 block text-[13px] font-semibold text-slate-700";
+const nestedLabelClasses = "mb-2 block text-xs font-semibold text-slate-500 uppercase tracking-wider";
+const captionClasses = "mt-2 text-xs text-slate-500 leading-relaxed";
 
 function ModuleTag({ children }: { children: React.ReactNode }) {
   return (
-    <span className="mb-3 inline-block rounded-full bg-[#EDE9FE] px-3 py-1 text-[0.7rem] font-bold uppercase tracking-wider text-[#6D28D9]">
+    <span className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-indigo-50 to-purple-50 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-indigo-700 border border-indigo-100/90 shadow-2xs">
       {children}
     </span>
   );
@@ -49,15 +67,18 @@ function ModuleTag({ children }: { children: React.ReactNode }) {
 
 function TrackHeader({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mb-8 border-b-[3px] border-[#EDE9FE] pb-3 text-[1.05rem] font-extrabold uppercase tracking-wider text-[#6D28D9]">
-      {children}
+    <div className="mb-6 flex items-center gap-3 border-b-2 border-indigo-100/80 pb-3">
+      <span className="h-5 w-1.5 rounded-full bg-indigo-600" />
+      <h2 className="text-base font-extrabold uppercase tracking-wider text-indigo-950">
+        {children}
+      </h2>
     </div>
   );
 }
 
 function NestedBlock({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mt-4 rounded-r-lg border border-[#EDEDF5] border-l-4 border-l-[#6D28D9] bg-white p-4">
+    <div className="mt-4 rounded-xl border border-slate-200/90 border-l-4 border-l-indigo-600 bg-slate-50/70 p-5 shadow-xs">
       {children}
     </div>
   );
@@ -77,30 +98,40 @@ function ChoiceCards<T extends string>({
   onChange: (value: T) => void;
 }) {
   return (
-    <div className="mt-3 space-y-2.5">
-      {options.map((option) => (
-        <label
-          key={option.value}
-          className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3.5 transition ${
-            value === option.value
-              ? "border-[#6D28D9] bg-[#EDE9FE]/40"
-              : "border-[#E7E7F2] bg-white hover:bg-slate-50"
-          }`}
-        >
-          <input
-            type="radio"
-            name={name}
-            value={option.value}
-            checked={value === option.value}
-            onChange={() => onChange(option.value)}
-            className="mt-1 text-[#6D28D9] focus:ring-[#6D28D9]"
-          />
-          <div>
-            <div className="text-sm font-semibold text-[#1E1B3C]">{option.title}</div>
-            <div className="text-xs text-[#6B6B80]">{option.desc}</div>
-          </div>
-        </label>
-      ))}
+    <div className="mt-4 space-y-3">
+      {options.map((option) => {
+        const selected = value === option.value;
+        return (
+          <label
+            key={option.value}
+            className={`flex cursor-pointer items-start gap-3.5 rounded-xl border p-4 transition-all duration-200 ${
+              selected
+                ? "border-indigo-600 bg-indigo-50/30 ring-2 ring-indigo-500/20 shadow-sm"
+                : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50"
+            }`}
+          >
+            <span
+              className={`relative mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors ${
+                selected ? "border-indigo-600 bg-white" : "border-slate-300 bg-white"
+              }`}
+            >
+              {selected && <span className="h-2 w-2 rounded-full bg-indigo-600" />}
+            </span>
+            <input
+              type="radio"
+              name={name}
+              value={option.value}
+              checked={selected}
+              onChange={() => onChange(option.value)}
+              className="sr-only"
+            />
+            <div>
+              <div className="text-[14px] font-bold text-slate-900">{option.title}</div>
+              <div className="mt-0.5 text-[12.5px] text-slate-500 leading-relaxed">{option.desc}</div>
+            </div>
+          </label>
+        );
+      })}
     </div>
   );
 }
@@ -115,27 +146,37 @@ function YesNoCards({
   onChange: (value: YesNo) => void;
 }) {
   return (
-    <div className="mt-3 grid grid-cols-2 gap-2.5">
-      {(["No", "Yes"] as YesNo[]).map((option) => (
-        <label
-          key={option}
-          className={`flex cursor-pointer items-center justify-center rounded-lg border px-3 py-2.5 text-sm font-semibold transition ${
-            value === option
-              ? "border-[#6D28D9] bg-[#EDE9FE]/40 text-[#6D28D9]"
-              : "border-[#E7E7F2] bg-white text-[#6B6B80] hover:bg-slate-50"
-          }`}
-        >
-          <input
-            type="radio"
-            name={name}
-            value={option}
-            checked={value === option}
-            onChange={() => onChange(option)}
-            className="sr-only"
-          />
-          {option}
-        </label>
-      ))}
+    <div className="mt-3 grid grid-cols-2 gap-3 sm:gap-4">
+      {(["Yes", "No"] as YesNo[]).map((option) => {
+        const selected = value === option;
+        return (
+          <label
+            key={option}
+            className={`relative flex min-h-[46px] cursor-pointer items-center justify-start gap-3 rounded-xl border px-4 py-3 text-sm transition-all duration-200 select-none ${
+              selected
+                ? "border-indigo-600 bg-indigo-50/30 text-indigo-950 ring-2 ring-indigo-500/20 shadow-sm font-bold"
+                : "border-slate-200 bg-white text-slate-900 hover:border-slate-300 hover:bg-slate-50/60 font-semibold"
+            }`}
+          >
+            <input
+              type="radio"
+              name={name}
+              value={option}
+              checked={selected}
+              onChange={() => onChange(option)}
+              className="sr-only"
+            />
+            <span
+              className={`relative flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors ${
+                selected ? "border-indigo-600 bg-white" : "border-slate-300 bg-white"
+              }`}
+            >
+              {selected && <span className="h-2 w-2 rounded-full bg-indigo-600" />}
+            </span>
+            <span>{option}</span>
+          </label>
+        );
+      })}
     </div>
   );
 }
@@ -293,41 +334,52 @@ const currencyOptions = [
   { value: "CAD", label: "CAD ($)" },
 ];
 
-const complexityGates: { key: SpecialCircumstanceKey; tag: string; question: string }[] = [
+const complexityGates: {
+  key: SpecialCircumstanceKey;
+  tag: string;
+  question: string;
+  icon: React.ComponentType<{ className?: string }>;
+}[] = [
   {
     key: "pregnancyOrAdoption",
     tag: "Pregnancy",
     question:
       "Is either partner currently pregnant, or are you in the active stages of adopting a child?",
+    icon: Baby,
   },
   {
     key: "sharedBusiness",
     tag: "Shared Commerce",
     question: "Are you and your partner both involved in owning or running the same company?",
+    icon: Briefcase,
   },
   {
     key: "financialReliance",
     tag: "Financial Reliance",
     question:
       "Is one of you currently out of work, on extended sick leave, or relying on the other partner for financial support?",
+    icon: HelpingHand,
   },
   {
     key: "coOwnedRealEstate",
     tag: "Co-Owned Real Estate",
     question:
       "Is your primary home (or shared property) co-owned with a third party, like a parent or outside investor?",
+    icon: Home,
   },
   {
     key: "highValueAssets",
     tag: "High-Value Threshold",
     question:
       "To the best of your knowledge, do your combined net global assets exceed a total valuation of £3,000,000 (3 million Pounds)?",
+    icon: Gem,
   },
   {
     key: "priorDependents",
     tag: "Prior Dependents",
     question:
       "Do you have any children from previous relationships, or from your current relationship, living inside your household?",
+    icon: Users,
   },
 ];
 
@@ -402,6 +454,12 @@ export default function MatrimonialAgreementPage() {
   const [formData, setFormData] = useState<MatrimonialAgreementFormValues>(defaultValues);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const mainEl = document.querySelector("main");
+    if (mainEl) mainEl.scrollTop = 0;
+    if (typeof window !== "undefined") window.scrollTo(0, 0);
+  }, []);
 
   // Load existing answers
   useEffect(() => {
@@ -554,7 +612,21 @@ export default function MatrimonialAgreementPage() {
         <div className="space-y-8">
           {/* 1. Future acquired assets & debts */}
           <div className={groupClasses}>
-            <ModuleTag>Future Acquired Assets &amp; Debts</ModuleTag>
+            <div className="flex items-center gap-3.5 mb-3.5">
+              <div
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${getBadgeGradient(
+                  0
+                )} text-white shadow-md ring-1 ring-white/20 ring-inset [&>svg]:h-5.5 [&>svg]:w-5.5 [&>svg]:stroke-[2.2] [&>svg]:text-white [&>svg]:drop-shadow-xs`}
+              >
+                <PackagePlus />
+              </div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base sm:text-[17px] font-bold text-slate-900 tracking-tight">
+                  Future Acquired Assets &amp; Debts
+                </h2>
+                <Tooltip text="This section records how you would like future assets and liabilities acquired during the relationship to be treated if you separate." />
+              </div>
+            </div>
             <label className={labelClasses}>
               1. How should future assets or debts acquired in either of your sole names after the
               marriage ceremony be treated if you separate?
@@ -588,7 +660,21 @@ export default function MatrimonialAgreementPage() {
 
           {/* 2. Future gifts */}
           <div className={groupClasses}>
-            <ModuleTag>Future Gifts Treatment</ModuleTag>
+            <div className="flex items-center gap-3.5 mb-3.5">
+              <div
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${getBadgeGradient(
+                  1
+                )} text-white shadow-md ring-1 ring-white/20 ring-inset [&>svg]:h-5.5 [&>svg]:w-5.5 [&>svg]:stroke-[2.2] [&>svg]:text-white [&>svg]:drop-shadow-xs`}
+              >
+                <Gift />
+              </div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base sm:text-[17px] font-bold text-slate-900 tracking-tight">
+                  Future Gifts Treatment
+                </h2>
+                <Tooltip text="Gifts received from third parties may be treated differently depending on how they are used during the relationship." />
+              </div>
+            </div>
             <label className={labelClasses}>
               2. If one of you is specifically gifted a significant item or sum of money by a third
               party during the marriage, how should it be treated?
@@ -616,7 +702,21 @@ export default function MatrimonialAgreementPage() {
 
           {/* 3. Future inheritances */}
           <div className={groupClasses}>
-            <ModuleTag>Future Inheritances</ModuleTag>
+            <div className="flex items-center gap-3.5 mb-3.5">
+              <div
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${getBadgeGradient(
+                  2
+                )} text-white shadow-md ring-1 ring-white/20 ring-inset [&>svg]:h-5.5 [&>svg]:w-5.5 [&>svg]:stroke-[2.2] [&>svg]:text-white [&>svg]:drop-shadow-xs`}
+              >
+                <Landmark />
+              </div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base sm:text-[17px] font-bold text-slate-900 tracking-tight">
+                  Future Inheritances
+                </h2>
+                <Tooltip text="Inheritances are often treated separately by the courts, but circumstances may affect how they are considered in practice." />
+              </div>
+            </div>
             <label className={labelClasses}>
               3. Do either of you expect to receive a family inheritance, or do you have a pending
               inheritance currently in probate?
@@ -857,7 +957,21 @@ export default function MatrimonialAgreementPage() {
 
           {/* 4. Spousal maintenance */}
           <div className={groupClasses}>
-            <ModuleTag>Spousal Maintenance Waiver</ModuleTag>
+            <div className="flex items-center gap-3.5 mb-3.5">
+              <div
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${getBadgeGradient(
+                  3
+                )} text-white shadow-md ring-1 ring-white/20 ring-inset [&>svg]:h-5.5 [&>svg]:w-5.5 [&>svg]:stroke-[2.2] [&>svg]:text-white [&>svg]:drop-shadow-xs`}
+              >
+                <Scale />
+              </div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base sm:text-[17px] font-bold text-slate-900 tracking-tight">
+                  Spousal Maintenance Waiver
+                </h2>
+                <Tooltip text="Spousal maintenance refers to ongoing financial support paid by one former partner to another following separation or divorce." />
+              </div>
+            </div>
             <label className={labelClasses}>
               4. If the marriage dissolves, what is your intention regarding ongoing spousal
               maintenance (financial support paid from one ex-partner to the other)?
@@ -887,7 +1001,21 @@ export default function MatrimonialAgreementPage() {
 
           {/* 5. Critical illness safeguards */}
           <div className={groupClasses}>
-            <ModuleTag>Critical Illness Safeguards</ModuleTag>
+            <div className="flex items-center gap-3.5 mb-3.5">
+              <div
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${getBadgeGradient(
+                  4
+                )} text-white shadow-md ring-1 ring-white/20 ring-inset [&>svg]:h-5.5 [&>svg]:w-5.5 [&>svg]:stroke-[2.2] [&>svg]:text-white [&>svg]:drop-shadow-xs`}
+              >
+                <HeartPulse />
+              </div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base sm:text-[17px] font-bold text-slate-900 tracking-tight">
+                  Critical Illness Safeguards
+                </h2>
+                <Tooltip text="Major changes in health or care needs can affect the fairness and enforceability of an agreement over time." />
+              </div>
+            </div>
             <label className={labelClasses}>
               5. If one partner suffers a permanent, career-ending illness or disability during the
               marriage, should the terms of this separation agreement be modified?
@@ -917,7 +1045,21 @@ export default function MatrimonialAgreementPage() {
 
           {/* 6. Death & Wills alignment */}
           <div className={groupClasses}>
-            <ModuleTag>Death &amp; Wills Alignment</ModuleTag>
+            <div className="flex items-center gap-3.5 mb-3.5">
+              <div
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${getBadgeGradient(
+                  5
+                )} text-white shadow-md ring-1 ring-white/20 ring-inset [&>svg]:h-5.5 [&>svg]:w-5.5 [&>svg]:stroke-[2.2] [&>svg]:text-white [&>svg]:drop-shadow-xs`}
+              >
+                <FileSignature />
+              </div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base sm:text-[17px] font-bold text-slate-900 tracking-tight">
+                  Death &amp; Wills Alignment
+                </h2>
+                <Tooltip text="Prenuptial agreements do not govern what happens upon death. You should consider reviewing or updating your Will after marriage or civil partnership." />
+              </div>
+            </div>
             <label className={labelClasses}>
               6. Do you expect what you leave each other in your Wills to match how your assets are
               split in this agreement?
@@ -937,7 +1079,21 @@ export default function MatrimonialAgreementPage() {
 
           {/* 7. Review triggers */}
           <div className={groupClasses}>
-            <ModuleTag>Agreement Review Triggers</ModuleTag>
+            <div className="flex items-center gap-3.5 mb-3.5">
+              <div
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${getBadgeGradient(
+                  6
+                )} text-white shadow-md ring-1 ring-white/20 ring-inset [&>svg]:h-5.5 [&>svg]:w-5.5 [&>svg]:stroke-[2.2] [&>svg]:text-white [&>svg]:drop-shadow-xs`}
+              >
+                <CalendarClock />
+              </div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base sm:text-[17px] font-bold text-slate-900 tracking-tight">
+                  Agreement Review Triggers
+                </h2>
+                <Tooltip text="Regular reviews can help ensure that your agreement remains appropriate following significant life events." />
+              </div>
+            </div>
             <label className={labelClasses}>
               7. When should this agreement be automatically reviewed or updated?
             </label>
@@ -1005,17 +1161,33 @@ export default function MatrimonialAgreementPage() {
         </div>
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          {complexityGates.map((gate) => (
-            <div key={gate.key} className={groupClasses}>
-              <ModuleTag>{gate.tag}</ModuleTag>
-              <label className={labelClasses}>{gate.question}</label>
-              <YesNoCards
-                name={gate.key}
-                value={formData.specialCircumstances[gate.key]}
-                onChange={(value) => handleGate(gate.key, value)}
-              />
-            </div>
-          ))}
+          {complexityGates.map((gate, idx) => {
+            const Icon = gate.icon;
+            return (
+              <div key={gate.key} className={groupClasses}>
+                <div className="flex items-center gap-3.5 mb-3.5">
+                  <div
+                    className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${getBadgeGradient(
+                      idx
+                    )} text-white shadow-md ring-1 ring-white/20 ring-inset [&>svg]:h-5.5 [&>svg]:w-5.5 [&>svg]:stroke-[2.2] [&>svg]:text-white [&>svg]:drop-shadow-xs`}
+                  >
+                    <Icon />
+                  </div>
+                  <h3 className="text-base sm:text-[17px] font-bold text-slate-900 tracking-tight">
+                    {gate.tag}
+                  </h3>
+                </div>
+                <label className="mb-3 block text-[13.5px] sm:text-[14px] font-bold text-slate-900 leading-relaxed">
+                  {gate.question}
+                </label>
+                <YesNoCards
+                  name={gate.key}
+                  value={formData.specialCircumstances[gate.key]}
+                  onChange={(value) => handleGate(gate.key, value)}
+                />
+              </div>
+            );
+          })}
         </div>
 
         {hasSpecialCircumstances && (
@@ -1023,9 +1195,12 @@ export default function MatrimonialAgreementPage() {
             <span className="mb-3 inline-block rounded-full bg-red-500 px-3 py-1 text-[0.7rem] font-bold uppercase tracking-wider text-white">
               Case Complexity Context
             </span>
-            <label className="block text-sm font-bold text-red-600">
-              Special Circumstances Overview
-            </label>
+            <div className="flex items-center gap-2">
+              <label className="block text-sm font-bold text-red-600">
+                Special Circumstances Overview
+              </label>
+              <Tooltip text="Please provide any additional information that may assist your case manager and independent solicitors when reviewing your file." />
+            </div>
             <textarea
               rows={4}
               value={formData.specialCircumstancesOverview}
@@ -1043,68 +1218,98 @@ export default function MatrimonialAgreementPage() {
     <button
       type="button"
       onClick={() => router.push("/dashboard/joint-liabilities-debts")}
-      className="w-full rounded-xl border border-[#D1D1DC] bg-white px-6 py-3.5 text-sm font-semibold text-[#6B6B80] transition hover:bg-slate-50 sm:w-auto"
+      className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 hover:text-slate-900"
     >
-      ← Back to Joint Liabilities
+      ← Back
     </button>
   );
 
   return (
-    <div className="min-h-screen bg-[#F8F9FC] px-4 py-8 md:px-8">
-      <div className="mx-auto max-w-4xl">
-        <div className="rounded-2xl border border-[#E7E7F2] bg-white p-6 md:p-10 shadow-[0_10px_25px_-5px_rgba(15,23,42,0.06)]">
-          <div className="mb-2 flex items-center gap-2">
-            <span className="rounded-full bg-[#EDE9FE] px-3 py-1 text-xs font-semibold text-[#6D28D9]">
-              Section 3 • Joint Information
-            </span>
+    <div className="min-h-full bg-[#F8FAFC] px-4 py-8 sm:px-8 lg:px-12">
+      <div className="mx-auto max-w-5xl">
+        {/* Top Header Row matching Income & Revenue */}
+        <div className="mb-7 flex items-start justify-between gap-6">
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-indigo-50 to-purple-50 px-3 py-1 text-[11.5px] font-semibold text-indigo-700 border border-indigo-100/90 shadow-2xs">
+                Step 4 of 4
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3.5">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#F89AA8] via-[#E28691] to-[#C0374F] text-white shadow-md shadow-slate-900/10 ring-1 ring-white/30 ring-inset">
+                <HeartHandshake className="h-5.5 w-5.5 text-white stroke-[2.2] drop-shadow-xs" />
+              </div>
+              <h1 className="text-2xl sm:text-[27px] font-bold tracking-tight text-slate-900">
+                Matrimonial Agreement &amp; Intentions
+              </h1>
+            </div>
+
+            <p className="mt-2 pl-[58px] max-w-2xl text-[13.5px] leading-relaxed text-[#64748B]">
+              Please define your joint intentions and agreed approach regarding future assets, gifts
+              and inheritances, ongoing maintenance, and regular agreement review under English law.
+            </p>
           </div>
 
-          <h1 className="text-2xl font-bold tracking-tight text-[#1E1B3C] md:text-3xl">
-            Matrimonial Agreement &amp; Intentions
-          </h1>
-          <p className="mt-2 text-sm leading-relaxed text-[#6B6B80] md:text-base">
-            Please define your joint intentions and agreed approach regarding future assets, gifts
-            and inheritances, ongoing maintenance, and regular agreement review under English law.
-          </p>
+          <FormShellIllustration />
+        </div>
 
-          <div className="mt-6">
-            <JointStatusBanner isReviewPage={false} />
-          </div>
+        <JointStatusBanner isReviewPage={false} />
 
-          {canEdit ? (
-            <form onSubmit={handleSubmit} className="mt-8">
-              {formBody}
+        {canEdit ? (
+          <form onSubmit={handleSubmit} className="mt-6 space-y-6">
+            {formBody}
 
-              <div className="mt-8 flex flex-col-reverse items-center justify-between gap-4 sm:flex-row">
+            {/* Bottom Submit Bar matching other forms and Picture 3 */}
+            <div className="mt-8 flex flex-col gap-4 pt-6 sm:flex-row sm:items-center sm:justify-between border-t border-slate-200/80">
+              <button
+                type="button"
+                onClick={() => router.push("/dashboard")}
+                className="text-[13.5px] font-semibold text-[#5B4DF5] transition hover:text-[#4338CA] text-left cursor-pointer"
+              >
+                Save and exit
+              </button>
+
+              <div className="flex items-center gap-3">
                 {backButton}
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full rounded-xl bg-[#6D28D9] px-8 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[#6D28D9]/25 transition hover:bg-[#5B21B6] disabled:opacity-60 sm:w-auto"
+                  className="inline-flex h-[42px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-[#5B4DF5] hover:from-indigo-700 hover:to-[#4E3EEA] px-7 text-[13.5px] font-semibold text-white shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/30 transition-all focus:outline-none focus:ring-2 focus:ring-[#5B4DF5]/30 disabled:opacity-60 cursor-pointer"
                 >
                   {isSubmitting ? "Saving..." : "Save & Continue to Final Review →"}
                 </button>
               </div>
-            </form>
-          ) : (
-            <div className="mt-8">
-              <fieldset disabled className="m-0 border-0 p-0">
-                {formBody}
-              </fieldset>
+            </div>
+          </form>
+        ) : (
+          <div className="mt-6 space-y-6">
+            <fieldset disabled className="m-0 border-0 p-0 space-y-6">
+              {formBody}
+            </fieldset>
 
-              <div className="mt-8 flex flex-col-reverse items-center justify-between gap-4 sm:flex-row">
+            <div className="mt-8 flex flex-col gap-4 pt-6 sm:flex-row sm:items-center sm:justify-between border-t border-slate-200/80">
+              <button
+                type="button"
+                onClick={() => router.push("/dashboard")}
+                className="text-[13.5px] font-semibold text-[#5B4DF5] transition hover:text-[#4338CA] text-left cursor-pointer"
+              >
+                Save and exit
+              </button>
+
+              <div className="flex items-center gap-3">
                 {backButton}
                 <button
                   type="button"
                   onClick={() => router.push("/dashboard/final-review-confirmation")}
-                  className="w-full rounded-xl bg-[#6D28D9] px-8 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[#6D28D9]/25 transition hover:bg-[#5B21B6] sm:w-auto"
+                  className="inline-flex h-[42px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-[#5B4DF5] hover:from-indigo-700 hover:to-[#4E3EEA] px-7 text-[13.5px] font-semibold text-white shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/30 transition-all focus:outline-none focus:ring-2 focus:ring-[#5B4DF5]/30 cursor-pointer"
                 >
                   Continue to Final Review →
                 </button>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

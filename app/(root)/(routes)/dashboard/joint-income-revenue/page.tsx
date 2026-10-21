@@ -1,7 +1,9 @@
 "use client"
 
 import React, { useState, useEffect } from "react";
-import { Banknote, TrendingUp } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, Banknote, TrendingUp } from "lucide-react";
 import {
   emptyTreatment,
   makeId,
@@ -41,6 +43,7 @@ function makeSharedIncomeRow(): SharedIncomeRow {
 }
 
 export default function SharedIncomeForm({ onContinue }: SharedIncomeFormProps = {}) {
+  const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const caseId = useSelector((state: RootState) => state.auth.caseId);
   // Read-only unless it's this user's turn to edit the joint section
@@ -69,7 +72,11 @@ export default function SharedIncomeForm({ onContinue }: SharedIncomeFormProps =
       toast.success("Joint income saved.");
       // Refresh so the sidebar tick turns green
       if (caseId) dispatch(getCasesDetails(caseId));
-      onContinue?.();
+      if (onContinue) {
+        onContinue();
+      } else {
+        router.push("/dashboard/joint-liabilities-debts");
+      }
     } catch (error) {
       toast.error(getErrorMessage(error, "Couldn't save joint income."));
     } finally {
@@ -116,18 +123,19 @@ export default function SharedIncomeForm({ onContinue }: SharedIncomeFormProps =
   return (
     <FormShell
       title="Shared Income & Revenue"
-      stepLabel="Section 3 • Joint Information"
+      stepLabel="Step 2 of 4"
       icon={<Banknote className="h-5 w-5" />}
       description="Please declare any income that you and your partner receive jointly and how you would like that income to be treated under your prenuptial agreement."
     >
       <JointStatusBanner />
 
       <form onSubmit={handleSubmit} noValidate>
-        <fieldset disabled={!canEdit} className="m-0 min-w-0 border-0 p-0">
+        <fieldset disabled={!canEdit} className="m-0 min-w-0 border-0 p-0 space-y-6">
           <SectionCard
             title="Shared Income"
             icon={<TrendingUp className="h-5 w-5" />}
-            tooltip="Declare any income that you and your partner receive jointly, such as rental income, business income, dividends, royalties, trust distributions or investment income."
+            colorIndex={0}
+            tooltip="Include any income received jointly by both parties, regardless of whose bank account receives the payment."
           >
             <FieldLabel>
               Do you and your partner receive any income jointly, such as rental income, business
@@ -182,13 +190,38 @@ export default function SharedIncomeForm({ onContinue }: SharedIncomeFormProps =
           </SectionCard>
         </fieldset>
 
-        {canEdit && (
+        {canEdit ? (
           <SubmitBar
             isSaving={isSaving}
             label="Save & continue"
             withArrow
             backHref="/dashboard/joint-assets"
           />
+        ) : (
+          <div className="mt-8 flex flex-col gap-4 pt-6 sm:flex-row sm:items-center sm:justify-between border-t border-slate-200/80">
+            <Link
+              href="/dashboard"
+              className="text-[13.5px] font-semibold text-[#5B4DF5] transition hover:text-[#4338CA] text-left cursor-pointer"
+            >
+              Save and exit
+            </Link>
+
+            <div className="flex items-center gap-3">
+              <Link
+                href="/dashboard/joint-assets"
+                className="inline-flex h-[42px] items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-5 text-[13.5px] font-semibold text-slate-700 shadow-xs transition hover:bg-slate-50 hover:border-slate-300"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back
+              </Link>
+              <Link
+                href="/dashboard/joint-liabilities-debts"
+                className="inline-flex h-[42px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-[#5B4DF5] hover:from-indigo-700 hover:to-[#4E3EEA] px-7 text-[13.5px] font-semibold text-white shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/30 transition-all focus:outline-none focus:ring-2 focus:ring-[#5B4DF5]/30 cursor-pointer"
+              >
+                Next: Shared Liabilities &amp; Debts →
+              </Link>
+            </div>
+          </div>
         )}
       </form>
 

@@ -1,7 +1,10 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
+  ArrowLeft,
   Boxes,
   Briefcase,
   Building2,
@@ -10,8 +13,11 @@ import {
   Gem,
   Home,
   Landmark,
+  Users,
+  MoreHorizontal,
 } from "lucide-react";
 import {
+  FieldLabel,
   emptyTreatment,
   makeId,
   inputClasses,
@@ -47,14 +53,14 @@ const sharedTreatmentOptions: { value: Treatment; label: string }[] = [
 ];
 
 
-const livingArrangementOptions: { value: LivingArrangement; label: string }[] =
+const livingArrangementOptions: { value: LivingArrangement; label: string; icon: any }[] =
   [
-    { value: "Separate", label: "We currently live separately" },
-    { value: "Rent", label: "We rent a home together" },
-    { value: "OneOwner", label: "We live in a home owned by one of us" },
-    { value: "Joint", label: "We live in a home we jointly own" },
-    { value: "ThirdParty", label: "We live with family or third parties" },
-    { value: "Other", label: "Other (please specify)" },
+    { value: "Separate", label: "We currently live separately", icon: Home },
+    { value: "Rent", label: "We rent a home together", icon: Home },
+    { value: "OneOwner", label: "We live in a home owned by one of us", icon: Home },
+    { value: "Joint", label: "We live in a home we jointly own", icon: Home },
+    { value: "ThirdParty", label: "We live with family or third parties", icon: Users },
+    { value: "Other", label: "Other (please specify)", icon: MoreHorizontal },
   ];
 
 function LivingArrangementRadio({
@@ -65,16 +71,18 @@ function LivingArrangementRadio({
   onChange: (v: LivingArrangement) => void;
 }) {
   return (
-    <div className="mb-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
       {livingArrangementOptions.map((opt) => {
         const checked = value === opt.value;
+        const Icon = opt.icon;
         return (
           <label
             key={opt.value}
-            className={`relative flex cursor-pointer items-center gap-3 rounded-[10px] border px-4 py-3 transition ${checked
-              ? "border-indigo-600 bg-slate-50"
-              : "border-slate-300 bg-slate-50 hover:border-indigo-600 hover:bg-white"
-              }`}
+            className={`group relative flex cursor-pointer items-center gap-3.5 rounded-xl border p-4 transition-all duration-200 ${
+              checked
+                ? "border-[#6366F1] bg-[#6366F1]/5 ring-2 ring-[#6366F1]/20 shadow-xs"
+                : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50"
+            }`}
           >
             <input
               type="radio"
@@ -85,17 +93,25 @@ function LivingArrangementRadio({
               className="sr-only"
             />
             <span
-              className={`relative h-4 w-4 shrink-0 rounded-full border-2 ${checked
-                ? "border-indigo-600 bg-indigo-600"
-                : "border-slate-300 bg-white"
-                }`}
+              className={`flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full border-2 transition-all duration-200 ${
+                checked
+                  ? "border-[#6366F1] bg-[#6366F1]"
+                  : "border-slate-300 bg-white group-hover:border-slate-400"
+              }`}
             >
-              {checked && (
-                <span className="absolute left-1/2 top-1/2 h-1 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white" />
-              )}
+              {checked && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
             </span>
+            {Icon && (
+              <Icon
+                className={`h-4.5 w-4.5 shrink-0 transition-colors ${
+                  checked ? "text-[#6366F1]" : "text-slate-400 group-hover:text-slate-600"
+                }`}
+              />
+            )}
             <span
-              className={`text-[0.9rem] font-semibold ${checked ? "text-indigo-600" : "text-slate-900"}`}
+              className={`text-[13.5px] transition-colors ${
+                checked ? "font-bold text-[#4338CA]" : "font-semibold text-slate-900 group-hover:text-black"
+              }`}
             >
               {opt.label}
             </span>
@@ -197,6 +213,7 @@ function makeSharedOtherAssetRow(): SharedOtherAssetRow {
 /* ---------------------------------------------------------------------- */
 
 export default function SharedAssetsForm() {
+  const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const caseId = useSelector((state: RootState) => state.auth.caseId);
   // Read-only unless it's this user's turn to edit the joint section
@@ -301,6 +318,7 @@ export default function SharedAssetsForm() {
       toast.success("Joint assets saved.");
       // Refresh so the sidebar tick turns green
       if (caseId) dispatch(getCasesDetails(caseId));
+      router.push("/dashboard/joint-income-revenue");
     } catch (error) {
       toast.error(getErrorMessage(error, "Couldn't save joint assets."));
     } finally {
@@ -364,25 +382,26 @@ useEffect(() => {
   return (
     <FormShell
       title="Shared Assets"
-      stepLabel="Section 3 • Joint Information"
-      icon={<Landmark className="h-5 w-5" />}
+      stepLabel="Step 1 of 4"
+      icon={<Home className="h-5 w-5" />}
       description="Please tell us about any assets, property, or financial interests that you and your partner currently own or hold together, and how you would like them to be treated under your prenuptial agreement."
     >
           <JointStatusBanner />
 
           <form onSubmit={handleSubmit} noValidate>
-            <fieldset disabled={!canEdit} className="m-0 min-w-0 border-0 p-0">
+            <fieldset disabled={!canEdit} className="m-0 min-w-0 border-0 p-0 space-y-6">
             {/* CURRENT LIVING ARRANGEMENTS */}
             <SectionCard
               title="Current Living Arrangements"
               icon={<Home className="h-5 w-5" />}
-              tooltip="Tell us about your current living arrangements. This helps us understand your current circumstances. Property ownership and how it should be treated under your agreement will be collected separately."
+              colorIndex={0}
+              tooltip="This section helps us understand your current circumstances. Property ownership details are collected separately below."
             >
             <div className="mb-4">
-              <label className="mb-2 block text-[0.95rem] font-semibold text-slate-800">
+              <FieldLabel>
                 Which of the following best describes your current living
                 arrangements?
-              </label>
+              </FieldLabel>
               <LivingArrangementRadio
                 value={livingArrangement}
                 onChange={setLivingArrangement}
@@ -396,24 +415,34 @@ useEffect(() => {
                 </InfoBanner>
               )}
               {livingArrangement === "Rent" && (
-                <div className="mt-3 grid grid-cols-1 gap-3.5 sm:grid-cols-2">
-                  <input
-                    type="text"
-                    placeholder="How long have you lived here together?"
-                    value={rentDuration}
-                    onChange={(e) => setRentDuration(e.target.value)}
-                    required
-                    className={inputClasses}
-                  />
-                  <input
-                    type="number"
-                    min={0}
-                    placeholder="Monthly Rent (£)"
-                    value={monthlyRent}
-                    onChange={(e) => setMonthlyRent(e.target.value)}
-                    required
-                    className={inputClasses}
-                  />
+                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-[13px] font-bold text-slate-900">
+                      How long have you lived here together?
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 2 years"
+                      value={rentDuration}
+                      onChange={(e) => setRentDuration(e.target.value)}
+                      required
+                      className={inputClasses}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[13px] font-bold text-slate-900">
+                      Monthly Rent (£)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      placeholder="e.g. 1,200"
+                      value={monthlyRent}
+                      onChange={(e) => setMonthlyRent(e.target.value)}
+                      required
+                      className={inputClasses}
+                    />
+                  </div>
                 </div>
               )}
               {livingArrangement === "OneOwner" && (
@@ -454,13 +483,14 @@ useEffect(() => {
             <SectionCard
               title="Shared Property & Real Estate"
               icon={<Building2 className="h-5 w-5" />}
-              tooltip="Declare any property or real estate that you and your partner jointly own or have a shared financial interest in."
+              colorIndex={1}
+              tooltip="Include any property you jointly own or where both parties have a financial interest, regardless of whose name appears on the title deeds."
             >
             <div className="mb-4">
-              <label className="mb-2 block text-[0.95rem] font-semibold text-slate-800">
+              <FieldLabel>
                 Do you and your partner jointly own, partly own, or have a
                 shared financial interest in any real estate or property?
-              </label>
+              </FieldLabel>
               <YesNoToggle
                 name="has_shared_real_estate"
                 value={hasSharedRealEstate}
@@ -638,13 +668,14 @@ useEffect(() => {
             <SectionCard
               title="Shared Savings & Investments"
               icon={<ChartColumnIncreasing className="h-5 w-5" />}
-              tooltip="Declare any bank accounts, savings, investments or other financial accounts that you own jointly with your partner."
+              colorIndex={2}
+              tooltip="Include all jointly held bank accounts, ISAs, investment portfolios, and other shared financial accounts."
             >
             <div className="mb-4">
-              <label className="mb-2 block text-[0.95rem] font-semibold text-slate-800">
+              <FieldLabel>
                 Do you jointly hold any bank accounts, savings, investments or
                 other financial accounts together?
-              </label>
+              </FieldLabel>
               <YesNoToggle
                 name="has_shared_savings"
                 value={hasSharedSavings}
@@ -740,12 +771,13 @@ useEffect(() => {
             <SectionCard
               title="Shared Business Interests"
               icon={<Briefcase className="h-5 w-5" />}
-              tooltip="Declare any businesses, companies or partnerships that you and your partner jointly own or operate."
+              colorIndex={3}
+              tooltip="Include any businesses, partnerships, or companies in which both parties have an ownership interest."
             >
             <div className="mb-4">
-              <label className="mb-2 block text-[0.95rem] font-semibold text-slate-800">
+              <FieldLabel>
                 Do you jointly own or operate a business together?
-              </label>
+              </FieldLabel>
               <YesNoToggle
                 name="has_shared_businesses"
                 value={hasSharedBusinesses}
@@ -904,13 +936,14 @@ useEffect(() => {
             <SectionCard
               title="Shared Intellectual Property"
               icon={<FileText className="h-5 w-5" />}
-              tooltip="Declare any intellectual property that you and your partner jointly own, such as patents, trademarks, copyrights, software, websites or licensing rights."
+              colorIndex={4}
+              tooltip="Intellectual property includes patents, trademarks, copyrights, software, websites, domain names, and royalty or licensing rights."
             >
             <div className="mb-4">
-              <label className="mb-2 block text-[0.95rem] font-semibold text-slate-800">
+              <FieldLabel>
                 Do you jointly own any intellectual property or licensing rights
                 with your partner?
-              </label>
+              </FieldLabel>
               <YesNoToggle
                 name="has_shared_ip"
                 value={hasSharedIP}
@@ -1020,14 +1053,15 @@ useEffect(() => {
             <SectionCard
               title="Shared High-Value Personal Belongings"
               icon={<Gem className="h-5 w-5" />}
-              tooltip="Personal property items valued individually over £5,000."
+              colorIndex={5}
+              tooltip="Include jointly owned items with an estimated value exceeding £5,000, including vehicles, artwork, jewellery, and digital assets."
             >
             <div className="mb-4">
-              <label className="mb-2 block text-[0.95rem] font-semibold text-slate-800">
+              <FieldLabel>
                 Do you jointly own any high-value personal belongings valued at
                 more than £5,000, such as vehicles, jewellery, artwork or
                 cryptocurrency?
-              </label>
+              </FieldLabel>
               <YesNoToggle
                 name="has_shared_chattels"
                 value={hasSharedChattels}
@@ -1108,14 +1142,15 @@ useEffect(() => {
             <SectionCard
               title="Other Shared Assets"
               icon={<Boxes className="h-5 w-5" />}
-              tooltip="Declare any other joint assets, inheritances, trust interests, or shared financial rights not covered above."
+              colorIndex={6}
+              tooltip="Include any shared assets not listed elsewhere, including trust interests, foreign assets, inheritances, or future financial entitlements."
             >
             <div className="mb-4">
-              <label className="mb-2 block text-[0.95rem] font-semibold text-slate-800">
+              <FieldLabel>
                 Have we missed anything? Do you and your partner jointly own or
                 expect to receive any other joint assets, financial interests,
                 or shared property that have not been listed above?
-              </label>
+              </FieldLabel>
               <YesNoToggle
                 name="has_shared_other_assets"
                 value={hasSharedOtherAssets}
@@ -1183,8 +1218,38 @@ useEffect(() => {
             </SectionCard>
             </fieldset>
 
-            {canEdit && (
-              <SubmitBar isSaving={isSaving} label="Save & continue" withArrow />
+            {canEdit ? (
+              <SubmitBar
+                isSaving={isSaving}
+                label="Save & continue"
+                withArrow
+                backHref="/dashboard/liabilities_debts"
+              />
+            ) : (
+              <div className="mt-8 flex flex-col gap-4 pt-6 sm:flex-row sm:items-center sm:justify-between border-t border-slate-200/80">
+                <Link
+                  href="/dashboard"
+                  className="text-[13.5px] font-semibold text-[#5B4DF5] transition hover:text-[#4338CA] text-left cursor-pointer"
+                >
+                  Save and exit
+                </Link>
+
+                <div className="flex items-center gap-3">
+                  <Link
+                    href="/dashboard/liabilities_debts"
+                    className="inline-flex h-[42px] items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-5 text-[13.5px] font-semibold text-slate-700 shadow-xs transition hover:bg-slate-50 hover:border-slate-300"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Back
+                  </Link>
+                  <Link
+                    href="/dashboard/joint-income-revenue"
+                    className="inline-flex h-[42px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-[#5B4DF5] hover:from-indigo-700 hover:to-[#4E3EEA] px-7 text-[13.5px] font-semibold text-white shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/30 transition-all focus:outline-none focus:ring-2 focus:ring-[#5B4DF5]/30 cursor-pointer"
+                  >
+                    Next: Shared Income &amp; Revenue →
+                  </Link>
+                </div>
+              </div>
             )}
           </form>
 
