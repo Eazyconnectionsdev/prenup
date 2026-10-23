@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect, useState } from "react";
 import {
@@ -7,18 +7,35 @@ import {
   MapPin,
   Clock,
   Shield,
+  ChevronDown,
 } from "lucide-react";
-import { useSelector } from "react-redux";
-import { RootState } from "@/store/store";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/store/store";
+import { setUserProfileData } from "@/store/slices/authSlice";
+import { toast } from "react-toastify";
 import Axios from "@/lib/ApiConfig";
 import type { AccountModalProps } from "@/types/case-manager/case-manager-account-modal";
 
 export const CaseManagerAccountModal: React.FC<AccountModalProps> = ({
   isOpen,
   onClose,
+  onShowToast,
 }) => {
+  const dispatch = useDispatch<AppDispatch>();
   const user = useSelector((state: RootState) => state.auth.user);
   const [activeCasesCount, setActiveCasesCount] = useState<number>(0);
+
+  const currentJurisdiction =
+    user?.primaryJurisdiction || user?.jurisdiction || "England";
+  const [selectedJurisdiction, setSelectedJurisdiction] =
+    useState<string>(currentJurisdiction);
+  const [isUpdating, setIsUpdating] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (user?.primaryJurisdiction || user?.jurisdiction) {
+      setSelectedJurisdiction(user?.primaryJurisdiction || user?.jurisdiction);
+    }
+  }, [user?.primaryJurisdiction, user?.jurisdiction]);
 
   const fullName =
     [user?.firstName, user?.middleName, user?.lastName]
@@ -56,6 +73,41 @@ export const CaseManagerAccountModal: React.FC<AccountModalProps> = ({
       cancelled = true;
     };
   }, [isOpen]);
+
+  const handleJurisdictionChange = async (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    const value = e.target.value;
+    setSelectedJurisdiction(value);
+    try {
+      setIsUpdating(true);
+      const { data } = await Axios.patch("/users/profile", {
+        primaryJurisdiction: value,
+        jurisdiction: value,
+      });
+      const updated = data?.user || data;
+      dispatch(
+        setUserProfileData({
+          ...user,
+          ...updated,
+          primaryJurisdiction: value,
+          jurisdiction: value,
+        })
+      );
+      toast.success(`Primary Jurisdiction updated to ${value}`);
+      if (onShowToast) {
+        onShowToast(`Primary Jurisdiction updated to ${value}`, "success");
+      }
+    } catch (error) {
+      console.error("Failed to update jurisdiction", error);
+      toast.error("Failed to update jurisdiction");
+      setSelectedJurisdiction(
+        user?.primaryJurisdiction || user?.jurisdiction || "England"
+      );
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -103,13 +155,32 @@ export const CaseManagerAccountModal: React.FC<AccountModalProps> = ({
             </span>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-white border border-slate-200 flex flex-col gap-1">
-            <span className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
-              <MapPin className="w-3 h-3 text-slate-500" /> Primary Jurisdiction
-            </span>
-            <span className="font-bold text-slate-900">
-              England, Wales, Scotland
-            </span>
+          <div className="p-3.5 rounded-xl bg-white border border-slate-200 flex flex-col gap-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
+                <MapPin className="w-3 h-3 text-slate-500" /> Primary Jurisdiction
+              </span>
+              {isUpdating && (
+                <span className="text-[10px] text-sky-600 font-semibold lowercase animate-pulse">
+                  saving...
+                </span>
+              )}
+            </div>
+            <div className="relative">
+              <select
+                value={selectedJurisdiction}
+                onChange={handleJurisdictionChange}
+                disabled={isUpdating}
+                className="w-full font-bold text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-slate-400 transition-colors cursor-pointer disabled:opacity-50 appearance-none pr-7"
+              >
+                <option value="England">England</option>
+                <option value="Wales">Wales</option>
+                <option value="Scotland">Scotland</option>
+              </select>
+              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                <ChevronDown className="w-3.5 h-3.5" />
+              </div>
+            </div>
           </div>
 
           <div className="p-3.5 rounded-xl bg-white border border-slate-200 flex flex-col gap-1">
@@ -131,15 +202,7 @@ export const CaseManagerAccountModal: React.FC<AccountModalProps> = ({
           </div>
         </div>
 
-        {/* Footer Actions */}
-        <div className="flex items-center justify-end pt-2 border-t border-slate-200">
-          <button
-            onClick={onClose}
-            className="bg-slate-900 hover:bg-slate-800 text-white font-bold font-sans text-xs py-2 px-5 rounded-lg shadow-xs transition-all cursor-pointer"
-          >
-            Close Account Profile
-          </button>
-        </div>
+        
       </div>
     </div>
   );
