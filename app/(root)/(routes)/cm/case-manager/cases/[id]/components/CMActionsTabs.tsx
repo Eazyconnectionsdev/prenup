@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -57,12 +57,7 @@ export default function CMActionsTab({ caseData }: Props) {
   const [p2Notes, setP2Notes] = useState("");
   const isApproved = Boolean(caseData?.cmApproved);
 
-  // 4. Lawyers
-  const [availableLawyers, setAvailableLawyers] = useState<any[]>([]);
-  const [p1Lawyer, setP1Lawyer] = useState("");
-  const [p2Lawyer, setP2Lawyer] = useState("");
-
-  // 5. Notes
+  // 4. Notes
   const [notes, setNotes] = useState<any[]>([]);
   const [noteCategory, setNoteCategory] = useState("");
   const [noteText, setNoteText] = useState("");
@@ -77,7 +72,6 @@ export default function CMActionsTab({ caseData }: Props) {
 
   useEffect(() => {
     if (!caseId) return;
-    loadAvailableLawyers();
     loadNotes();
     loadCaseManagers();
   }, [caseId]);
@@ -85,18 +79,11 @@ export default function CMActionsTab({ caseData }: Props) {
   const loadCaseManagers = async () => {
     try {
       const { data } = await Axios.get("/admin/case-managers");
-      setCaseManagers(Array.isArray(data) ? data : []);
-    } catch {
-      // ignore
-    }
-  };
-
-  const loadAvailableLawyers = async () => {
-    try {
-      const { data } = await Axios.get(`/case-manager/${caseId}/available-lawyers`);
-      setAvailableLawyers(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error(error);
+      // API returns { total, docs } — extract the docs array
+      const list = Array.isArray(data) ? data : Array.isArray(data?.docs) ? data.docs : [];
+      setCaseManagers(list);
+    } catch (err) {
+      console.error("Failed to load case managers", err);
     }
   };
 
@@ -131,7 +118,9 @@ export default function CMActionsTab({ caseData }: Props) {
     try {
       setAssigningCm(true);
       await Axios.post(`/cases/${caseId}/assign-case-manager`, { managerId: selectedCm });
-      toast.success("Case assigned to Case Manager successfully.");
+      const label = alreadyAssigned ? "Case re-assigned successfully." : "Case assigned to Case Manager successfully.";
+      toast.success(label);
+      setSelectedCm("");
     } catch (error) {
       toast.error(getErrorMessage(error, "Failed to assign Case Manager"));
     } finally {
@@ -190,27 +179,7 @@ export default function CMActionsTab({ caseData }: Props) {
     }
   };
 
-  // ── 4. Assign Lawyers ─────────────────────────────────────────────────────────
-  const handleAssignLawyers = async () => {
-    if (!p1Lawyer || !p2Lawyer) {
-      alert("Please select both lawyers");
-      return;
-    }
-    try {
-      setLoading(true);
-      await Axios.post(`/case-manager/${caseId}/assign-lawyers`, {
-        p1LawyerId: p1Lawyer,
-        p2LawyerId: p2Lawyer,
-      });
-      toast.success("Lawyers assigned. The agreement is now ready for lawyer review.");
-    } catch (error) {
-      toast.error(getErrorMessage(error, "Couldn't assign lawyers."));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ── 5. Notes ──────────────────────────────────────────────────────────────────
+  // ── 4. Notes ──────────────────────────────────────────────────────────────────
   const handleAddNote = async () => {
     if (!noteCategory || !noteText.trim()) {
       alert("Category and note are required");
@@ -286,50 +255,53 @@ export default function CMActionsTab({ caseData }: Props) {
           <CardTitle className="text-sm font-bold flex items-center justify-between">
             <span>2. Case Assignment</span>
             <span className="text-[11px] font-normal text-slate-500">
-              Only assign once. Re-assignment requires Admin privileges.
+              Assign to yourself or any other Case Manager
             </span>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {alreadyAssigned ? (
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center gap-3">
-              <UserCheck className="w-5 h-5 text-emerald-600" />
-              <div>
-                <p className="text-xs font-bold text-slate-900">
-                  Case is currently assigned to{" "}
-                  {caseData?.assignedCaseManager?.firstName || "a Case Manager"}
-                </p>
-                <p className="text-[11px] text-slate-500">
-                  To re-assign this case, please contact an Administrator.
-                </p>
-              </div>
+          {alreadyAssigned && (
+            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center gap-3">
+              <UserCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+              <p className="text-xs font-medium text-emerald-900">
+                Currently assigned to{" "}
+                <span className="font-bold">
+                  {caseData?.assignedCaseManager?.firstName}{" "}
+                  {caseData?.assignedCaseManager?.lastName}
+                </span>
+              </p>
             </div>
-          ) : (
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex-1">
-                <Select value={selectedCm} onValueChange={setSelectedCm}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select Case Manager to assign" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {caseManagers.map((cm: any) => (
+          )}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1">
+              <Select value={selectedCm} onValueChange={setSelectedCm}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Case Manager to assign" />
+                </SelectTrigger>
+                <SelectContent>
+                  {caseManagers.length === 0 ? (
+                    <SelectItem value="__loading__" disabled>
+                      {caseManagers.length === 0 ? "Loading..." : "No case managers found"}
+                    </SelectItem>
+                  ) : (
+                    caseManagers.map((cm: any) => (
                       <SelectItem key={cm._id} value={cm._id}>
                         {cm.firstName} {cm.lastName} ({cm.email})
                       </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button
-                onClick={handleAssignCaseManager}
-                disabled={assigningCm}
-                size="sm"
-                className="bg-sky-600 hover:bg-sky-700 text-white font-bold"
-              >
-                {assigningCm ? "Assigning..." : "Assign Case"}
-              </Button>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
             </div>
-          )}
+            <Button
+              onClick={handleAssignCaseManager}
+              disabled={assigningCm || !selectedCm}
+              size="sm"
+              className="bg-sky-600 hover:bg-sky-700 text-white font-bold"
+            >
+              {assigningCm ? "Assigning..." : alreadyAssigned ? "Re-assign Case" : "Assign Case"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -445,74 +417,10 @@ export default function CMActionsTab({ caseData }: Props) {
         </CardContent>
       </Card>
 
-      {/* ── 4. Assign Lawyers (Showing applicant names, not p1/p2) ── */}
+      {/* ── 4. Case Manager Notes ── */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm font-bold flex items-center justify-between">
-            <span>4. Assign Lawyers</span>
-            <span className="text-[11px] font-normal text-slate-500">
-              Lawyers must be from different law firms
-            </span>
-          </CardTitle>
-        </CardHeader>
-
-        <CardContent className="grid md:grid-cols-2 gap-4">
-          <div>
-            <Label className="text-xs font-bold text-slate-800 mb-1 block">
-              Lawyer for {p1Name} (Primary Applicant)
-            </Label>
-            <Select value={p1Lawyer} onValueChange={setP1Lawyer}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select lawyer for Primary Applicant" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableLawyers
-                  .filter((l) => l._id !== p2Lawyer)
-                  .map((lawyer) => (
-                    <SelectItem key={lawyer._id} value={lawyer._id}>
-                      {lawyer.name} ({lawyer.companyName || "Independent"})
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label className="text-xs font-bold text-slate-800 mb-1 block">
-              Lawyer for {p2Name} (Secondary Applicant)
-            </Label>
-            <Select value={p2Lawyer} onValueChange={setP2Lawyer}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select lawyer for Secondary Applicant" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableLawyers
-                  .filter((l) => l._id !== p1Lawyer)
-                  .map((lawyer) => (
-                    <SelectItem key={lawyer._id} value={lawyer._id}>
-                      {lawyer.name} ({lawyer.companyName || "Independent"})
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="md:col-span-2 flex justify-end pt-2">
-            <Button
-              onClick={handleAssignLawyers}
-              disabled={loading}
-              className="bg-slate-900 hover:bg-slate-800 text-white font-bold"
-            >
-              Assign Lawyers
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* ── 5. Case Manager Notes ── */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-bold">5. Case Manager Notes</CardTitle>
+          <CardTitle className="text-sm font-bold">4. Case Manager Notes</CardTitle>
         </CardHeader>
 
         <CardContent className="space-y-4">
