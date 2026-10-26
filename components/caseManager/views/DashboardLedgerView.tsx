@@ -98,7 +98,7 @@ export const DashboardLedgerView: React.FC = () => {
   // Group 2: Case Manager Review (Column 2)
   const col2Items = [
     {
-      title: "Awaiting CM Review",
+      title: "Case Manager Not Assigned",
       subtitle: "Submitted by couple; unassigned or not yet reviewed",
       count: dashboardData?.cmReview?.awaitingCmReview ?? 2,
       filter: "AWAITING_CM_REVIEW",

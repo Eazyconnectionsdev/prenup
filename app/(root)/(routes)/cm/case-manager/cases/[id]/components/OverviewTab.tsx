@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import type { Props } from "@/types/case-detail/tabs/overview-tab";
 
@@ -193,87 +193,9 @@ export default function OverviewTab({ caseData }: Props) {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Dynamic Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
-        <div>
-          <h2 className="text-base font-bold text-slate-900">
-            {p1} {caseData?.invitedUser ? `& ${p2}` : ""}
-          </h2>
-          <p className="text-xs text-slate-500 font-mono mt-0.5">
-            Case ID: {caseData?.caseNumber || caseData?._id} · Plan: {planSelected}
-          </p>
-        </div>
-        <span
-          className={`px-3 py-1 rounded-full text-xs font-bold border ${
-            isPaid
-              ? "bg-emerald-100 text-emerald-800 border-emerald-200"
-              : "bg-amber-100 text-amber-800 border-amber-200"
-          }`}
-        >
-          {paymentStatusText}
-        </span>
-      </div>
+    
 
-      {/* Top Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Card 1: CASE ID & PLAN */}
-        <div className="p-4 rounded-xl bg-white border border-slate-300 flex flex-col gap-1 shadow-xs">
-          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-            CASE ID & PLAN
-          </span>
-
-          <span className="font-mono text-xs font-bold text-slate-900">
-            {caseData.caseNumber || caseData._id}
-          </span>
-
-          <span className="text-xs text-slate-700 font-semibold mt-1">
-            {planSelected}
-          </span>
-        </div>
-
-        {/* Card 2: STATUS & STAGE */}
-        <div className="p-4 rounded-xl bg-white border border-slate-300 flex flex-col gap-1 shadow-xs">
-          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-            STATUS & STAGE
-          </span>
-
-          <div className="flex items-center gap-2">
-            <span
-              className={`text-xs font-bold px-2 py-0.5 rounded ${
-                isPaid ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
-              }`}
-            >
-              {paymentStatusText}
-            </span>
-            <span className="text-xs font-semibold text-slate-700">
-              Stage: {caseData.workflowStatus || "DRAFT"}
-            </span>
-          </div>
-
-          <span className="text-xs text-slate-600 font-medium mt-1">
-            Case Manager: <strong className="text-slate-800">{assignedCmDisplay}</strong>
-          </span>
-        </div>
-
-        {/* Card 3: HEALTH & PRIORITY */}
-        <div className="p-4 rounded-xl bg-white border border-slate-300 flex flex-col gap-1 shadow-xs">
-          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-            HEALTH & PRIORITY
-          </span>
-
-          <span className="text-xs font-bold text-emerald-700">
-            HEALTH: STABLE
-          </span>
-
-          <div className="mt-1 flex items-center gap-1.5">
-            <span className="text-xs text-slate-500 font-medium">Priority:</span>
-            <span className={`text-xs font-bold px-2 py-0.5 rounded border ${priorityColor}`}>
-              {priorityRaw}
-            </span>
-          </div>
-        </div>
-      </div>
-
+   
       {/* Party Information */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Primary Applicant */}
@@ -319,12 +241,6 @@ export default function OverviewTab({ caseData }: Props) {
                 {caseData.partnerInvited ? "Yes" : "No"}
               </span>
             </div>
-            <div>
-              <strong className="text-slate-500">Partner Joined:</strong>{" "}
-              <span className="font-semibold text-slate-800">
-                {caseData.invitedUser ? "Yes" : "No"}
-              </span>
-            </div>
           </div>
         </div>
 
@@ -356,7 +272,7 @@ export default function OverviewTab({ caseData }: Props) {
 
           <div>
             <strong className="text-slate-500">Account Role:</strong>{" "}
-            <span className="font-semibold text-slate-800">Joint applicant</span>
+            <span className="font-semibold text-slate-800">Secondary applicant</span>
           </div>
 
           <div>
@@ -377,22 +293,78 @@ export default function OverviewTab({ caseData }: Props) {
         </div>
       </div>
 
-      {/* ── Workflow Progress Section (Bottom Card matching exact UI) ── */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 shadow-xs">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-y-7 gap-x-12">
-          {workflowItems.map((item) => (
-            <div key={item.no} className="flex flex-col gap-1.5">
-              <span className="text-[11px] font-mono text-slate-400 font-semibold">
-                {item.no}
-              </span>
-              <h4 className="text-sm font-bold text-slate-900 tracking-tight leading-snug">
-                {item.title}
-              </h4>
-              <div className="pt-0.5">
-                {getStatusBadge(item.status)}
+      {/* ── Workflow Progress Section ── */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            Workflow Progress
+          </h3>
+          <span className="text-[11px] text-slate-400 font-medium">
+            {workflowItems.filter((i) => i.status === "Completed").length} / {workflowItems.length} completed
+          </span>
+        </div>
+
+        {/* Progress bar */}
+        <div className="w-full h-1.5 bg-slate-100 rounded-full mb-5 overflow-hidden">
+          <div
+            className="h-full bg-emerald-500 rounded-full transition-all"
+            style={{
+              width: `${(workflowItems.filter((i) => i.status === "Completed").length / workflowItems.length) * 100}%`,
+            }}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {workflowItems.map((item) => {
+            const isCompleted = item.status === "Completed";
+            const isInProgress = item.status === "In Progress";
+            const isNotEnabled = item.status === "Not Enabled";
+
+            const borderColor = isCompleted
+              ? "border-emerald-200"
+              : isInProgress
+              ? "border-amber-200"
+              : isNotEnabled
+              ? "border-slate-200"
+              : "border-slate-200";
+
+            const bgColor = isCompleted
+              ? "bg-emerald-50/60"
+              : isInProgress
+              ? "bg-amber-50/60"
+              : "bg-slate-50/60";
+
+            const dotColor = isCompleted
+              ? "bg-emerald-500"
+              : isInProgress
+              ? "bg-amber-400"
+              : isNotEnabled
+              ? "bg-slate-300"
+              : "bg-slate-300";
+
+            return (
+              <div
+                key={item.no}
+                className={`relative flex flex-col gap-2 rounded-xl border p-3.5 ${borderColor} ${bgColor}`}
+              >
+                {/* Step number + dot */}
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono font-bold text-slate-400 tracking-widest">
+                    {item.no}
+                  </span>
+                  <span className={`w-2 h-2 rounded-full ${dotColor}`} />
+                </div>
+
+                {/* Title */}
+                <p className="text-[12px] font-bold text-slate-800 leading-snug">
+                  {item.title}
+                </p>
+
+                {/* Badge */}
+                <div>{getStatusBadge(item.status)}</div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
