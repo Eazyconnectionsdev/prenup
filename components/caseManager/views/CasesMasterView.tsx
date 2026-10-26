@@ -1,7 +1,9 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect, useState, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useSelector } from "react-redux";
+import type { RootState } from "@/store/store";
 import { Eye, RotateCcw, Filter, Search } from "lucide-react";
 import Axios from "@/lib/ApiConfig";
 import type { FilterState } from "@/types/case-manager";
@@ -31,6 +33,14 @@ interface RowCase {
 export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
+
+  const currentUser = useSelector((state: RootState) => state.auth?.user);
+  const currentUserId = currentUser?._id || currentUser?.id || "";
+  const currentUserName = [currentUser?.firstName, currentUser?.lastName]
+    .filter(Boolean)
+    .join(" ")
+    .trim()
+    .toLowerCase();
 
   const [rawCases, setRawCases] = useState<RowCase[]>([]);
   const [loading, setLoading] = useState(false);
@@ -66,9 +76,18 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
             ? `${item.invitedUser.firstName ?? ""} ${item.invitedUser.lastName ?? ""}`.trim()
             : item.invitedEmail ? item.invitedEmail : "Not Invited";
 
-          const cm = item.assignedCaseManager
-            ? `${item.assignedCaseManager.firstName ?? ""} ${item.assignedCaseManager.lastName ?? ""}`.trim()
+          const assignedCm = item.assignedCaseManager;
+          const cm = assignedCm && typeof assignedCm === "object"
+            ? `${assignedCm.firstName ?? ""} ${assignedCm.lastName ?? ""}`.trim()
+            : typeof assignedCm === "string" && assignedCm
+            ? assignedCm
             : "Unassigned";
+
+          const cmId = assignedCm && typeof assignedCm === "object"
+            ? (assignedCm._id || assignedCm.id || "")
+            : typeof assignedCm === "string"
+            ? assignedCm
+            : "";
 
           const isPaid =
             item.paymentCompleted ||
@@ -84,8 +103,8 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
             agreementType: item.agreementType || "prenup-marriage",
             paymentStatus: isPaid ? "Completed" : item.paymentStatus || "Pending",
             workflowStage: item.workflowStatus || "DRAFT",
-            caseManager: cm,
-            caseManagerId: item.assignedCaseManager?._id || "",
+            caseManager: cm || "Unassigned",
+            caseManagerId: cmId,
             priority: (item.priority || "MEDIUM").toUpperCase(),
           };
         });
@@ -144,8 +163,27 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
 
       // 4. Case Manager filter
       if (cmFilter !== "ALL") {
-        if (cmFilter === "UNASSIGNED" && c.caseManager !== "Unassigned") return false;
-        if (cmFilter === "ASSIGNED" && c.caseManager === "Unassigned") return false;
+        const isUnassigned =
+          !c.caseManagerId ||
+          c.caseManager === "Unassigned" ||
+          !c.caseManager.trim();
+
+        const isMe =
+          !isUnassigned &&
+          Boolean(
+            (currentUserId && c.caseManagerId && String(c.caseManagerId) === String(currentUserId)) ||
+            (currentUserName && c.caseManager.toLowerCase() === currentUserName)
+          );
+
+        if (cmFilter === "UNASSIGNED") {
+          if (!isUnassigned) return false;
+        } else if (cmFilter === "ASSIGNED_TO_ME") {
+          if (!isMe) return false;
+        } else if (cmFilter === "ASSIGNED_TO_OTHER") {
+          if (isUnassigned || isMe) return false;
+        } else if (cmFilter === "ASSIGNED") {
+          if (isUnassigned) return false;
+        }
       }
 
       // 5. Priority filter
@@ -167,7 +205,7 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
 
       return true;
     });
-  }, [rawCases, stageFilter, planFilter, paymentFilter, cmFilter, priorityFilter, searchQuery]);
+  }, [rawCases, stageFilter, planFilter, paymentFilter, cmFilter, priorityFilter, searchQuery, currentUserId, currentUserName]);
 
   if (loading) {
     return <div className="p-6 text-slate-500">Loading cases...</div>;
@@ -272,7 +310,8 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
             >
               <option value="ALL">All</option>
               <option value="UNASSIGNED">Unassigned</option>
-              <option value="ASSIGNED">Assigned</option>
+              <option value="ASSIGNED_TO_ME">Assigned to Me</option>
+              <option value="ASSIGNED_TO_OTHER">Assigned to Another Case Manager</option>
             </select>
           </div>
 

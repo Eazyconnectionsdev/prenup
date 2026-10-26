@@ -173,15 +173,12 @@ export default function CaseDetailPage() {
               >
                 <ArrowLeft className="w-3.5 h-3.5" /> Back to Cases
               </Link>
-              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-                {partnerTitle}
-              </h1>
             </div>
 
             <div className="flex flex-wrap items-center gap-2.5 text-xs">
               {/* Partner Names */}
               <span className="inline-flex items-center gap-1 text-slate-600">
-                <span className="text-slate-400 font-medium">Partner A:</span>
+                <span className="text-slate-400 font-medium">Primary Applicant:</span>
                 <span className="font-semibold text-slate-800">{p1Name}</span>
               </span>
 
@@ -189,7 +186,7 @@ export default function CaseDetailPage() {
                 <>
                   <span className="text-slate-300">·</span>
                   <span className="inline-flex items-center gap-1 text-slate-600">
-                    <span className="text-slate-400 font-medium">Partner B:</span>
+                    <span className="text-slate-400 font-medium">Secondry Applicant:</span>
                     <span className="font-semibold text-slate-800">{p2Name}</span>
                   </span>
                 </>
