@@ -8,7 +8,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -21,7 +20,7 @@ import { Label } from "@/components/ui/label";
 import Axios from "@/lib/ApiConfig";
 import { toast } from "react-toastify";
 import { getErrorMessage } from "@/lib/api/http-error";
-import { UserCheck, MapPin, Check, ShieldAlert } from "lucide-react";
+import { UserCheck, ShieldAlert } from "lucide-react";
 import type { Props } from "@/types/case-detail/tabs/cm-actions-tabs";
 
 const NOTE_CATEGORIES = [
@@ -51,31 +50,8 @@ export default function AdminActionsTab({
   caseData,
   onCaseUpdated,
 }: Props) {
-  const caseId = caseData?._id;
-
-  const [loading, setLoading] = useState(false);
-
-  // Return To Draft
-  const [draftReason, setDraftReason] =
-    useState("");
-  const [draftFile, setDraftFile] =
-    useState<File | null>(null);
-
-  // Approval
-  const [p1File, setP1File] =
-    useState<File | null>(null);
-  const [p2File, setP2File] =
-    useState<File | null>(null);
-
-  // Lawyers
-  const [lawyers, setLawyers] = useState<any[]>(
-    [],
-  );
-  const [p1Lawyer, setP1Lawyer] =
-    useState("");
-  const [p2Lawyer, setP2Lawyer] =
-    useState("");
-
+  const caseId = caseData?._id;
+
   // Notes
   const [notes, setNotes] = useState<any[]>([]);
   const [noteCategory, setNoteCategory] =
@@ -93,15 +69,9 @@ export default function AdminActionsTab({
   );
   const [assigningCase, setAssigningCase] = useState(false);
 
-  // Action 2: Configure CM jurisdiction
-  const [selectedConfigCmId, setSelectedConfigCmId] = useState<string>("");
-  const [selectedJurisdiction, setSelectedJurisdiction] = useState<string>("England & Wales");
-  const [savingJurisdiction, setSavingJurisdiction] = useState(false);
-
   useEffect(() => {
     if (!caseId) return;
 
-    loadAvailableLawyers();
     loadNotes();
     loadCaseManagers();
   }, [caseId]);
@@ -122,14 +92,6 @@ export default function AdminActionsTab({
       const assigned = caseData?.assignedCaseManager?._id || caseData?.assignedCaseManager;
       if (assigned && typeof assigned === "string") {
         setSelectedAssignCmId(assigned);
-        setSelectedConfigCmId(assigned);
-        const match = list.find((m: any) => m._id === assigned);
-        if (match) {
-          setSelectedJurisdiction(match.primaryJurisdiction || match.jurisdiction || "England & Wales");
-        }
-      } else if (list.length > 0) {
-        setSelectedConfigCmId(list[0]._id);
-        setSelectedJurisdiction(list[0].primaryJurisdiction || list[0].jurisdiction || "England & Wales");
       }
     } catch (err) {
       console.error("Failed to load case managers", err);
@@ -162,55 +124,8 @@ export default function AdminActionsTab({
     } finally {
       setAssigningCase(false);
     }
-  };
-
-  const handleSaveJurisdiction = async () => {
-    if (!selectedConfigCmId) {
-      toast.error("Please select a Case Manager first");
-      return;
-    }
-    try {
-      setSavingJurisdiction(true);
-      await Axios.patch(`/admin/case-managers/${selectedConfigCmId}/jurisdiction`, {
-        jurisdiction: selectedJurisdiction,
-        primaryJurisdiction: selectedJurisdiction,
-      });
-      const selectedCm = caseManagers.find((m) => m._id === selectedConfigCmId);
-      const cmName = selectedCm ? `${selectedCm.firstName} ${selectedCm.lastName}`.trim() : "Case Manager";
-      toast.success(`Assigned jurisdiction "${selectedJurisdiction}" to ${cmName}`);
-
-      setCaseManagers((prev) =>
-        prev.map((m) =>
-          m._id === selectedConfigCmId
-            ? { ...m, jurisdiction: selectedJurisdiction, primaryJurisdiction: selectedJurisdiction }
-            : m
-        )
-      );
-
-      onCaseUpdated?.();
-    } catch (err: any) {
-      console.error("Failed to save jurisdiction", err);
-      toast.error(getErrorMessage(err, "Failed to update jurisdiction"));
-    } finally {
-      setSavingJurisdiction(false);
-    }
-  };
-
-  const [availableLawyers, setAvailableLawyers] =
-    useState<any[]>([]);
-
-  const loadAvailableLawyers = async () => {
-    try {
-      const { data } = await Axios.get(
-        `/case-manager/${caseId}/available-lawyers`
-      );
-
-      setAvailableLawyers(data || []);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
+  };
+
   const loadNotes = async () => {
     try {
       const res = await Axios.get(
@@ -221,138 +136,8 @@ export default function AdminActionsTab({
     } catch (error) {
       console.error(error);
     }
-  };
-
-  const handleReturnToDraft =
-    async () => {
-      try {
-        if (!draftReason.trim()) {
-          alert("Reason is required");
-          return;
-        }
-
-        setLoading(true);
-
-        const formData = new FormData();
-
-        formData.append(
-          "reason",
-          draftReason,
-        );
-
-        if (draftFile) {
-          formData.append(
-            "file",
-            draftFile,
-          );
-        }
-
-        await Axios.post(
-          `/case-manager/${caseId}/return-draft`,
-          formData,
-        );
-
-        setDraftReason("");
-        setDraftFile(null);
-
-        alert(
-          "Case returned to draft successfully",
-        );
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-  const uploadP1Confirmation =
-    async () => {
-      if (!p1File) return;
-
-      const data = new FormData();
-
-      data.append("file", p1File);
-
-      await Axios.post(
-        `/case-manager/${caseId}/p1-confirmation`,
-        data,
-      );
-    };
-
-  const uploadP2Confirmation =
-    async () => {
-      if (!p2File) return;
-
-      const data = new FormData();
-
-      data.append("file", p2File);
-
-      await Axios.post(
-        `/case-manager/${caseId}/p2-confirmation`,
-        data,
-      );
-    };
-
-  const handleApproveCase =
-    async () => {
-      try {
-        setLoading(true);
-
-        if (p1File) {
-          await uploadP1Confirmation();
-        }
-
-        if (p2File) {
-          await uploadP2Confirmation();
-        }
-
-        await Axios.post(
-          `/case-manager/${caseId}/approve`,
-          {},
-        );
-        
-        await Axios.post(`/agreement/${caseId}/document/cm/generate`); 
-
-        alert(
-          "Case approved successfully",
-        );
-
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-  const handleAssignLawyers =
-    async () => {
-      try {
-        if (!p1Lawyer || !p2Lawyer) {
-          alert(
-            "Please select both lawyers",
-          );
-          return;
-        }
-
-        setLoading(true);
-
-        await Axios.post(
-          `/case-manager/${caseId}/assign-lawyers`,
-          {
-            p1LawyerId: p1Lawyer,
-            p2LawyerId: p2Lawyer,
-          }
-        );
-
-        // The backend also initializes the lawyer stage document
-        toast.success("Lawyers assigned. The agreement is now ready for lawyer review.");
-      } catch (error) {
-        toast.error(getErrorMessage(error, "Couldn't assign lawyers."));
-      } finally {
-        setLoading(false);
-      }
-    };
-
+  };
+
   const handleAddNote =
     async () => {
       try {
@@ -409,7 +194,6 @@ export default function AdminActionsTab({
       ? currentCm.primaryJurisdiction || currentCm.jurisdiction || "England & Wales"
       : "";
 
-  const configCm = caseManagers.find((m) => m._id === selectedConfigCmId);
 
   return (
     <div className="space-y-6">
@@ -505,306 +289,14 @@ export default function AdminActionsTab({
             </Button>
           </div>
         </CardContent>
-      </Card>
-
-      {/* ── 2. Case Manager Jurisdiction Management ── */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-bold flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-sky-600" />
-              2. Case Manager Jurisdiction Management
-            </span>
-            <span className="text-[11px] font-normal text-slate-500">
-              Select any Case Manager to configure or update their designated legal jurisdiction
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Case Manager Selector */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-slate-700">Select Case Manager</Label>
-              <Select
-                value={selectedConfigCmId}
-                onValueChange={(val) => {
-                  setSelectedConfigCmId(val);
-                  const cm = caseManagers.find((m) => m._id === val);
-                  if (cm) {
-                    setSelectedJurisdiction(cm.primaryJurisdiction || cm.jurisdiction || "England & Wales");
-                  }
-                }}
-              >
-                <SelectTrigger className="w-full bg-white text-xs">
-                  <SelectValue placeholder="Select a Case Manager..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {caseManagers.map((cm) => (
-                    <SelectItem key={cm._id} value={cm._id} className="text-xs">
-                      {cm.firstName} {cm.lastName} ({cm.email})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {configCm && (
-                <div className="flex items-center gap-2 pt-1 text-[11px] text-slate-500">
-                  <span>Current Jurisdiction:</span>
-                  <span className="font-semibold text-sky-700 bg-sky-50 px-2 py-0.5 rounded border border-sky-200">
-                    {configCm.primaryJurisdiction || configCm.jurisdiction || "Not Assigned"}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Jurisdiction Selector */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-slate-700">Assign New Jurisdiction</Label>
-              <Select
-                value={selectedJurisdiction}
-                onValueChange={setSelectedJurisdiction}
-              >
-                <SelectTrigger className="w-full bg-white text-xs">
-                  <SelectValue placeholder="Select Jurisdiction" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="England & Wales">England &amp; Wales</SelectItem>
-                  <SelectItem value="England">England</SelectItem>
-                  <SelectItem value="Wales">Wales</SelectItem>
-                  <SelectItem value="Scotland">Scotland</SelectItem>
-                  <SelectItem value="Northern Ireland">Northern Ireland</SelectItem>
-                  <SelectItem value="Scotland, Wales and England">Scotland, Wales and England (UK-Wide)</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Quick preset buttons */}
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {["England & Wales", "Scotland", "Northern Ireland", "UK-Wide"].map((preset) => {
-                  const val = preset === "UK-Wide" ? "Scotland, Wales and England" : preset;
-                  const active = selectedJurisdiction === val;
-                  return (
-                    <button
-                      key={preset}
-                      type="button"
-                      onClick={() => setSelectedJurisdiction(val)}
-                      className={`text-[10px] px-2 py-0.5 rounded border transition-colors cursor-pointer font-medium ${
-                        active
-                          ? "bg-slate-900 text-white border-slate-900"
-                          : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
-                      }`}
-                    >
-                      {preset}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end pt-2 border-t border-slate-100">
-            <Button
-              type="button"
-              size="sm"
-              onClick={handleSaveJurisdiction}
-              disabled={savingJurisdiction || !selectedConfigCmId}
-              className="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold"
-            >
-              {savingJurisdiction ? "Saving..." : "Save Jurisdiction"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-bold">
-            3. Return To Draft
-          </CardTitle>
-        </CardHeader>
-
-        <CardContent className="space-y-4">
-          <div>
-            <Label>
-              Reason (Required)
-            </Label>
-
-            <Textarea
-              value={draftReason}
-              onChange={(e) =>
-                setDraftReason(
-                  e.target.value,
-                )
-              }
-              placeholder="Provide reason for returning the case to draft..."
-            />
-          </div>
-
-          <div>
-            <Label>
-              Supporting Attachment
-            </Label>
-
-            <Input
-              type="file"
-              onChange={(e) =>
-                setDraftFile(
-                  e.target.files?.[0] ||
-                  null,
-                )
-              }
-            />
-          </div>
-
-          <Button
-            variant="destructive"
-            onClick={
-              handleReturnToDraft
-            }
-            disabled={loading}
-          >
-            Return To Draft
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Approve Case */}
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-bold">
-            4. Case Review &amp; Approval
-          </CardTitle>
-        </CardHeader>
-
-        <CardContent className="space-y-4">
-          <div>
-            <Label>
-              P1 Confirmation
-            </Label>
-
-            <Input
-              type="file"
-              onChange={(e) =>
-                setP1File(
-                  e.target.files?.[0] ||
-                  null,
-                )
-              }
-            />
-          </div>
-
-          <div>
-            <Label>
-              P2 Confirmation
-            </Label>
-
-            <Input
-              type="file"
-              onChange={(e) =>
-                setP2File(
-                  e.target.files?.[0] ||
-                  null,
-                )
-              }
-            />
-          </div>
-
-          <Button
-            onClick={
-              handleApproveCase
-            }
-            disabled={loading}
-          >
-            Approve Case
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Assign Lawyers */}
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-bold">
-            5. Lawyer Assignment
-          </CardTitle>
-        </CardHeader>
-
-        <CardContent className="grid md:grid-cols-2 gap-4">
-          <div>
-            <Label>
-              User 1 Lawyer
-            </Label>
-
-            <Select
-              value={p1Lawyer}
-              onValueChange={setP1Lawyer}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select P1 Lawyer" />
-              </SelectTrigger>
-
-              <SelectContent>
-                {availableLawyers
-                  .filter((l) => l._id !== p2Lawyer)
-                  .map((lawyer) => (
-                    <SelectItem
-                      key={lawyer._id}
-                      value={lawyer._id}
-                    >
-                      {lawyer.name}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label>
-              User 2 Lawyer
-            </Label>
-
-            <Select
-              value={p2Lawyer}
-              onValueChange={setP2Lawyer}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select P2 Lawyer" />
-              </SelectTrigger>
-
-              <SelectContent>
-                {availableLawyers
-                  .filter((l) => l._id !== p1Lawyer)
-                  .map((lawyer) => (
-                    <SelectItem
-                      key={lawyer._id}
-                      value={lawyer._id}
-                    >
-                      {lawyer.name}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="md:col-span-2">
-            <Button
-              onClick={
-                handleAssignLawyers
-              }
-              disabled={loading}
-            >
-              Assign Lawyers
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
+      </Card>
+
       {/* Add Note */}
 
       <Card>
         <CardHeader>
           <CardTitle className="text-sm font-bold">
-            6. Add Admin Note
+            3. Add Admin Note
           </CardTitle>
         </CardHeader>
 

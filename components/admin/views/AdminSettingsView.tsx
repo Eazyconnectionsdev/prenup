@@ -1669,6 +1669,23 @@ function CaseManagerCreationForm({ onCreated }: { onCreated: () => void }) {
 
 // ─── Case Manager Card ────────────────────────────────────────────────────────
 
+const JURISDICTIONS = ["England", "Wales", "Scotland"] as const;
+type Jurisdiction = typeof JURISDICTIONS[number];
+
+function normalizeJurisdictions(raw: any): Jurisdiction[] {
+  if (Array.isArray(raw)) {
+    return raw.filter((j): j is Jurisdiction => JURISDICTIONS.includes(j as Jurisdiction));
+  }
+  if (typeof raw === "string" && raw.trim()) {
+    // support comma-separated legacy strings like "England, Wales"
+    return raw
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s): s is Jurisdiction => JURISDICTIONS.includes(s as Jurisdiction));
+  }
+  return [];
+}
+
 function CaseManagerCard({
   cm,
   onRefresh,
@@ -1676,17 +1693,28 @@ function CaseManagerCard({
   cm: any;
   onRefresh: () => void;
 }) {
-  const [jurisdiction, setJurisdiction] = useState(
-    cm.primaryJurisdiction || cm.jurisdiction || "England & Wales"
+  const [selectedJurisdictions, setSelectedJurisdictions] = useState<Jurisdiction[]>(
+    normalizeJurisdictions(cm.primaryJurisdiction || cm.jurisdiction)
   );
   const [saving, setSaving] = useState(false);
 
+  const toggleJurisdiction = (j: Jurisdiction) => {
+    setSelectedJurisdictions((prev) =>
+      prev.includes(j) ? prev.filter((x) => x !== j) : [...prev, j]
+    );
+  };
+
   const handleUpdate = async () => {
+    if (selectedJurisdictions.length === 0) {
+      alert("Please select at least one jurisdiction.");
+      return;
+    }
     try {
       setSaving(true);
+      const jurisdictionValue = selectedJurisdictions.join(", ");
       await Axios.patch(`/admin/case-managers/${cm._id}/jurisdiction`, {
-        jurisdiction,
-        primaryJurisdiction: jurisdiction,
+        jurisdiction: jurisdictionValue,
+        primaryJurisdiction: jurisdictionValue,
       });
       alert(`Jurisdiction updated for ${cm.firstName} ${cm.lastName || ""}`);
       onRefresh();
@@ -1698,9 +1726,16 @@ function CaseManagerCard({
     }
   };
 
+  const displayJurisdiction =
+    normalizeJurisdictions(cm.primaryJurisdiction || cm.jurisdiction).join(", ") ||
+    cm.primaryJurisdiction ||
+    cm.jurisdiction ||
+    "Not Assigned";
+
   return (
-    <div className="border border-slate-200 rounded-xl p-4 bg-white shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-      <div className="flex items-center gap-3">
+    <div className="border border-slate-200 rounded-xl p-4 bg-white shadow-2xs">
+      {/* Top row: avatar + info */}
+      <div className="flex items-center gap-3 mb-4">
         <div className="w-10 h-10 rounded-full bg-slate-900 text-white font-bold text-sm flex items-center justify-center shrink-0">
           {(cm.firstName?.[0] || "C") + (cm.lastName?.[0] || "M")}
         </div>
@@ -1710,35 +1745,67 @@ function CaseManagerCard({
           </h4>
           <p className="text-xs text-slate-500">{cm.email}</p>
           <div className="flex items-center gap-2 mt-1">
-            <span className="text-[10px] font-semibold text-slate-500">Jurisdiction:</span>
+            <span className="text-[10px] font-semibold text-slate-500">Current Jurisdiction:</span>
             <span className="text-[10px] font-bold text-sky-700 bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-full">
-              {cm.primaryJurisdiction || cm.jurisdiction || "Not Assigned"}
+              {displayJurisdiction}
             </span>
           </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <select
-          value={jurisdiction}
-          onChange={(e) => setJurisdiction(e.target.value)}
-          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium focus:outline-none focus:border-sky-500"
-        >
-          <option value="England & Wales">England &amp; Wales</option>
-          <option value="England">England</option>
-          <option value="Wales">Wales</option>
-          <option value="Scotland">Scotland</option>
-          <option value="Northern Ireland">Northern Ireland</option>
-          <option value="Scotland, Wales and England">Scotland, Wales and England</option>
-        </select>
+      {/* Jurisdiction multi-select checkboxes */}
+      <div className="mb-3">
+        <p className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-2">
+          Assign Jurisdictions (select one or more)
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {JURISDICTIONS.map((j) => {
+            const checked = selectedJurisdictions.includes(j);
+            return (
+              <button
+                key={j}
+                type="button"
+                onClick={() => toggleJurisdiction(j)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors cursor-pointer ${
+                  checked
+                    ? "bg-sky-600 text-white border-sky-600 shadow-xs"
+                    : "bg-white text-slate-600 border-slate-200 hover:border-sky-400 hover:text-sky-700"
+                }`}
+              >
+                <span
+                  className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${
+                    checked
+                      ? "bg-white/30 border-white/60"
+                      : "border-slate-300"
+                  }`}
+                >
+                  {checked && (
+                    <svg viewBox="0 0 10 10" className="w-2 h-2 text-white fill-current">
+                      <path d="M1.5 5.5 4 8 8.5 2" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                </span>
+                {j}
+              </button>
+            );
+          })}
+        </div>
+        {selectedJurisdictions.length > 0 && (
+          <p className="text-[10px] text-slate-400 mt-1.5">
+            Selected: {selectedJurisdictions.join(", ")}
+          </p>
+        )}
+      </div>
 
+      {/* Save button */}
+      <div className="flex justify-end">
         <button
           type="button"
           onClick={handleUpdate}
-          disabled={saving}
-          className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+          disabled={saving || selectedJurisdictions.length === 0}
+          className="px-4 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors cursor-pointer shrink-0 disabled:opacity-50"
         >
-          {saving ? "Saving..." : "Update"}
+          {saving ? "Saving..." : "Save Jurisdiction"}
         </button>
       </div>
     </div>

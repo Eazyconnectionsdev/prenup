@@ -195,6 +195,7 @@ export const CaseManagerAccountModal: React.FC<AccountModalProps> = ({
             </span>
           </div>
 
+
           <div className="p-3.5 rounded-xl bg-white border border-slate-200 flex flex-col gap-1">
             <span className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
               <Clock className="w-3 h-3 text-slate-500" /> Active Matters
