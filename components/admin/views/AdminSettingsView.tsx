@@ -1667,13 +1667,92 @@ function CaseManagerCreationForm({ onCreated }: { onCreated: () => void }) {
   );
 }
 
+// ─── Case Manager Card ────────────────────────────────────────────────────────
+
+function CaseManagerCard({
+  cm,
+  onRefresh,
+}: {
+  cm: any;
+  onRefresh: () => void;
+}) {
+  const [jurisdiction, setJurisdiction] = useState(
+    cm.primaryJurisdiction || cm.jurisdiction || "England & Wales"
+  );
+  const [saving, setSaving] = useState(false);
+
+  const handleUpdate = async () => {
+    try {
+      setSaving(true);
+      await Axios.patch(`/admin/case-managers/${cm._id}/jurisdiction`, {
+        jurisdiction,
+        primaryJurisdiction: jurisdiction,
+      });
+      alert(`Jurisdiction updated for ${cm.firstName} ${cm.lastName || ""}`);
+      onRefresh();
+    } catch (err: any) {
+      console.error("Failed to update jurisdiction", err);
+      alert(err?.response?.data?.message || "Failed to update jurisdiction");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="border border-slate-200 rounded-xl p-4 bg-white shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full bg-slate-900 text-white font-bold text-sm flex items-center justify-center shrink-0">
+          {(cm.firstName?.[0] || "C") + (cm.lastName?.[0] || "M")}
+        </div>
+        <div>
+          <h4 className="text-sm font-bold text-slate-900">
+            {cm.firstName} {cm.lastName}
+          </h4>
+          <p className="text-xs text-slate-500">{cm.email}</p>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-[10px] font-semibold text-slate-500">Jurisdiction:</span>
+            <span className="text-[10px] font-bold text-sky-700 bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-full">
+              {cm.primaryJurisdiction || cm.jurisdiction || "Not Assigned"}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <select
+          value={jurisdiction}
+          onChange={(e) => setJurisdiction(e.target.value)}
+          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium focus:outline-none focus:border-sky-500"
+        >
+          <option value="England & Wales">England &amp; Wales</option>
+          <option value="England">England</option>
+          <option value="Wales">Wales</option>
+          <option value="Scotland">Scotland</option>
+          <option value="Northern Ireland">Northern Ireland</option>
+          <option value="Scotland, Wales and England">Scotland, Wales and England</option>
+        </select>
+
+        <button
+          type="button"
+          onClick={handleUpdate}
+          disabled={saving}
+          className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+        >
+          {saving ? "Saving..." : "Update"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Section 2 Wrapper ────────────────────────────────────────────────────────
 
-type Section2View = "add-company" | "add-lawyer" | "add-case-manager" | "view-companies" | "view-lawyers";
+type Section2View = "add-company" | "add-lawyer" | "add-case-manager" | "view-companies" | "view-lawyers" | "view-case-managers";
 
 function Section2LawyerManagement() {
   const [companies, setCompanies] = useState<CompanyItem[]>([]);
   const [lawyers, setLawyers] = useState<LawyerItem[]>([]);
+  const [caseManagers, setCaseManagers] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<Section2View>("add-company");
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
@@ -1681,9 +1760,10 @@ function Section2LawyerManagement() {
   const loadAll = useCallback(async () => {
     try {
       setLoading(true);
-      const [compRes, lawRes] = await Promise.all([
+      const [compRes, lawRes, cmRes] = await Promise.all([
         Axios.get("/admin/companies?limit=100"),
         Axios.get("/admin/lawyers?limit=100"),
+        Axios.get("/admin/case-managers?limit=100"),
       ]);
 
       const compDocs = Array.isArray(compRes.data)
@@ -1693,6 +1773,10 @@ function Section2LawyerManagement() {
       const lawDocs = Array.isArray(lawRes.data)
         ? lawRes.data
         : lawRes.data?.docs || [];
+
+      const cmDocs = Array.isArray(cmRes.data)
+        ? cmRes.data
+        : cmRes.data?.docs || [];
 
       const formattedComps: CompanyItem[] = compDocs.map((c: any) => ({
         id: c._id,
@@ -1732,6 +1816,7 @@ function Section2LawyerManagement() {
 
       setCompanies(formattedComps);
       setLawyers(formattedLaws);
+      setCaseManagers(cmDocs);
     } catch (err) {
       console.error("Failed to load companies & lawyers:", err);
     } finally {
@@ -1752,6 +1837,7 @@ function Section2LawyerManagement() {
     { id: "add-company", label: "Add Company", icon: <Building2 className="w-3.5 h-3.5" /> },
     { id: "add-lawyer", label: "Add Lawyer", icon: <User className="w-3.5 h-3.5" /> },
     { id: "add-case-manager", label: "Add Case Manager", icon: <User className="w-3.5 h-3.5" /> },
+    { id: "view-case-managers", label: "Browse Case Managers", icon: <User className="w-3.5 h-3.5" />, count: caseManagers.length },
     { id: "view-companies", label: "Browse Companies", icon: <Building2 className="w-3.5 h-3.5" />, count: companies.length },
     { id: "view-lawyers", label: "Browse Lawyers", icon: <User className="w-3.5 h-3.5" />, count: lawyers.length },
   ];
@@ -1823,6 +1909,44 @@ function Section2LawyerManagement() {
           {/* TAB: ADD CASE MANAGER */}
           {activeTab === "add-case-manager" && (
             <CaseManagerCreationForm onCreated={loadAll} />
+          )}
+
+          {/* TAB: VIEW CASE MANAGERS */}
+          {activeTab === "view-case-managers" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">
+                  Registered Case Managers ({caseManagers.length})
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("add-case-manager")}
+                  className="flex items-center gap-1.5 text-xs font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Case Manager</span>
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                {caseManagers.length === 0 ? (
+                  <div className="text-center py-12 text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200 space-y-2">
+                    <p>No case managers registered yet.</p>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("add-case-manager")}
+                      className="inline-flex items-center gap-1.5 text-sky-700 font-bold hover:underline"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Add the first case manager
+                    </button>
+                  </div>
+                ) : (
+                  caseManagers.map((cm) => (
+                    <CaseManagerCard key={cm._id} cm={cm} onRefresh={loadAll} />
+                  ))
+                )}
+              </div>
+            </div>
           )}
 
           {/* TAB: VIEW COMPANIES */}

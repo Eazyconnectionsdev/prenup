@@ -210,7 +210,7 @@ export default function AdminCaseDetailPage() {
           )}
 
           {activeTab === "lawyers" && (
-            <AdminActionsTab caseData={caseData} />
+            <AdminActionsTab caseData={caseData} onCaseUpdated={loadCase} />
           )}
 
           {activeTab === "timeline" && (

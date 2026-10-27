@@ -15,6 +15,16 @@ const Axios = axios.create(clientConfig);
 
 const plain = axios.create(clientConfig);
 
+// Ensure FormData requests automatically use multipart/form-data boundary instead of application/json
+Axios.interceptors.request.use((config) => {
+  if (typeof FormData !== "undefined" && config.data instanceof FormData) {
+    if (config.headers) {
+      delete config.headers["Content-Type"];
+    }
+  }
+  return config;
+});
+
 const PUBLIC_AUTH_PATHS = [
   "auth/login",
   "auth/register",
