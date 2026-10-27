@@ -41,7 +41,7 @@ const AuthInput = forwardRef<HTMLInputElement, Props>(function AuthInput(
 
   const stateClasses = invalid
     ? "border-[#64748B] bg-white focus:border-[#1E293B] focus:ring-2 focus:ring-black/10"
-    : "border-[#94A3B8] bg-white hover:border-[#475569] hover:shadow-xs focus:border-[#1E293B] focus:ring-2 focus:ring-black/10 focus:bg-white";
+    : "border-[#94A3B8] bg-white hover:border-[#475569] hover:bg-[#F8FAFC] hover:shadow-xs focus:border-[#1E293B] focus:ring-2 focus:ring-black/10 focus:bg-white";
 
   return (
     <div>
