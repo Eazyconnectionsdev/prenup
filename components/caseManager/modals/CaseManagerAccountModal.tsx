@@ -55,6 +55,23 @@ export const CaseManagerAccountModal: React.FC<AccountModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     let cancelled = false;
+
+    // Refresh profile from backend to get latest admin-assigned jurisdiction
+    const fetchLatestProfile = async () => {
+      try {
+        const { data } = await Axios.get("/users/profile");
+        if (cancelled) return;
+        const freshUser = data?.user || data;
+        if (freshUser) {
+          dispatch(setUserProfileData({ ...user, ...freshUser }));
+          const jur = freshUser.primaryJurisdiction || freshUser.jurisdiction;
+          if (jur) setSelectedJurisdiction(jur);
+        }
+      } catch (err) {
+        console.error("Failed to refresh CM profile", err);
+      }
+    };
+
     const fetchActiveCount = async () => {
       try {
         const res = await Axios.get("/case-manager/cases");
@@ -68,7 +85,10 @@ export const CaseManagerAccountModal: React.FC<AccountModalProps> = ({
         console.error("Failed to load active cases count", e);
       }
     };
+
+    fetchLatestProfile();
     fetchActiveCount();
+
     return () => {
       cancelled = true;
     };
@@ -158,28 +178,11 @@ export const CaseManagerAccountModal: React.FC<AccountModalProps> = ({
           <div className="p-3.5 rounded-xl bg-white border border-slate-200 flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <span className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
-                <MapPin className="w-3 h-3 text-slate-500" /> Primary Jurisdiction
+                <MapPin className="w-3 h-3 text-slate-500" /> Assigned Jurisdiction
               </span>
-              {isUpdating && (
-                <span className="text-[10px] text-sky-600 font-semibold lowercase animate-pulse">
-                  saving...
-                </span>
-              )}
             </div>
-            <div className="relative">
-              <select
-                value={selectedJurisdiction}
-                onChange={handleJurisdictionChange}
-                disabled={isUpdating}
-                className="w-full font-bold text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-slate-400 transition-colors cursor-pointer disabled:opacity-50 appearance-none pr-7"
-              >
-                <option value="England">England</option>
-                <option value="Wales">Wales</option>
-                <option value="Scotland">Scotland</option>
-              </select>
-              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                <ChevronDown className="w-3.5 h-3.5" />
-              </div>
+            <div className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
+              <span>{user?.primaryJurisdiction || user?.jurisdiction || "England & Wales"}</span>
             </div>
           </div>
 

@@ -18,12 +18,12 @@ function formatAgreementType(type?: string | null): string {
   if (!type) return "Prenuptial Agreement";
   const normalized = type.toLowerCase().trim();
   const map: Record<string, string> = {
-    "prenup-marriage": "Prenup — Marriage",
-    "prenup-civil": "Prenup — Civil Partnership",
-    "postnup-marriage": "Postnup — Marriage",
-    "postnup-civil": "Postnup — Civil Partnership",
+    "prenup-marriage": "Prenuptial Agreement",
+    "prenup-civil": "Prenuptial Agreement",
+    "postnup-marriage": "Postnuptial Agreement",
+    "postnup-civil": "Postnuptial Agreement",
     cohabitation: "Cohabitation Agreement",
-    "help-choose": "Custom Prenuptial Agreement",
+    "help-choose": "Prenuptial Agreement",
     prenup: "Prenuptial Agreement",
     prenuptial: "Prenuptial Agreement",
     postnup: "Postnuptial Agreement",
@@ -32,6 +32,78 @@ function formatAgreementType(type?: string | null): string {
   return (
     map[normalized] ||
     type.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+  );
+}
+
+/** Returns the sub-category label (e.g. Marriage or Civil Partnership) */
+function formatAgreementSubType(type?: string | null, caseData?: any): string {
+  // Check explicit relationship/ceremony details on case if present
+  const rel = String(
+    caseData?.partnerInviteDetails?.relationshipStatus ||
+    caseData?.relationshipStatus ||
+    caseData?.ceremonyType ||
+    ""
+  ).toLowerCase();
+
+  if (rel.includes("civil")) return "Civil Partnership";
+  if (rel.includes("marri")) return "Marriage";
+
+  if (!type) {
+    // Default throughout the platform for standard prenuptial cases is Marriage (prenup-marriage)
+    return "Marriage";
+  }
+
+  const normalized = type.toLowerCase().trim();
+
+  if (normalized.includes("civil")) {
+    return "Civil Partnership";
+  }
+  if (normalized.includes("cohabit")) {
+    return "Living Together";
+  }
+  if (normalized.includes("help-choose") || normalized.includes("custom")) {
+    return "Custom";
+  }
+  if (normalized.includes("marriage") || normalized.includes("married")) {
+    return "Marriage";
+  }
+
+  // Fallback for standard prenup / postnup is Marriage
+  return "Marriage";
+}
+
+/** Human-readable display label for priority values. */
+function formatPriority(priority?: string | null): string {
+  if (!priority) return "";
+  const map: Record<string, string> = {
+    LOW: "Default",
+    MEDIUM: "Medium",
+    HIGH: "High",
+    URGENT: "Urgent",
+    CRITICAL: "Critical",
+  };
+  return map[priority.toUpperCase()] ?? priority;
+}
+
+/** Human-readable display label for workflow status. */
+function formatWorkflowStatus(status?: string | null): string {
+  if (!status) return "Draft";
+  const map: Record<string, string> = {
+    NOT_PAID: "Not Paid",
+    DRAFT: "Draft",
+    COUPLE_SUBMITTED: "Couple Submitted",
+    CM_APPROVED: "CM Approved",
+    CM_RETURNED: "CM Returned",
+    LAWYER_REVIEW: "Lawyer Review",
+    COMPLETED: "Completed",
+    ARCHIVED: "Archived",
+  };
+  return (
+    map[status.toUpperCase()] ||
+    status
+      .toLowerCase()
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase())
   );
 }
 
@@ -158,85 +230,126 @@ export default function CaseDetailPage() {
 
   // 3) Plan selected
   const planSelected = formatAgreementType(caseData?.agreementType);
+  const planSubType = formatAgreementSubType(caseData?.agreementType, caseData);
 
   return (
     <div className="p-6">
       {/* Topbar on Case Detail */}
-      <div className="bg-white border border-slate-200 rounded-xl p-5 mb-6 shadow-xs">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2">
-              <Link
-                href="/cm/cases"
-                className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors mr-2 px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200"
-                title="Back to Cases Master List"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" /> Back to Cases
-              </Link>
-            </div>
+      <div className="bg-white border border-slate-200 rounded-xl p-5 mb-6 shadow-xs space-y-4">
+        {/* Top Sub-Row: Back Navigation & Case Status / Priority */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          <Link
+            href="/cm/cases"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors"
+            title="Back to Cases Master List"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" /> Back to Cases
+          </Link>
 
-            <div className="flex flex-wrap items-center gap-2.5 text-xs">
-              {/* Partner Names */}
-              <span className="inline-flex items-center gap-1 text-slate-600">
-                <span className="text-slate-400 font-medium">Primary Applicant:</span>
-                <span className="font-semibold text-slate-800">{p1Name}</span>
+          <div className="flex items-center gap-2">
+            {/* Workflow Status */}
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  caseData.workflowStatus === "CM_APPROVED" || caseData.workflowStatus === "COMPLETED"
+                    ? "bg-emerald-500"
+                    : caseData.workflowStatus === "NOT_PAID"
+                    ? "bg-amber-500"
+                    : "bg-blue-500"
+                }`}
+              />
+              {formatWorkflowStatus(caseData.workflowStatus)}
+            </span>
+
+            {/* Priority */}
+            {caseData.priority && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    caseData.priority === "URGENT" || caseData.priority === "CRITICAL"
+                      ? "bg-rose-500"
+                      : caseData.priority === "HIGH"
+                      ? "bg-orange-500"
+                      : caseData.priority === "MEDIUM"
+                      ? "bg-amber-500"
+                      : "bg-emerald-500"
+                  }`}
+                />
+                {formatPriority(caseData.priority)} Priority
               </span>
+            )}
+          </div>
+        </div>
 
-              {p2Name && (
-                <>
-                  <span className="text-slate-300">·</span>
-                  <span className="inline-flex items-center gap-1 text-slate-600">
-                    <span className="text-slate-400 font-medium">Secondry Applicant:</span>
-                    <span className="font-semibold text-slate-800">{p2Name}</span>
-                  </span>
-                </>
-              )}
+        {/* Bottom Sub-Row: Case Metadata Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-1">
+          {/* Primary Applicant */}
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              Primary Applicant
+            </span>
+            <span className="text-sm font-semibold text-slate-900 truncate" title={p1Name}>
+              {p1Name}
+            </span>
+          </div>
 
-              <span className="text-slate-300">·</span>
+          {/* Secondary Applicant */}
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              Secondary Applicant
+            </span>
+            {p2Name ? (
+              <span className="text-sm font-semibold text-slate-900 truncate" title={p2Name}>
+                {p2Name}
+              </span>
+            ) : caseData?.partnerInvited || caseData?.invitedEmail ? (
+              <span className="text-xs text-slate-600 truncate" title={caseData.invitedEmail || undefined}>
+                Invited <span className="text-slate-400 font-normal">({caseData.invitedEmail || "Awaiting Acceptance"})</span>
+              </span>
+            ) : (
+              <span className="text-xs text-slate-400 italic">
+                Not Yet Invited
+              </span>
+            )}
+          </div>
 
-              {/* Case ID */}
+          {/* Case ID */}
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              Case ID
+            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="font-mono text-sm font-bold text-slate-900">
+                {caseIdDisplay}
+              </span>
               <button
                 type="button"
                 onClick={() => copyCaseId(caseIdDisplay)}
                 title="Click to copy Case ID"
-                className="group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 transition-colors cursor-pointer"
+                className="text-slate-400 hover:text-slate-700 transition-colors p-0.5 rounded cursor-pointer"
               >
-                <span className="text-slate-400 font-medium">Case ID:</span>
-                <span className="font-mono font-semibold text-slate-900">{caseIdDisplay}</span>
                 {copied ? (
                   <Check className="w-3.5 h-3.5 text-emerald-600" />
                 ) : (
-                  <Copy className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600" />
+                  <Copy className="w-3.5 h-3.5" />
                 )}
               </button>
-
-              <span className="text-slate-300">·</span>
-
-              {/* Plan Selected */}
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50/80 border border-amber-200 text-amber-900 font-medium">
-                <span className="text-amber-700">Plan Selected:</span>
-                <span className="font-bold">{planSelected}</span>
-              </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 self-start md:self-center">
-            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200">
-              {caseData.workflowStatus || "Draft"}
+          {/* Plan Selected */}
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              Plan Selected
             </span>
-            {caseData.priority && (
-              <span
-                className={`px-2.5 py-1 rounded-full text-xs font-semibold uppercase ${
-                  caseData.priority === "HIGH" || caseData.priority === "CRITICAL"
-                    ? "bg-red-50 text-red-700 border border-red-200"
-                    : caseData.priority === "MEDIUM"
-                    ? "bg-amber-50 text-amber-700 border border-amber-200"
-                    : "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                }`}
-              >
-                {caseData.priority}
-              </span>
-            )}
+            <div className="text-sm font-semibold text-slate-900 truncate">
+              {planSelected}
+              {planSubType && (
+                <span className="ml-1.5 text-xs font-normal text-slate-500">
+                  ({planSubType})
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>
