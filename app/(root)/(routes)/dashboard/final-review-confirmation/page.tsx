@@ -648,42 +648,129 @@ export default function FinalReviewConfirmationPage() {
               <div>
                 <h2 className="text-base font-bold text-[#1E1B3C]">Current Status</h2>
 
-                <div className="mt-5 space-y-6">
-                  {/* Step 1: You - Submitted */}
-                  <div className="flex items-start gap-3.5">
-                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#DCFCE7] text-[#16A34A]">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-4 w-4">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-bold text-[#1E1B3C]">You</span>
-                        <span className="text-[11px] text-[#9494AA]">{formattedTime}</span>
+                <div className="mt-5 space-y-4">
+                  {cases?.approval?.reviewTimeline && cases.approval.reviewTimeline.length > 0 ? (
+                    cases.approval.reviewTimeline.map((item, idx) => (
+                      <div key={idx} className="flex items-start gap-3.5">
+                        <div
+                          className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${
+                            item.action.includes("Completed")
+                              ? "bg-[#DCFCE7] text-[#16A34A]"
+                              : item.action.includes("Requested")
+                                ? "bg-[#FEF3C7] text-[#B45309]"
+                                : "bg-[#EDE9FE] text-[#6D28D9]"
+                          }`}
+                        >
+                          <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={2.5}
+                            className="h-4 w-4"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-bold text-[#1E1B3C]">
+                              {item.action}
+                            </span>
+                            <span className="text-[11px] text-[#9494AA]">
+                              {item.timestamp
+                                ? new Date(item.timestamp).toLocaleDateString("en-GB", {
+                                    day: "numeric",
+                                    month: "short",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })
+                                : formattedTime}
+                            </span>
+                          </div>
+                          <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-[#6B6B80]">
+                            <span>
+                              P1: <strong className="text-[#1E1B3C]">{item.p1Status}</strong>
+                            </span>
+                            <span>•</span>
+                            <span>
+                              P2: <strong className="text-[#1E1B3C]">{item.p2Status}</strong>
+                            </span>
+                            <span>•</span>
+                            <span>
+                              Mutual:{" "}
+                              <strong
+                                className={
+                                  item.mutualStatus === "COMPLETED"
+                                    ? "text-[#16A34A]"
+                                    : "text-amber-600"
+                                }
+                              >
+                                {item.mutualStatus}
+                              </strong>
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-xs text-[#16A34A] font-medium">Submitted</div>
-                    </div>
-                  </div>
-
-                  {/* Vertical dotted connector */}
-                  <div className="ml-4 -my-4 h-6 border-l-2 border-dashed border-[#CBD5E1]" />
-
-                  {/* Step 2: Partner - Review Pending */}
-                  <div className="flex items-start gap-3.5">
-                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#EFF6FF] text-[#3B82F6]">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
-                        <circle cx="12" cy="12" r="9" />
-                        <path strokeLinecap="round" d="M12 7v5l3 3" />
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-bold text-[#1E1B3C]">Partner</span>
-                        <span className="text-[11px] text-[#9494AA]">—</span>
+                    ))
+                  ) : (
+                    <>
+                      {/* Step 1: You - Submitted */}
+                      <div className="flex items-start gap-3.5">
+                        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#DCFCE7] text-[#16A34A]">
+                          <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={2.5}
+                            className="h-4 w-4"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-bold text-[#1E1B3C]">Primary Applicant</span>
+                            <span className="text-[11px] text-[#9494AA]">{formattedTime}</span>
+                          </div>
+                          <div className="text-xs font-medium text-[#16A34A]">Submitted for Review</div>
+                        </div>
                       </div>
-                      <div className="text-xs text-[#3B82F6] font-medium">Review Pending</div>
-                    </div>
-                  </div>
+
+                      {/* Vertical connector */}
+                      <div className="ml-4 -my-2 h-5 border-l-2 border-dashed border-[#CBD5E1]" />
+
+                      {/* Step 2: Partner - Review Pending */}
+                      <div className="flex items-start gap-3.5">
+                        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#EFF6FF] text-[#3B82F6]">
+                          <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                            className="h-4 w-4"
+                          >
+                            <circle cx="12" cy="12" r="9" />
+                            <path strokeLinecap="round" d="M12 7v5l3 3" />
+                          </svg>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-bold text-[#1E1B3C]">Secondary Applicant</span>
+                            <span className="text-[11px] text-[#9494AA]">—</span>
+                          </div>
+                          <div className="text-xs font-medium text-[#3B82F6]">Review Pending</div>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -719,6 +806,51 @@ export default function FinalReviewConfirmationPage() {
             Please review the completed information before confirming. If anything needs to be changed,
             you can make the necessary changes before confirming.
           </p>
+        </div>
+
+        {/* Stage 4: Partner Review Status Matrix */}
+        <div className="rounded-2xl border border-[#E7E7F2] bg-white p-5 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#F1F1F6] pb-3">
+            <div className="flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#EDE9FE] text-xs font-bold text-[#6D28D9]">
+                4
+              </span>
+              <span className="text-xs font-bold uppercase tracking-wider text-[#6D28D9]">
+                Stage 4: Partner Review Stage
+              </span>
+            </div>
+            <div className="text-xs font-medium text-[#6B6B80]">
+              {cases?.stages?.stage4?.scenario || "Scenario A — P2 approves without making changes"}
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3 text-center">
+            <div className="rounded-xl border border-[#EDE9FE] bg-[#FAF9FF] p-3.5">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-[#8A8AA0]">
+                Primary Applicant (P1)
+              </div>
+              <div className="mt-1.5 inline-block rounded-md bg-[#EDE9FE] px-2.5 py-1 text-xs font-bold text-[#6D28D9]">
+                {cases?.approval?.p1ReviewStatus || (cases?.approval?.user1Approved ? "FINAL_SUBMIT" : "IN_PROGRESS")}
+              </div>
+            </div>
+            <div className="rounded-xl border border-[#EDE9FE] bg-[#FAF9FF] p-3.5">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-[#8A8AA0]">
+                Secondary Applicant (P2)
+              </div>
+              <div className="mt-1.5 inline-block rounded-md bg-[#EDE9FE] px-2.5 py-1 text-xs font-bold text-[#6D28D9]">
+                {cases?.approval?.p2ReviewStatus || (cases?.approval?.user2Approved ? "APPROVED" : (cases?.status?.jointInformation?.submitted ? "IN_REVIEW" : "IN_PROGRESS"))}
+              </div>
+            </div>
+            <div className="rounded-xl border border-[#EDE9FE] bg-[#FAF9FF] p-3.5">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-[#8A8AA0]">
+                Mutual Approval &amp; Snapshot
+              </div>
+              <div className={`mt-1.5 inline-block rounded-md px-2.5 py-1 text-xs font-bold ${
+                isMutualApproved ? "bg-[#DCFCE7] text-[#16A34A]" : "bg-[#FEF3C7] text-[#B45309]"
+              }`}>
+                {cases?.approval?.mutualApprovalAndSnapshot || (isMutualApproved ? "COMPLETED" : "PENDING")}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* 4 Accordion / Summary Cards */}

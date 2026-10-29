@@ -597,6 +597,15 @@ export default function LawyerCaseWorkflowPage() {
   const [savingNote, setSavingNote] =
     useState(false);
 
+  const [reviewCompleting, setReviewCompleting] =
+    useState(false);
+
+  const [requestingIla, setRequestingIla] =
+    useState(false);
+
+  const [completingCase, setCompletingCase] =
+    useState(false);
+
   /* ======================================================================== */
   /* API: CASE                                                                 */
   /* ======================================================================== */
@@ -1207,6 +1216,65 @@ export default function LawyerCaseWorkflowPage() {
   };
 
   /* ======================================================================== */
+  /* WORKFLOW ACTIONS                                                          */
+  /* ======================================================================== */
+
+  const handleReviewComplete = async () => {
+    if (!caseId) return;
+
+    try {
+      setReviewCompleting(true);
+      await Axios.post(`/lawyer/${caseId}/review-complete`);
+      toast.success("Review marked as completed.");
+      await loadCase();
+    } catch (error: any) {
+      console.error("Failed to complete review:", error);
+      toast.error(
+        getErrorMessage(error, "Failed to complete review.")
+      );
+    } finally {
+      setReviewCompleting(false);
+    }
+  };
+
+  const handleRequestILA = async () => {
+    if (!caseId) return;
+
+    try {
+      setRequestingIla(true);
+      await Axios.post(`/lawyer/${caseId}/request-ila`);
+      toast.success("ILA requested successfully.");
+      await loadCase();
+      await loadIlaStatus();
+    } catch (error: any) {
+      console.error("Failed to request ILA:", error);
+      toast.error(
+        getErrorMessage(error, "Failed to request ILA.")
+      );
+    } finally {
+      setRequestingIla(false);
+    }
+  };
+
+  const handleCompleteCase = async () => {
+    if (!caseId) return;
+
+    try {
+      setCompletingCase(true);
+      await Axios.post(`/lawyer/${caseId}/complete`);
+      toast.success("Case completed successfully.");
+      await loadCase();
+    } catch (error: any) {
+      console.error("Failed to complete case:", error);
+      toast.error(
+        getErrorMessage(error, "Failed to complete case.")
+      );
+    } finally {
+      setCompletingCase(false);
+    }
+  };
+
+  /* ======================================================================== */
   /* LOADING                                                                   */
   /* ======================================================================== */
 
@@ -1259,22 +1327,54 @@ export default function LawyerCaseWorkflowPage() {
               </p>
             </div>
 
-            <div
-              className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold ${
-                stage2Unlocked
-                  ? "bg-emerald-100 text-emerald-700"
-                  : "bg-slate-100 text-slate-600"
-              }`}
-            >
-              {stage2Unlocked ? (
-                <CheckCircle2 className="h-4 w-4" />
-              ) : (
-                <Lock className="h-4 w-4" />
-              )}
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={handleReviewComplete}
+                disabled={reviewCompleting || caseData?.lawyerReviewCompleted}
+                className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+              >
+                {reviewCompleting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                {caseData?.lawyerReviewCompleted ? "Review Completed" : "Mark Review Complete"}
+              </button>
 
-              {stage2Unlocked
-                ? "Stage 2 Unlocked"
-                : "Stage 2 Locked"}
+              <button
+                type="button"
+                onClick={handleRequestILA}
+                disabled={requestingIla}
+                className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              >
+                {requestingIla && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                Request ILA
+              </button>
+
+              <button
+                type="button"
+                onClick={handleCompleteCase}
+                disabled={completingCase || caseData?.workflowStatus === "COMPLETED"}
+                className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:bg-slate-800 disabled:opacity-50 transition-colors"
+              >
+                {completingCase && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                {caseData?.workflowStatus === "COMPLETED" ? "Case Completed" : "Complete Case"}
+              </button>
+
+              <div
+                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold ${
+                  stage2Unlocked
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "bg-slate-100 text-slate-600"
+                }`}
+              >
+                {stage2Unlocked ? (
+                  <CheckCircle2 className="h-4 w-4" />
+                ) : (
+                  <Lock className="h-4 w-4" />
+                )}
+
+                {stage2Unlocked
+                  ? "Stage 2 Unlocked"
+                  : "Stage 2 Locked"}
+              </div>
             </div>
           </div>
         </div>

@@ -14,10 +14,13 @@ const PATH_TITLES: [string, string][] = [
 export const AdminTopBar: React.FC = () => {
   const pathname = usePathname();
 
-  const pageTitle =
-    PATH_TITLES.find(
-      ([path]) => pathname === path || pathname.startsWith(`${path}/`),
-    )?.[1] ?? "Admin Portal";
+  const isCaseDetail = pathname.startsWith("/admin/cases/") && pathname !== "/admin/cases";
+
+  const pageTitle = isCaseDetail
+    ? "Case Details"
+    : PATH_TITLES.find(
+        ([path]) => pathname === path || pathname.startsWith(`${path}/`),
+      )?.[1] ?? "Admin Portal";
 
   return (
     <header className="sticky top-0 z-40 h-[76px] bg-[#f7f4ee] flex items-center justify-between px-8 pt-4 pb-2">

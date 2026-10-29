@@ -190,7 +190,8 @@ export default function SharedLiabilitiesForm({
     <SectionCard
       title="Shared Financial Obligations"
       icon={<CreditCard className="h-5 w-5" />}
-      tooltip="Declare any liabilities that you and your partner hold jointly, including mortgages, loans, credit cards or other shared financial obligations."
+      colorIndex={0}
+      tooltip="Declare any liabilities that you and your partner hold jointly, including mortgages, loans, credit cards, finance agreements, and other shared financial obligations."
     >
       <FieldLabel>
         Do you and your partner jointly hold any liabilities, including mortgages, loans, credit
@@ -259,7 +260,7 @@ export default function SharedLiabilitiesForm({
   return (
     <FormShell
       title="Shared Liabilities & Outstanding Debts"
-      stepLabel="Section 3 • Joint Information"
+      stepLabel="Step 3 of 4"
       icon={<Wallet className="h-5 w-5" />}
       description="Please declare any liabilities, loans or financial obligations that you and your partner hold jointly and specify how they should be treated under your prenuptial agreement."
     >
@@ -278,25 +279,33 @@ export default function SharedLiabilitiesForm({
         </form>
       ) : (
         <div>
-          <fieldset disabled className="m-0 min-w-0 border-0 p-0">
+          <fieldset disabled className="m-0 min-w-0 border-0 p-0 space-y-6">
             {formBody}
           </fieldset>
-          <div className="mt-10 flex items-center justify-between border-t border-slate-100 pt-6">
+          <div className="mt-8 flex flex-col gap-4 pt-6 sm:flex-row sm:items-center sm:justify-between border-t border-slate-200/80">
             <Link
-              href="/dashboard/joint-income-revenue"
-              className="inline-flex items-center gap-2 rounded-[10px] border border-slate-300 bg-white px-6 py-3 font-semibold text-slate-600 transition hover:bg-slate-50"
+              href="/dashboard"
+              className="text-[13.5px] font-semibold text-[#5B4DF5] transition hover:text-[#4338CA] text-left cursor-pointer"
             >
-              <ArrowLeft className="h-4 w-4" />
-              Back
+              Save and exit
             </Link>
-            <button
-              type="button"
-              onClick={() => router.push("/dashboard/matrimonial-agreement")}
-              className="inline-flex items-center gap-2 rounded-[10px] bg-indigo-600 px-8 py-3 font-semibold text-white shadow-[0_4px_12px_rgba(79,70,229,0.25)] transition hover:bg-indigo-700"
-            >
-              Next: Matrimonial Agreement & Review
-              <ArrowRight className="h-4 w-4" />
-            </button>
+
+            <div className="flex items-center gap-3">
+              <Link
+                href="/dashboard/joint-income-revenue"
+                className="inline-flex h-[42px] items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-5 text-[13.5px] font-semibold text-slate-700 shadow-xs transition hover:bg-slate-50 hover:border-slate-300"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back
+              </Link>
+              <button
+                type="button"
+                onClick={() => router.push("/dashboard/matrimonial-agreement")}
+                className="inline-flex h-[42px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-[#5B4DF5] hover:from-indigo-700 hover:to-[#4E3EEA] px-7 text-[13.5px] font-semibold text-white shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/30 transition-all focus:outline-none focus:ring-2 focus:ring-[#5B4DF5]/30 cursor-pointer"
+              >
+                Next: Matrimonial Agreement & Review →
+              </button>
+            </div>
           </div>
         </div>
       )}

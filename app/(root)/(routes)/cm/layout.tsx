@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { CaseManagerSidebar } from "@/components/caseManager/CaseManagerSidebar";
 import { CaseManagerTopBar } from "@/components/caseManager/CaseManagerTopBar";
 
@@ -15,7 +15,7 @@ export default function CaseManagerLayout({
     <div className="min-h-screen bg-[#f7f4ee]">
       <CaseManagerSidebar />
 
-      <div className="ml-[240px] flex flex-col min-h-screen min-w-0">
+      <div className="ml-[280px] flex flex-col min-h-screen min-w-0">
         <CaseManagerTopBar />
 
         <main className="flex-1 min-w-0">{children}</main>

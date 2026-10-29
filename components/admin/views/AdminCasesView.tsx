@@ -75,10 +75,6 @@ export const AdminCasesView: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Case Detail Drawer / Modal
-  const [activeCaseModal, setActiveCaseModal] = useState<RawCaseItem | null>(null);
-  const [modalLoading, setModalLoading] = useState<boolean>(false);
-
   // Sync selected status from URL query param when it changes
   useEffect(() => {
     setSelectedStatus(urlStatus);
@@ -184,18 +180,8 @@ export const AdminCasesView: React.FC = () => {
     router.push("/admin/cases");
   };
 
-  const handleOpenCaseDetail = async (caseId: string) => {
-    try {
-      setModalLoading(true);
-      const res = await Axios.get(`/admin/cases/${caseId}`);
-      setActiveCaseModal(res.data);
-    } catch (err) {
-      console.warn("Could not fetch individual case detail, falling back to local item:", err);
-      const found = cases.find((c) => c.id === caseId);
-      if (found) setActiveCaseModal(found.raw);
-    } finally {
-      setModalLoading(false);
-    }
+  const handleOpenCaseDetail = (caseId: string) => {
+    router.push(`/admin/cases/${caseId}`);
   };
 
   const filteredCases = useMemo(() => {
@@ -444,95 +430,6 @@ export const AdminCasesView: React.FC = () => {
           </div>
         )}
       </div>
-
-      {/* Case Detail Modal */}
-      {activeCaseModal && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200 p-6 space-y-5">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-violet-600 bg-violet-50 px-2 py-0.5 rounded">
-                  Admin Case Inspector
-                </span>
-                <h3 className="text-lg font-bold text-slate-900 mt-1">
-                  {activeCaseModal.caseNumber || `CASE-${activeCaseModal._id}`}
-                </h3>
-              </div>
-              <button
-                onClick={() => setActiveCaseModal(null)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Core Details Grid */}
-            <div className="grid grid-cols-2 gap-4 text-xs">
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Status</span>
-                <span className="font-bold text-slate-800 text-sm mt-0.5 block">
-                  {activeCaseModal.workflowStatus || "DRAFT"}
-                </span>
-              </div>
-
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Priority</span>
-                <span className="font-bold text-slate-800 text-sm mt-0.5 block">
-                  {activeCaseModal.priority || "MEDIUM"}
-                </span>
-              </div>
-
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Primary Owner (P1)</span>
-                <span className="font-semibold text-slate-800 mt-0.5 block">
-                  {typeof activeCaseModal.owner === "object" && activeCaseModal.owner
-                    ? `${activeCaseModal.owner.firstName ?? ""} ${activeCaseModal.owner.lastName ?? ""} (${activeCaseModal.owner.email ?? ""})`
-                    : String(activeCaseModal.owner || "N/A")}
-                </span>
-              </div>
-
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Invited Partner (P2)</span>
-                <span className="font-semibold text-slate-800 mt-0.5 block">
-                  {typeof activeCaseModal.invitedUser === "object" && activeCaseModal.invitedUser
-                    ? `${activeCaseModal.invitedUser.firstName ?? ""} ${activeCaseModal.invitedUser.lastName ?? ""} (${activeCaseModal.invitedUser.email ?? ""})`
-                    : String(activeCaseModal.invitedUser || "Not Invited")}
-                </span>
-              </div>
-
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Assigned Case Manager</span>
-                <span className="font-semibold text-slate-800 mt-0.5 block">
-                  {typeof activeCaseModal.assignedCaseManager === "object" && activeCaseModal.assignedCaseManager
-                    ? `${activeCaseModal.assignedCaseManager.firstName ?? ""} ${activeCaseModal.assignedCaseManager.lastName ?? ""}`
-                    : String(activeCaseModal.assignedCaseManager || "Unassigned")}
-                </span>
-              </div>
-
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Created Date</span>
-                <span className="font-semibold text-slate-800 mt-0.5 block">
-                  {activeCaseModal.createdAt ? new Date(activeCaseModal.createdAt).toLocaleString() : "—"}
-                </span>
-              </div>
-            </div>
-
-            {/* Raw metadata preview */}
-            <div className="border border-slate-100 rounded-xl p-3 bg-slate-900 text-slate-200 text-[11px] font-mono overflow-x-auto max-h-48">
-              <pre>{JSON.stringify(activeCaseModal, null, 2)}</pre>
-            </div>
-
-            <div className="flex justify-end pt-3">
-              <button
-                onClick={() => setActiveCaseModal(null)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-semibold cursor-pointer"
-              >
-                Close Inspector
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

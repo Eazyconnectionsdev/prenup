@@ -12,4 +12,3 @@ export interface StepConfig {
   completedLabel: string;
   icon: React.ReactNode;
 }
-

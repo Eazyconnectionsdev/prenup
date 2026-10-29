@@ -50,11 +50,27 @@ export function getStep(slug: QuestionnaireStepSlug) {
     ...step,
     number: index + 1,
     total: QUESTIONNAIRE_STEPS.length,
-    // undefined on the last step (no automatic redirect after it)
-    nextPath: next ? `/dashboard/${next.slug}` : undefined,
-    nextTitle: next ? next.title : undefined,
-    // undefined on the first step, which has nothing to go back to
-    prevPath: previous ? `/dashboard/${previous.slug}` : undefined,
-    prevTitle: previous ? previous.title : undefined,
+    // Links forward across all individual steps and smoothly bridges liabilities_debts to joint-assets
+    nextPath: next
+      ? `/dashboard/${next.slug}`
+      : slug === "liabilities_debts"
+        ? "/dashboard/joint-assets"
+        : undefined,
+    nextTitle: next
+      ? next.title
+      : slug === "liabilities_debts"
+        ? "Joint assets"
+        : undefined,
+    // Links backward across all steps and personal-info back to dashboard
+    prevPath: previous
+      ? `/dashboard/${previous.slug}`
+      : slug === "personal-info"
+        ? "/dashboard"
+        : undefined,
+    prevTitle: previous
+      ? previous.title
+      : slug === "personal-info"
+        ? "Dashboard"
+        : undefined,
   };
 }

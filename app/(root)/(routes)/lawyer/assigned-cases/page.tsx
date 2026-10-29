@@ -103,10 +103,10 @@ const LawyerCasesPage = () => {
 
         if (status && status !== "ALL") {
           response = await Axios.get(
-            `/case-manager/dashboard/stages/${status}/cases`
+            `/lawyer/dashboard/stages/${status}/cases`
           );
         } else {
-          response = await Axios.get("/case-manager/cases");
+          response = await Axios.get("/lawyer/cases");
         }
 
         const formattedCases: LawyerRowCase[] = response.data.map((item: any) => ({
@@ -119,7 +119,7 @@ const LawyerCasesPage = () => {
 
           p2Name: item.invitedUser
             ? `${item.invitedUser.firstName ?? ""} ${item.invitedUser.lastName ?? ""}`.trim() ||
-              item.invitedUser.email
+            item.invitedUser.email
             : "Not Invited",
 
           service: item.service ?? "—",
@@ -225,7 +225,7 @@ const LawyerCasesPage = () => {
         <div className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-2 text-xs font-bold font-sans text-slate-900 uppercase tracking-wider">
             <Filter className="w-4 h-4 text-slate-700" />
- ,m,,,,,           <span>Workflow Filters:</span>
+            <span>Workflow Filters:</span>
           </div>
 
           <div className="flex flex-col gap-1">

@@ -1,4 +1,5 @@
-import React, { ReactNode } from "react";
+import React, { ReactNode, useState, useRef, useEffect } from "react";
+import { Info, X } from "lucide-react";
 import type { Treatment, TreatmentFields, TreatmentSelectProps, ValueWithUnsureProps, YesNo, YesNoToggleProps } from "@/types/forms/form-primitives";
 
 /* ---------------------------------------------------------------------- */
@@ -29,12 +30,74 @@ export const textareaClasses = inputClasses + " min-h-[56px] resize-y";
 /* ---------------------------------------------------------------------- */
 
 export function Tooltip({ text }: { text: string }) {
+  const [show, setShow] = useState(false);
+  const containerRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (!show) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setShow(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [show]);
+
   return (
-    <span
-      title={text}
-      className="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-indigo-100 text-[0.7rem] font-bold text-indigo-600"
-    >
-      ⓘ
+    <span ref={containerRef} className="relative inline-flex items-center align-middle ml-1.5 select-none">
+      <button
+        type="button"
+        aria-label="More information"
+        onMouseEnter={() => setShow(true)}
+        onMouseLeave={() => setShow(false)}
+        onFocus={() => setShow(true)}
+        onBlur={() => setShow(false)}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setShow((prev) => !prev);
+        }}
+        className="group inline-flex items-center justify-center rounded-full text-[#6366F1] hover:text-[#4338CA] hover:bg-indigo-50 active:scale-95 p-1 transition-all duration-150 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#6366F1]/30"
+      >
+        <Info className="h-[17px] w-[17px] stroke-[2.2] transition-transform duration-150 group-hover:scale-110" />
+      </button>
+
+      {show && (
+        <span
+          role="tooltip"
+          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5 z-50 w-72 sm:w-80 rounded-2xl bg-gradient-to-b from-slate-900 via-slate-900 to-[#0B0F19] p-4 text-left shadow-[0_20px_50px_-10px_rgba(15,23,42,0.7),0_0_0_1px_rgba(99,102,241,0.25)] border border-indigo-500/25 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150"
+        >
+          {/* Header row with glowing badge and close button */}
+          <span className="mb-2.5 flex items-center justify-between border-b border-slate-800/90 pb-2">
+            <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-indigo-300">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-500/20 text-indigo-400 ring-1 ring-indigo-400/30">
+                <Info className="h-3 w-3 stroke-[2.4]" />
+              </span>
+              Guidance Note
+            </span>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShow(false);
+              }}
+              className="rounded-lg p-1 text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors cursor-pointer"
+              aria-label="Close tooltip"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </span>
+
+          {/* Content */}
+          <span className="block text-[12.5px] font-normal leading-relaxed text-slate-200 antialiased normal-case tracking-normal">
+            {text}
+          </span>
+
+          {/* Bottom pointer arrow */}
+          <span className="absolute top-full left-1/2 -translate-x-1/2 -mt-[1px] border-[6px] border-transparent border-t-slate-950" />
+        </span>
+      )}
     </span>
   );
 }

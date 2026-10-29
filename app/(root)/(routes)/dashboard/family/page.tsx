@@ -11,6 +11,7 @@ import {
   RadioCard,
   SectionCard,
   SubmitBar,
+  Tooltip,
   inputClasses,
   makeId,
 } from "@/components/questionnaire/QuestionnaireUI";
@@ -85,11 +86,16 @@ export default function FamilyDependentsForm() {
       description="Tell us about any previous marriages or civil partnerships, your children, your future family plans, and any family pets you would like this agreement to cover."
     >
       <form onSubmit={handleSubmit} noValidate>
-        <SectionCard title="Prior Marital History" icon={<History className="h-5 w-5" />}>
+        <SectionCard
+          title="Prior Marital History"
+          icon={<History className="h-5 w-5" />}
+          colorIndex={0}
+          tooltip="Disclosing previous marriages is crucial because existing financial orders or maintenance obligations from a prior divorce can affect asset distribution limits in a new agreement."
+        >
           <FieldLabel>
             Have you previously been married or in a civil partnership before this relationship?
           </FieldLabel>
-          <p className="mb-4 text-[0.85rem] italic text-slate-500">
+          <p className="mb-4 text-[13px] text-slate-500 leading-relaxed">
             If your previous relationship was a civil partnership, please choose the equivalent
             option below.
           </p>
@@ -133,7 +139,12 @@ export default function FamilyDependentsForm() {
           )}
         </SectionCard>
 
-        <SectionCard title="Current Children" icon={<Baby className="h-5 w-5" />}>
+        <SectionCard
+          title="Current Children"
+          icon={<Baby className="h-5 w-5" />}
+          colorIndex={1}
+          tooltip="All existing dependents must be declared. UK courts heavily scrutinize prenuptial agreements to ensure the needs and financial stability of any children are fully protected."
+        >
           <FieldLabel>
             Do you have any children, including biological, adopted, or stepchildren, from this
             relationship or a previous relationship?
@@ -153,8 +164,9 @@ export default function FamilyDependentsForm() {
 
           {formData.hasLivingChildren === "Yes" && (
             <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-6">
-              <div className="mb-4 text-[0.8rem] font-bold uppercase tracking-wide text-slate-500">
-                Children&apos;s details
+              <div className="mb-4 flex items-center gap-2 text-[0.8rem] font-bold uppercase tracking-wide text-slate-500">
+                <span>Children&apos;s details</span>
+                <Tooltip text="Enter the legal first and last name of each child, date of birth, and your parental relationship." />
               </div>
 
               {children.map((child) => (
@@ -165,17 +177,20 @@ export default function FamilyDependentsForm() {
                   <input
                     type="text"
                     placeholder="Child's full name"
+                    title="Enter the legal first and last name of the child."
                     value={child.fullName}
                     onChange={(e) => updateChildRow(child.id, "fullName", e.target.value)}
                     className={inputClasses}
                   />
                   <input
                     type="date"
+                    title="Date of birth determines dependency status. Under UK family law, children under 18 (or older with special care needs) carry statutory priority rights."
                     value={child.dob}
                     onChange={(e) => updateChildRow(child.id, "dob", e.target.value)}
                     className={inputClasses}
                   />
                   <select
+                    title="Specify the child's relational background."
                     value={child.parentalRelationship}
                     onChange={(e) =>
                       updateChildRow(
@@ -218,11 +233,15 @@ export default function FamilyDependentsForm() {
         <SectionCard
           title={<>Future Family Plans &amp; Pets</>}
           icon={<PawPrint className="h-5 w-5" />}
+          colorIndex={2}
         >
           <div className="mb-6">
-            <FieldLabel htmlFor="futureParentalIntentions">
-              Do you and your partner plan, or think you may decide in the future, to have or adopt
-              children together?
+            <FieldLabel htmlFor="futureParentalIntentions" className="flex items-center justify-between gap-2">
+              <span>
+                Do you and your partner plan, or think you may decide in the future, to have or adopt
+                children together?
+              </span>
+              <Tooltip text="Anticipating future children is a cornerstone of a robust prenup. If a child is born later and the agreement didn't account for it, a court is highly likely to set the agreement aside due to a change in circumstances." />
             </FieldLabel>
             <select
               id="futureParentalIntentions"
@@ -247,9 +266,12 @@ export default function FamilyDependentsForm() {
           </div>
 
           <div>
-            <FieldLabel>
-              Do you currently own, or expect to have, any pets whose ownership or care you would
-              like to include in this agreement?
+            <FieldLabel className="flex items-center justify-between gap-2">
+              <span>
+                Do you currently own, or expect to have, any pets whose ownership or care you would
+                like to include in this agreement?
+              </span>
+              <Tooltip text="In UK law, pets are technically treated as personal property chattels. Specifying pet ownership and maintenance schedules upfront avoids bitter disputes over care costs and custody if a separation happens." />
             </FieldLabel>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {(["Yes", "No"] as const).map((opt) => (
@@ -266,7 +288,12 @@ export default function FamilyDependentsForm() {
           </div>
         </SectionCard>
 
-        <SubmitBar isSaving={isSaving} label={`Save & continue`} withArrow />
+        <SubmitBar
+          isSaving={isSaving}
+          label="Save & continue"
+          withArrow
+          backHref={stepInfo.prevPath || "/dashboard/legal-declaration"}
+        />
       </form>
     </FormShell>
   );

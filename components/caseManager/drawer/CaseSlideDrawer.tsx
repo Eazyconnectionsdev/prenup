@@ -583,10 +583,19 @@ export const CaseSlideDrawer: React.FC<CaseSlideDrawerProps> = ({
               <span>← Back to Cases</span>
             </button>
             <span className="font-mono text-base font-bold text-slate-200">
-              {caseObj.id}
+              Case ID: {caseObj.id}
             </span>
             <div className="text-sm font-bold text-white">
-              {caseObj.p1} &amp; {caseObj.p2}
+              {caseObj.p2 && caseObj.p2 !== "Not Invited" && caseObj.p2 !== "Pending"
+                ? `${caseObj.p1} & ${caseObj.p2}`
+                : caseObj.p1}
+            </div>
+            {(caseObj.service || (caseObj as any).agreementType) && (
+              <span className="text-xs font-semibold text-amber-200 bg-amber-950/80 border border-amber-500/50 px-2.5 py-0.5 rounded">
+                Plan: {caseObj.service || (caseObj as any).agreementType}
+              </span>
+            )}
+            <div className="hidden">
             </div>
             <span className="badge-rose-pill border-rose-400 bg-rose-950/80 text-rose-200 font-bold">
               {caseObj.cmView}

@@ -77,6 +77,7 @@ export default function LegalDeclarationsForm() {
           number={1}
           htmlFor="agreementObjectives"
           question="Please provide a brief overview of what you are both aiming to achieve with this agreement and your primary reasons for putting it in place."
+          tooltip="Please describe the purpose of this agreement objectively. For example: &quot;James and Sarah wish to clarify their financial arrangements before marriage.&quot;"
         >
           <textarea
             id="agreementObjectives"
@@ -95,6 +96,7 @@ export default function LegalDeclarationsForm() {
           number={2}
           htmlFor="livingSituationFuture"
           question="Please provide a summary of your current living arrangements and any significant future plans (e.g., upcoming property purchases, relocating abroad, or major career changes)."
+          tooltip="Include significant future plans such as purchasing property, relocating overseas, major career changes, or plans to have children."
         >
           <textarea
             id="livingSituationFuture"
@@ -120,12 +122,18 @@ export default function LegalDeclarationsForm() {
             name={d.name}
             title={d.title}
             description={d.description}
+            tooltip={d.tooltip}
             checked={formData[d.name] as boolean}
             onChange={handleCheckboxChange}
           />
         ))}
 
-        <SubmitBar isSaving={isSaving} label={`Save & continue`} withArrow />
+        <SubmitBar
+          isSaving={isSaving}
+          label="Save & continue"
+          withArrow
+          backHref={stepInfo.prevPath || "/dashboard/personal-info"}
+        />
       </form>
     </FormShell>
   );

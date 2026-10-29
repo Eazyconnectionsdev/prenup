@@ -11,6 +11,7 @@ import type { CaseApproval, CaseDetails, CasesState, SectionStatus } from "@/typ
 const initialState: CasesState = {
   isLoading: false,
   caseId: null,
+  caseNumber: null,
   title: "",
   owner: null,
   invitedUser : null,
@@ -62,6 +63,7 @@ const CasesSlice = createSlice({
         (state, { payload }: PayloadAction<CaseDetails>) => {
           state.isLoading = false;
           state.caseId = payload._id;
+          state.caseNumber = payload.caseNumber ?? null;
           state.title = payload.title;
           state.owner = payload.owner;
           state.invitedUser = payload.invitedUser;
@@ -77,6 +79,7 @@ const CasesSlice = createSlice({
           state.myInformation = payload.myInformation ?? {};
           state.partnerInformation = payload.partnerInformation ?? {};
           state.jointInformation = payload.jointInformation ?? {};
+          state.stages = payload.stages ?? null;
         },
       )
       .addCase(getCasesDetails.rejected, (state) => {

@@ -17,7 +17,7 @@ export default function TimelineTab({
   const loadTimeline = async () => {
     try {
       const { data } = await Axios.get(
-        `/case-manager/${caseId}/timeline`
+        `/lawyer/${caseId}/timeline`
       );
 
       console.log(

@@ -35,6 +35,7 @@ export interface CheckCardProps {
   title: string;
   description: string;
   checked: boolean;
+  tooltip?: string;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   readOnly?: boolean;
 }

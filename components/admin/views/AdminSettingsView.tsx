@@ -252,9 +252,9 @@ function NotesPanel({
 function Section1TopBarSettings() {
   const [settings, setSettings] = useState({
     topBar1Enabled: true,
-    topBar1Toggle: false,
+    topBar1Text: "",
     topBar2Enabled: true,
-    topBar2Toggle: false,
+    topBar2Text: "",
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -267,9 +267,9 @@ function Section1TopBarSettings() {
       if (res.data) {
         setSettings({
           topBar1Enabled: Boolean(res.data.topBar1Enabled ?? true),
-          topBar1Toggle: Boolean(res.data.topBar1Toggle ?? false),
+          topBar1Text: res.data.topBar1Text ?? "",
           topBar2Enabled: Boolean(res.data.topBar2Enabled ?? true),
-          topBar2Toggle: Boolean(res.data.topBar2Toggle ?? false),
+          topBar2Text: res.data.topBar2Text ?? "",
         });
       }
     } catch (err) {
@@ -307,7 +307,7 @@ function Section1TopBarSettings() {
           </div>
           <div>
             <h2 className="text-sm font-bold text-slate-800">Section 1 — TopBar Controls</h2>
-            <p className="text-xs text-slate-500">Enable/disable and toggle visibility of global TopBar items</p>
+            <p className="text-xs text-slate-500">Enable/disable and configure text for global TopBar items</p>
           </div>
         </div>
 
@@ -335,21 +335,29 @@ function Section1TopBarSettings() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100">
-                <th className="text-left py-2.5 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                <th className="text-left py-2.5 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wide w-48">
                   TopBar Element
                 </th>
-                <th className="text-center py-2.5 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                <th className="text-center py-2.5 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wide w-44">
                   Enable / Disable
                 </th>
-                <th className="text-center py-2.5 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                  Toggle Visibility
+                <th className="text-left py-2.5 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                  Text to show in TopBar
                 </th>
               </tr>
             </thead>
             <tbody>
               {/* TopBar-1 */}
               <tr className="border-b border-slate-50">
-                <td className="py-3 px-3 font-semibold text-slate-700">TopBar-1 Navigation</td>
+                <td className="py-3 px-3 font-semibold text-slate-700 whitespace-nowrap">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3.5 h-3.5 rounded-full bg-gradient-to-r from-[#3730A3] via-[#5B55F6] to-[#7C3AED] shadow-xs shrink-0" title="Theme: Indigo / Violet Gradient" />
+                    <span>TopBar-1</span>
+                    <span className="text-[10px] font-normal px-1.5 py-0.5 rounded bg-violet-50 text-violet-700 border border-violet-100">
+                      Indigo / Violet
+                    </span>
+                  </div>
+                </td>
                 <td className="py-3 px-3 text-center">
                   <div className="flex items-center justify-center gap-2">
                     <button
@@ -370,31 +378,28 @@ function Section1TopBarSettings() {
                     </span>
                   </div>
                 </td>
-                <td className="py-3 px-3 text-center">
-                  <div className="flex items-center justify-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setSettings((s) => ({ ...s, topBar1Toggle: !s.topBar1Toggle }))}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
-                        settings.topBar1Toggle ? "bg-emerald-500" : "bg-slate-300"
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          settings.topBar1Toggle ? "translate-x-6" : "translate-x-1"
-                        }`}
-                      />
-                    </button>
-                    <span className={`text-xs font-semibold ${settings.topBar1Toggle ? "text-emerald-600" : "text-slate-400"}`}>
-                      {settings.topBar1Toggle ? "Visible" : "Hidden"}
-                    </span>
-                  </div>
+                <td className="py-3 px-3">
+                  <input
+                    type="text"
+                    value={settings.topBar1Text}
+                    onChange={(e) => setSettings((s) => ({ ...s, topBar1Text: e.target.value }))}
+                    placeholder="Enter text to show in TopBar-1..."
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs focus:outline-none focus:border-violet-500 bg-white text-slate-800 placeholder:text-slate-400"
+                  />
                 </td>
               </tr>
 
               {/* TopBar-2 */}
               <tr>
-                <td className="py-3 px-3 font-semibold text-slate-700">TopBar-2 Navigation</td>
+                <td className="py-3 px-3 font-semibold text-slate-700 whitespace-nowrap">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3.5 h-3.5 rounded-full bg-gradient-to-r from-[#9D174D] via-[#E02693] to-[#8B23E3] shadow-xs shrink-0" title="Theme: Magenta / Rose Gradient" />
+                    <span>TopBar-2</span>
+                    <span className="text-[10px] font-normal px-1.5 py-0.5 rounded bg-pink-50 text-pink-700 border border-pink-100">
+                      Magenta / Rose
+                    </span>
+                  </div>
+                </td>
                 <td className="py-3 px-3 text-center">
                   <div className="flex items-center justify-center gap-2">
                     <button
@@ -415,25 +420,14 @@ function Section1TopBarSettings() {
                     </span>
                   </div>
                 </td>
-                <td className="py-3 px-3 text-center">
-                  <div className="flex items-center justify-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setSettings((s) => ({ ...s, topBar2Toggle: !s.topBar2Toggle }))}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
-                        settings.topBar2Toggle ? "bg-emerald-500" : "bg-slate-300"
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          settings.topBar2Toggle ? "translate-x-6" : "translate-x-1"
-                        }`}
-                      />
-                    </button>
-                    <span className={`text-xs font-semibold ${settings.topBar2Toggle ? "text-emerald-600" : "text-slate-400"}`}>
-                      {settings.topBar2Toggle ? "Visible" : "Hidden"}
-                    </span>
-                  </div>
+                <td className="py-3 px-3">
+                  <input
+                    type="text"
+                    value={settings.topBar2Text}
+                    onChange={(e) => setSettings((s) => ({ ...s, topBar2Text: e.target.value }))}
+                    placeholder="Enter text to show in TopBar-2..."
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs focus:outline-none focus:border-violet-500 bg-white text-slate-800 placeholder:text-slate-400"
+                  />
                 </td>
               </tr>
             </tbody>
@@ -461,9 +455,11 @@ function Section1TopBarSettings() {
 function CompanyCard({
   company,
   onRefresh,
+  onAddLawyer,
 }: {
   company: CompanyItem;
   onRefresh: () => void;
+  onAddLawyer?: (companyId: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -604,6 +600,21 @@ function CompanyCard({
             {company.email || "No email"} · {company.phone || "No phone"}
           </div>
         </div>
+
+        {onAddLawyer && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddLawyer(company.id);
+            }}
+            className="flex items-center gap-1 text-[11px] font-semibold text-violet-700 bg-violet-50 hover:bg-violet-100 border border-violet-200 px-2.5 py-1 rounded-lg transition-colors cursor-pointer shrink-0"
+            title={`Add a lawyer to ${company.name}`}
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Lawyer</span>
+          </button>
+        )}
 
         <button
           type="button"
@@ -908,9 +919,15 @@ function LawyerCard({
 
 // ─── Section 2: Creation Forms ────────────────────────────────────────────────
 
-function CompanyCreationForm({ onCreated }: { onCreated: () => void }) {
-  const [open, setOpen] = useState(false);
+function CompanyCreationForm({
+  onCreated,
+  onAddLawyerForCompany,
+}: {
+  onCreated: () => void;
+  onAddLawyerForCompany?: (companyId: string, companyName: string) => void;
+}) {
   const [saving, setSaving] = useState(false);
+  const [createdCompany, setCreatedCompany] = useState<{ id: string; name: string } | null>(null);
   const [form, setForm] = useState({
     name: "",
     companyNumber: "",
@@ -927,7 +944,15 @@ function CompanyCreationForm({ onCreated }: { onCreated: () => void }) {
 
     try {
       setSaving(true);
-      await Axios.post("/admin/companies", form);
+      const res = await Axios.post("/admin/companies", form);
+      const newComp = res.data;
+      const compId = newComp?._id || newComp?.id;
+      const compName = newComp?.name || form.name;
+
+      if (compId) {
+        setCreatedCompany({ id: compId, name: compName });
+      }
+
       setForm({
         name: "",
         companyNumber: "",
@@ -937,7 +962,6 @@ function CompanyCreationForm({ onCreated }: { onCreated: () => void }) {
         website: "",
         notes: "",
       });
-      setOpen(false);
       onCreated();
     } catch (err: any) {
       console.error("Failed to create company:", err);
@@ -948,19 +972,60 @@ function CompanyCreationForm({ onCreated }: { onCreated: () => void }) {
   };
 
   return (
-    <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 bg-slate-50/40">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 text-xs font-bold text-violet-700 hover:text-violet-900 transition-colors cursor-pointer"
-      >
-        <Plus className="w-4 h-4" />
-        <span>{open ? "Cancel Form" : "Add New Law Firm / Company"}</span>
-      </button>
+    <div className="space-y-4">
+      {createdCompany && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2.5 text-emerald-900">
+            <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+              <Check className="w-4 h-4 text-emerald-600" />
+            </div>
+            <div>
+              <p className="font-bold text-sm text-emerald-950">
+                Company &quot;{createdCompany.name}&quot; registered successfully!
+              </p>
+              <p className="text-emerald-700 text-xs mt-0.5">
+                You can now add lawyers and link them directly to this law firm.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {onAddLawyerForCompany && (
+              <button
+                type="button"
+                onClick={() => {
+                  onAddLawyerForCompany(createdCompany.id, createdCompany.name);
+                  setCreatedCompany(null);
+                }}
+                className="px-3.5 py-2 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Lawyer to {createdCompany.name}</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setCreatedCompany(null)}
+              className="px-3 py-2 bg-white border border-emerald-300 text-emerald-800 hover:bg-emerald-100 font-medium rounded-lg transition-colors cursor-pointer"
+            >
+              Add Another Firm
+            </button>
+          </div>
+        </div>
+      )}
 
-      {open && (
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className="border border-slate-200 rounded-xl p-5 bg-white shadow-2xs">
+        <div className="mb-4 pb-3 border-b border-slate-100">
+          <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+            <Building2 className="w-4 h-4 text-violet-600" />
+            <span>Add New Law Firm / Company</span>
+          </h3>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Register a company into the directory. After saving, you will be able to select it when adding lawyers.
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-[11px] font-bold text-slate-700 block mb-1">
                 Company / Firm Name <span className="text-red-500">*</span>
@@ -969,8 +1034,8 @@ function CompanyCreationForm({ onCreated }: { onCreated: () => void }) {
                 required
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                placeholder="e.g. Blake Cassels LLP"
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-violet-500"
+                placeholder="e.g. Blake, Cassels & Graydon LLP"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
               />
             </div>
 
@@ -979,19 +1044,19 @@ function CompanyCreationForm({ onCreated }: { onCreated: () => void }) {
               <input
                 value={form.companyNumber}
                 onChange={(e) => setForm((f) => ({ ...f, companyNumber: e.target.value }))}
-                placeholder="e.g. BC-001"
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-violet-500"
+                placeholder="e.g. BC-10482"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
               />
             </div>
 
             <div>
-              <label className="text-[11px] font-bold text-slate-700 block mb-1">Email</label>
+              <label className="text-[11px] font-bold text-slate-700 block mb-1">Official Email</label>
               <input
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                placeholder="info@firm.com"
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-violet-500"
+                placeholder="contact@blakes.com"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
               />
             </div>
 
@@ -1000,28 +1065,39 @@ function CompanyCreationForm({ onCreated }: { onCreated: () => void }) {
               <input
                 value={form.phone}
                 onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                placeholder="+44 20 7946 0912"
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-violet-500"
+                placeholder="+1 416 863 2400"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
               />
             </div>
 
             <div>
-              <label className="text-[11px] font-bold text-slate-700 block mb-1">Website</label>
+              <label className="text-[11px] font-bold text-slate-700 block mb-1">Website URL</label>
               <input
                 value={form.website}
                 onChange={(e) => setForm((f) => ({ ...f, website: e.target.value }))}
-                placeholder="https://firm.com"
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-violet-500"
+                placeholder="https://www.blakes.com"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
               />
             </div>
 
             <div>
-              <label className="text-[11px] font-bold text-slate-700 block mb-1">Registered Address</label>
+              <label className="text-[11px] font-bold text-slate-700 block mb-1">Registered Office Address</label>
               <input
                 value={form.address}
                 onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
-                placeholder="199 Bay St, Suite 400"
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-violet-500"
+                placeholder="199 Bay St., Suite 4000, Toronto, ON"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="text-[11px] font-bold text-slate-700 block mb-1">Internal Notes</label>
+              <textarea
+                rows={2}
+                value={form.notes}
+                onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+                placeholder="Initial background information or internal admin notes regarding this law firm..."
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
               />
             </div>
           </div>
@@ -1030,31 +1106,37 @@ function CompanyCreationForm({ onCreated }: { onCreated: () => void }) {
             <button
               type="submit"
               disabled={saving}
-              className="px-5 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold transition-colors cursor-pointer shadow-xs disabled:opacity-50 flex items-center gap-2"
+              className="px-6 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold transition-colors cursor-pointer shadow-xs disabled:opacity-50 flex items-center gap-2"
             >
-              {saving && <RefreshCw className="w-3 h-3 animate-spin" />}
+              {saving && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
               <span>{saving ? "Saving Company..." : "Save Company"}</span>
             </button>
           </div>
         </form>
-      )}
+      </div>
     </div>
   );
 }
 
 function LawyerCreationForm({
   companies,
+  initialCompanyId,
   onCreated,
+  onSwitchToAddCompany,
 }: {
   companies: CompanyItem[];
+  initialCompanyId?: string;
   onCreated: () => void;
+  onSwitchToAddCompany: () => void;
 }) {
-  const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [createdLawyer, setCreatedLawyer] = useState<{ name: string; companyName: string } | null>(null);
   const [form, setForm] = useState({
     externalId: "",
     name: "",
-    company: "",
+    company: initialCompanyId || (companies[0]?.id || ""),
+    loginEmail: "",
+    password: "",
     publicEmail: "",
     publicPhone: "",
     directEmail: "",
@@ -1066,6 +1148,14 @@ function LawyerCreationForm({
     priceText: "",
     notes: "",
   });
+
+  useEffect(() => {
+    if (initialCompanyId) {
+      setForm((f) => ({ ...f, company: initialCompanyId }));
+    } else if (!form.company && companies.length > 0) {
+      setForm((f) => ({ ...f, company: companies[0].id }));
+    }
+  }, [initialCompanyId, companies]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1081,10 +1171,18 @@ function LawyerCreationForm({
         externalId: generatedExternalId,
       });
 
-      setForm({
+      const assignedCompany = companies.find((c) => c.id === form.company);
+      setCreatedLawyer({
+        name: form.name,
+        companyName: assignedCompany?.name || "Selected Company",
+      });
+
+      setForm((prev) => ({
+        ...prev,
         externalId: "",
         name: "",
-        company: "",
+        loginEmail: "",
+        password: "",
         publicEmail: "",
         publicPhone: "",
         directEmail: "",
@@ -1095,8 +1193,7 @@ function LawyerCreationForm({
         barNumber: "",
         priceText: "",
         notes: "",
-      });
-      setOpen(false);
+      }));
       onCreated();
     } catch (err: any) {
       console.error("Failed to create lawyer:", err);
@@ -1106,50 +1203,153 @@ function LawyerCreationForm({
     }
   };
 
-  return (
-    <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 bg-slate-50/40">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 text-xs font-bold text-violet-700 hover:text-violet-900 transition-colors cursor-pointer"
-      >
-        <Plus className="w-4 h-4" />
-        <span>{open ? "Cancel Form" : "Add New Lawyer"}</span>
-      </button>
+  if (companies.length === 0) {
+    return (
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-8 text-center space-y-4">
+        <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center mx-auto text-amber-600">
+          <Building2 className="w-6 h-6" />
+        </div>
+        <div>
+          <h3 className="text-base font-bold text-amber-950">No Companies / Law Firms Available</h3>
+          <p className="text-xs text-amber-800 max-w-md mx-auto mt-1">
+            Lawyers must be associated with a registered company. Please add at least one company first before creating lawyer profiles.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onSwitchToAddCompany}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-colors cursor-pointer shadow-xs"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Add Company First</span>
+        </button>
+      </div>
+    );
+  }
 
-      {open && (
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+  return (
+    <div className="space-y-4">
+      {createdLawyer && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2.5 text-emerald-900">
+            <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+              <Check className="w-4 h-4 text-emerald-600" />
+            </div>
+            <div>
+              <p className="font-bold text-sm text-emerald-950">
+                Lawyer &quot;{createdLawyer.name}&quot; registered successfully!
+              </p>
+              <p className="text-emerald-700 text-xs mt-0.5">
+                Profile is active and linked to {createdLawyer.companyName}.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setCreatedLawyer(null)}
+            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors cursor-pointer shrink-0"
+          >
+            Add Another Lawyer
+          </button>
+        </div>
+      )}
+
+      <div className="border border-slate-200 rounded-xl p-5 bg-white shadow-2xs">
+        <div className="mb-4 pb-3 border-b border-slate-100">
+          <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+            <User className="w-4 h-4 text-violet-600" />
+            <span>Add Lawyer (Select Law Firm / Company)</span>
+          </h3>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Select the company to assign this lawyer to and fill in their professional credentials.
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Company Selection Header Card */}
+          <div className="bg-violet-50/70 border border-violet-200/80 rounded-xl p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+              <label className="text-xs font-bold text-violet-950 flex items-center gap-1.5">
+                <Building2 className="w-4 h-4 text-violet-600" />
+                <span>Associated Company / Law Firm <span className="text-red-500">*</span></span>
+              </label>
+              <button
+                type="button"
+                onClick={onSwitchToAddCompany}
+                className="text-xs text-violet-700 hover:text-violet-900 font-semibold cursor-pointer hover:underline flex items-center gap-1 self-start sm:self-auto"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ Register Another Company</span>
+              </button>
+            </div>
+            <select
+              required
+              value={form.company}
+              onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))}
+              className="w-full rounded-lg border border-violet-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-violet-600 shadow-2xs"
+            >
+              <option value="" disabled>-- Select Company / Law Firm --</option>
+              {companies.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} {c.companyNumber ? `(Ref: ${c.companyNumber})` : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* ── Login Account Credentials ─────────────────────────────── */}
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <ShieldCheck className="w-4 h-4 text-amber-600" />
+              <span className="text-xs font-bold text-amber-950">Login Account Credentials</span>
+              <span className="text-[10px] text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full ml-1">
+                Pre-verified · No OTP required
+              </span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-[11px] font-bold text-amber-900 block mb-1">
+                  Login Email <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={form.loginEmail}
+                  onChange={(e) => setForm((f) => ({ ...f, loginEmail: e.target.value }))}
+                  placeholder="lawyer@firm.com"
+                  className="w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-bold text-amber-900 block mb-1">
+                  Password <span className="text-red-500">*</span>{" "}
+                  <span className="font-normal text-amber-700">(min 8 characters)</span>
+                </label>
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  value={form.password}
+                  onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                  placeholder="••••••••"
+                  className="w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                Full Name <span className="text-red-500">*</span>
+                Lawyer Full Name <span className="text-red-500">*</span>
               </label>
               <input
                 required
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                placeholder="e.g. Robert Miller, Esq."
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-violet-500"
+                placeholder="e.g. Robert Miller, KC"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
               />
-            </div>
-
-            <div>
-              <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                Associated Law Firm <span className="text-red-500">*</span>
-              </label>
-              <select
-                required
-                value={form.company}
-                onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-violet-500 font-medium"
-              >
-                <option value="" disabled>Select Law Firm</option>
-                {companies.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
             </div>
 
             <div>
@@ -1157,8 +1357,8 @@ function LawyerCreationForm({
               <input
                 value={form.barNumber}
                 onChange={(e) => setForm((f) => ({ ...f, barNumber: e.target.value }))}
-                placeholder="e.g. LSO-45123"
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-violet-500"
+                placeholder="e.g. LSO-84920"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
               />
             </div>
 
@@ -1167,19 +1367,19 @@ function LawyerCreationForm({
               <input
                 value={form.priceText}
                 onChange={(e) => setForm((f) => ({ ...f, priceText: e.target.value }))}
-                placeholder="e.g. £350/hour + VAT"
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-violet-500"
+                placeholder="e.g. £350/hour + VAT (Fixed fee options available)"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
               />
             </div>
 
             <div>
-              <label className="text-[11px] font-bold text-slate-700 block mb-1">Public Email</label>
+              <label className="text-[11px] font-bold text-slate-700 block mb-1">Public Display Email</label>
               <input
                 type="email"
                 value={form.publicEmail}
                 onChange={(e) => setForm((f) => ({ ...f, publicEmail: e.target.value }))}
                 placeholder="rmiller@firm.com"
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-violet-500"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
               />
             </div>
 
@@ -1188,19 +1388,19 @@ function LawyerCreationForm({
               <input
                 value={form.publicPhone}
                 onChange={(e) => setForm((f) => ({ ...f, publicPhone: e.target.value }))}
-                placeholder="+44 20 7946 0913"
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-violet-500"
+                placeholder="+14165550192"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
               />
             </div>
 
             <div>
-              <label className="text-[11px] font-bold text-slate-700 block mb-1">Direct Email</label>
+              <label className="text-[11px] font-bold text-slate-700 block mb-1">Direct / Internal Email</label>
               <input
                 type="email"
                 value={form.directEmail}
                 onChange={(e) => setForm((f) => ({ ...f, directEmail: e.target.value }))}
-                placeholder="direct@firm.com"
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-violet-500"
+                placeholder="direct-rmiller@firm.com"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
               />
             </div>
 
@@ -1209,8 +1409,49 @@ function LawyerCreationForm({
               <input
                 value={form.directPhone}
                 onChange={(e) => setForm((f) => ({ ...f, directPhone: e.target.value }))}
-                placeholder="+44 77 0090 0144"
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-violet-500"
+                placeholder="+14165550193"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-bold text-slate-700 block mb-1">Profile / Bio Link</label>
+              <input
+                value={form.profileLink}
+                onChange={(e) => setForm((f) => ({ ...f, profileLink: e.target.value }))}
+                placeholder="https://firm.com/lawyers/robert-miller"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-bold text-slate-700 block mb-1">Firm Website</label>
+              <input
+                value={form.website}
+                onChange={(e) => setForm((f) => ({ ...f, website: e.target.value }))}
+                placeholder="https://firm.com"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="text-[11px] font-bold text-slate-700 block mb-1">Office Address</label>
+              <input
+                value={form.address}
+                onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
+                placeholder="Suite 500, 100 King St W, Toronto, ON"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="text-[11px] font-bold text-slate-700 block mb-1">Bio & Experience Notes</label>
+              <textarea
+                rows={2}
+                value={form.notes}
+                onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+                placeholder="Professional background, specializations, or internal lawyer notes..."
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
               />
             </div>
           </div>
@@ -1219,34 +1460,377 @@ function LawyerCreationForm({
             <button
               type="submit"
               disabled={saving}
-              className="px-5 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold transition-colors cursor-pointer shadow-xs disabled:opacity-50 flex items-center gap-2"
+              className="px-6 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold transition-colors cursor-pointer shadow-xs disabled:opacity-50 flex items-center gap-2"
             >
-              {saving && <RefreshCw className="w-3 h-3 animate-spin" />}
+              {saving && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
               <span>{saving ? "Saving Lawyer..." : "Save Lawyer"}</span>
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── Case Manager Creation Form ───────────────────────────────────────────────
+
+function CaseManagerCreationForm({ onCreated }: { onCreated: () => void }) {
+  const [saving, setSaving] = useState(false);
+  const [created, setCreated] = useState<{ name: string; email: string } | null>(null);
+  const [form, setForm] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+    phone: "",
+    primaryJurisdiction: ["England", "Wales", "Scotland"],
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.firstName.trim() || !form.email.trim() || !form.password) return;
+
+    try {
+      setSaving(true);
+      await Axios.post("/admin/case-managers", form);
+      setCreated({ name: `${form.firstName} ${form.lastName}`.trim(), email: form.email });
+      setForm({ firstName: "", lastName: "", email: "", password: "", phone: "", primaryJurisdiction: ["England", "Wales", "Scotland"] });
+      onCreated();
+    } catch (err: any) {
+      console.error("Failed to create case manager:", err);
+      alert(err?.response?.data?.message || "Failed to create case manager.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {created && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2.5 text-emerald-900">
+            <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+              <Check className="w-4 h-4 text-emerald-600" />
+            </div>
+            <div>
+              <p className="font-bold text-sm text-emerald-950">
+                Case Manager &quot;{created.name}&quot; created successfully!
+              </p>
+              <p className="text-emerald-700 text-xs mt-0.5">
+                Account for {created.email} is active · Pre-verified · No OTP required.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setCreated(null)}
+            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors cursor-pointer shrink-0"
+          >
+            Add Another
+          </button>
+        </div>
       )}
+
+      <div className="border border-slate-200 rounded-xl p-5 bg-white shadow-2xs">
+        <div className="mb-4 pb-3 border-b border-slate-100">
+          <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+            <User className="w-4 h-4 text-sky-600" />
+            <span>Add Case Manager</span>
+          </h3>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Creates a pre-verified platform account with the <code className="text-sky-700 bg-sky-50 px-1 rounded">case_manager</code> role. No OTP or email confirmation needed.
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Login credentials */}
+          <div className="bg-sky-50 border border-sky-200 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <ShieldCheck className="w-4 h-4 text-sky-600" />
+              <span className="text-xs font-bold text-sky-950">Login Account Credentials</span>
+              <span className="text-[10px] text-sky-700 bg-sky-100 px-2 py-0.5 rounded-full ml-1">
+                Pre-verified · No OTP required
+              </span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-[11px] font-bold text-sky-900 block mb-1">
+                  Login Email <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={form.email}
+                  onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                  placeholder="manager@prenup.com"
+                  className="w-full rounded-lg border border-sky-300 bg-white px-3 py-2 text-xs focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-bold text-sky-900 block mb-1">
+                  Password <span className="text-red-500">*</span>{" "}
+                  <span className="font-normal text-sky-700">(min 8 characters)</span>
+                </label>
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  value={form.password}
+                  onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                  placeholder="••••••••"
+                  className="w-full rounded-lg border border-sky-300 bg-white px-3 py-2 text-xs focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Personal details */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                First Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                required
+                value={form.firstName}
+                onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
+                placeholder="e.g. Sarah"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-bold text-slate-700 block mb-1">Last Name</label>
+              <input
+                value={form.lastName}
+                onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))}
+                placeholder="e.g. Johnson"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-bold text-slate-700 block mb-1">Phone Number</label>
+              <input
+                value={form.phone}
+                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                placeholder="+14165550100"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                Primary Jurisdiction (Multi-selectable)
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {["England", "Wales", "Scotland"].map((jurisdiction) => {
+                  const isSelected = form.primaryJurisdiction?.includes(jurisdiction);
+                  return (
+                    <button
+                      key={jurisdiction}
+                      type="button"
+                      onClick={() => {
+                        setForm((f) => ({
+                          ...f,
+                          primaryJurisdiction: isSelected
+                            ? f.primaryJurisdiction.filter((j: string) => j !== jurisdiction)
+                            : [...(f.primaryJurisdiction || []), jurisdiction],
+                        }));
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                        isSelected
+                          ? "bg-sky-600 text-white border-sky-600"
+                          : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      {jurisdiction}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-6 py-2.5 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold transition-colors cursor-pointer shadow-xs disabled:opacity-50 flex items-center gap-2"
+            >
+              {saving && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+              <span>{saving ? "Creating Account..." : "Create Case Manager"}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── Case Manager Card ────────────────────────────────────────────────────────
+
+const JURISDICTIONS = ["England", "Wales", "Scotland"] as const;
+type Jurisdiction = typeof JURISDICTIONS[number];
+
+function normalizeJurisdictions(raw: any): Jurisdiction[] {
+  if (Array.isArray(raw)) {
+    return raw.filter((j): j is Jurisdiction => JURISDICTIONS.includes(j as Jurisdiction));
+  }
+  if (typeof raw === "string" && raw.trim()) {
+    // support comma-separated legacy strings like "England, Wales"
+    return raw
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s): s is Jurisdiction => JURISDICTIONS.includes(s as Jurisdiction));
+  }
+  return [];
+}
+
+function CaseManagerCard({
+  cm,
+  onRefresh,
+}: {
+  cm: any;
+  onRefresh: () => void;
+}) {
+  const [selectedJurisdictions, setSelectedJurisdictions] = useState<Jurisdiction[]>(
+    normalizeJurisdictions(cm.primaryJurisdiction || cm.jurisdiction)
+  );
+  const [saving, setSaving] = useState(false);
+
+  const toggleJurisdiction = (j: Jurisdiction) => {
+    setSelectedJurisdictions((prev) =>
+      prev.includes(j) ? prev.filter((x) => x !== j) : [...prev, j]
+    );
+  };
+
+  const handleUpdate = async () => {
+    if (selectedJurisdictions.length === 0) {
+      alert("Please select at least one jurisdiction.");
+      return;
+    }
+    try {
+      setSaving(true);
+      const jurisdictionValue = selectedJurisdictions.join(", ");
+      await Axios.patch(`/admin/case-managers/${cm._id}/jurisdiction`, {
+        jurisdiction: jurisdictionValue,
+        primaryJurisdiction: jurisdictionValue,
+      });
+      alert(`Jurisdiction updated for ${cm.firstName} ${cm.lastName || ""}`);
+      onRefresh();
+    } catch (err: any) {
+      console.error("Failed to update jurisdiction", err);
+      alert(err?.response?.data?.message || "Failed to update jurisdiction");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const displayJurisdiction =
+    normalizeJurisdictions(cm.primaryJurisdiction || cm.jurisdiction).join(", ") ||
+    cm.primaryJurisdiction ||
+    cm.jurisdiction ||
+    "Not Assigned";
+
+  return (
+    <div className="border border-slate-200 rounded-xl p-4 bg-white shadow-2xs">
+      {/* Top row: avatar + info */}
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 rounded-full bg-slate-900 text-white font-bold text-sm flex items-center justify-center shrink-0">
+          {(cm.firstName?.[0] || "C") + (cm.lastName?.[0] || "M")}
+        </div>
+        <div>
+          <h4 className="text-sm font-bold text-slate-900">
+            {cm.firstName} {cm.lastName}
+          </h4>
+          <p className="text-xs text-slate-500">{cm.email}</p>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-[10px] font-semibold text-slate-500">Current Jurisdiction:</span>
+            <span className="text-[10px] font-bold text-sky-700 bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-full">
+              {displayJurisdiction}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Jurisdiction multi-select checkboxes */}
+      <div className="mb-3">
+        <p className="text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-2">
+          Assign Jurisdictions (select one or more)
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {JURISDICTIONS.map((j) => {
+            const checked = selectedJurisdictions.includes(j);
+            return (
+              <button
+                key={j}
+                type="button"
+                onClick={() => toggleJurisdiction(j)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors cursor-pointer ${
+                  checked
+                    ? "bg-sky-600 text-white border-sky-600 shadow-xs"
+                    : "bg-white text-slate-600 border-slate-200 hover:border-sky-400 hover:text-sky-700"
+                }`}
+              >
+                <span
+                  className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${
+                    checked
+                      ? "bg-white/30 border-white/60"
+                      : "border-slate-300"
+                  }`}
+                >
+                  {checked && (
+                    <svg viewBox="0 0 10 10" className="w-2 h-2 text-white fill-current">
+                      <path d="M1.5 5.5 4 8 8.5 2" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                </span>
+                {j}
+              </button>
+            );
+          })}
+        </div>
+        {selectedJurisdictions.length > 0 && (
+          <p className="text-[10px] text-slate-400 mt-1.5">
+            Selected: {selectedJurisdictions.join(", ")}
+          </p>
+        )}
+      </div>
+
+      {/* Save button */}
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={handleUpdate}
+          disabled={saving || selectedJurisdictions.length === 0}
+          className="px-4 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+        >
+          {saving ? "Saving..." : "Save Jurisdiction"}
+        </button>
+      </div>
     </div>
   );
 }
 
 // ─── Section 2 Wrapper ────────────────────────────────────────────────────────
 
-type Section2View = "view-companies" | "view-lawyers" | "create";
+type Section2View = "add-company" | "add-lawyer" | "add-case-manager" | "view-companies" | "view-lawyers" | "view-case-managers";
 
 function Section2LawyerManagement() {
   const [companies, setCompanies] = useState<CompanyItem[]>([]);
   const [lawyers, setLawyers] = useState<LawyerItem[]>([]);
+  const [caseManagers, setCaseManagers] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [activeTab, setActiveTab] = useState<Section2View>("view-companies");
+  const [activeTab, setActiveTab] = useState<Section2View>("add-company");
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
 
   const loadAll = useCallback(async () => {
     try {
       setLoading(true);
-      const [compRes, lawRes] = await Promise.all([
+      const [compRes, lawRes, cmRes] = await Promise.all([
         Axios.get("/admin/companies?limit=100"),
         Axios.get("/admin/lawyers?limit=100"),
+        Axios.get("/admin/case-managers?limit=100"),
       ]);
 
       const compDocs = Array.isArray(compRes.data)
@@ -1256,6 +1840,10 @@ function Section2LawyerManagement() {
       const lawDocs = Array.isArray(lawRes.data)
         ? lawRes.data
         : lawRes.data?.docs || [];
+
+      const cmDocs = Array.isArray(cmRes.data)
+        ? cmRes.data
+        : cmRes.data?.docs || [];
 
       const formattedComps: CompanyItem[] = compDocs.map((c: any) => ({
         id: c._id,
@@ -1295,6 +1883,7 @@ function Section2LawyerManagement() {
 
       setCompanies(formattedComps);
       setLawyers(formattedLaws);
+      setCaseManagers(cmDocs);
     } catch (err) {
       console.error("Failed to load companies & lawyers:", err);
     } finally {
@@ -1306,29 +1895,37 @@ function Section2LawyerManagement() {
     loadAll();
   }, [loadAll]);
 
-  const TABS: { id: Section2View; label: string; count?: number }[] = [
-    { id: "view-companies", label: "Law Firms", count: companies.length },
-    { id: "view-lawyers", label: "Lawyers", count: lawyers.length },
-    { id: "create", label: "Add New" },
+  const handleAddLawyerForCompany = (companyId: string) => {
+    setSelectedCompanyId(companyId);
+    setActiveTab("add-lawyer");
+  };
+
+  const TABS: { id: Section2View; label: string; icon: React.ReactNode; count?: number }[] = [
+    { id: "add-company", label: "Add Company", icon: <Building2 className="w-3.5 h-3.5" /> },
+    { id: "add-lawyer", label: "Add Lawyer", icon: <User className="w-3.5 h-3.5" /> },
+    { id: "add-case-manager", label: "Add Case Manager", icon: <User className="w-3.5 h-3.5" /> },
+    { id: "view-case-managers", label: "Browse Case Managers", icon: <User className="w-3.5 h-3.5" />, count: caseManagers.length },
+    { id: "view-companies", label: "Browse Companies", icon: <Building2 className="w-3.5 h-3.5" />, count: companies.length },
+    { id: "view-lawyers", label: "Browse Lawyers", icon: <User className="w-3.5 h-3.5" />, count: lawyers.length },
   ];
 
   return (
     <div className="bg-white rounded-2xl shadow-xs border border-slate-200 p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
-            <Building2 className="w-5 h-5 text-blue-600" />
+          <div className="w-9 h-9 rounded-xl bg-violet-50 flex items-center justify-center">
+            <Building2 className="w-5 h-5 text-violet-600" />
           </div>
           <div>
-            <h2 className="text-sm font-bold text-slate-800">Section 2 — Lawyer & Law Firm Directory</h2>
+            <h2 className="text-sm font-bold text-slate-800">Section 2 — Law Firm & Lawyer Management</h2>
             <p className="text-xs text-slate-500">
-              {companies.length} legal firms · {lawyers.length} registered lawyers
+              Add companies/firms, register accredited lawyers by selecting their company, and manage records.
             </p>
           </div>
         </div>
 
         {/* Tab switcher */}
-        <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1 self-start sm:self-auto">
+        <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1 self-start sm:self-auto flex-wrap">
           {TABS.map((tab) => (
             <button
               key={tab.id}
@@ -1339,9 +1936,10 @@ function Section2LawyerManagement() {
                   : "text-slate-500 hover:text-slate-700"
               }`}
             >
+              {tab.icon}
               <span>{tab.label}</span>
               {typeof tab.count === "number" && (
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-200/70 text-slate-700">
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-200/70 text-slate-700 font-bold">
                   {tab.count}
                 </span>
               )}
@@ -1357,54 +1955,145 @@ function Section2LawyerManagement() {
         </div>
       ) : (
         <>
-          {/* TAB: CREATE */}
-          {activeTab === "create" && (
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-slate-400" />
-                  <span>Create Law Firm / Company</span>
-                </h3>
-                <CompanyCreationForm onCreated={loadAll} />
+          {/* TAB: ADD COMPANY */}
+          {activeTab === "add-company" && (
+            <CompanyCreationForm
+              onCreated={loadAll}
+              onAddLawyerForCompany={handleAddLawyerForCompany}
+            />
+          )}
+
+          {/* TAB: ADD LAWYER */}
+          {activeTab === "add-lawyer" && (
+            <LawyerCreationForm
+              companies={companies}
+              initialCompanyId={selectedCompanyId}
+              onCreated={loadAll}
+              onSwitchToAddCompany={() => setActiveTab("add-company")}
+            />
+          )}
+
+          {/* TAB: ADD CASE MANAGER */}
+          {activeTab === "add-case-manager" && (
+            <CaseManagerCreationForm onCreated={loadAll} />
+          )}
+
+          {/* TAB: VIEW CASE MANAGERS */}
+          {activeTab === "view-case-managers" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">
+                  Registered Case Managers ({caseManagers.length})
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("add-case-manager")}
+                  className="flex items-center gap-1.5 text-xs font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Case Manager</span>
+                </button>
               </div>
 
-              <div className="border-t border-slate-100 pt-5">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-2">
-                  <User className="w-4 h-4 text-slate-400" />
-                  <span>Create Lawyer Profile</span>
-                </h3>
-                <LawyerCreationForm companies={companies} onCreated={loadAll} />
+              <div className="space-y-3">
+                {caseManagers.length === 0 ? (
+                  <div className="text-center py-12 text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200 space-y-2">
+                    <p>No case managers registered yet.</p>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("add-case-manager")}
+                      className="inline-flex items-center gap-1.5 text-sky-700 font-bold hover:underline"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Add the first case manager
+                    </button>
+                  </div>
+                ) : (
+                  caseManagers.map((cm) => (
+                    <CaseManagerCard key={cm._id} cm={cm} onRefresh={loadAll} />
+                  ))
+                )}
               </div>
             </div>
           )}
 
           {/* TAB: VIEW COMPANIES */}
           {activeTab === "view-companies" && (
-            <div className="space-y-3">
-              {companies.length === 0 ? (
-                <div className="text-center py-12 text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                  No law firms added yet. Click &quot;Add New&quot; to register your first firm.
-                </div>
-              ) : (
-                companies.map((company) => (
-                  <CompanyCard key={company.id} company={company} onRefresh={loadAll} />
-                ))
-              )}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">
+                  Registered Law Firms ({companies.length})
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("add-company")}
+                  className="flex items-center gap-1.5 text-xs font-bold text-violet-700 bg-violet-50 hover:bg-violet-100 border border-violet-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Company</span>
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                {companies.length === 0 ? (
+                  <div className="text-center py-12 text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200 space-y-2">
+                    <p>No law firms added yet.</p>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("add-company")}
+                      className="inline-flex items-center gap-1.5 text-violet-700 font-bold hover:underline"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Add the first company
+                    </button>
+                  </div>
+                ) : (
+                  companies.map((company) => (
+                    <CompanyCard
+                      key={company.id}
+                      company={company}
+                      onRefresh={loadAll}
+                      onAddLawyer={handleAddLawyerForCompany}
+                    />
+                  ))
+                )}
+              </div>
             </div>
           )}
 
           {/* TAB: VIEW LAWYERS */}
           {activeTab === "view-lawyers" && (
-            <div className="space-y-3">
-              {lawyers.length === 0 ? (
-                <div className="text-center py-12 text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                  No lawyers added yet. Click &quot;Add New&quot; to register a lawyer profile.
-                </div>
-              ) : (
-                lawyers.map((lawyer) => (
-                  <LawyerCard key={lawyer.id} lawyer={lawyer} onRefresh={loadAll} />
-                ))
-              )}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">
+                  Registered Lawyers ({lawyers.length})
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("add-lawyer")}
+                  className="flex items-center gap-1.5 text-xs font-bold text-violet-700 bg-violet-50 hover:bg-violet-100 border border-violet-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Lawyer</span>
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                {lawyers.length === 0 ? (
+                  <div className="text-center py-12 text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200 space-y-2">
+                    <p>No lawyers registered yet.</p>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("add-lawyer")}
+                      className="inline-flex items-center gap-1.5 text-violet-700 font-bold hover:underline"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Add the first lawyer
+                    </button>
+                  </div>
+                ) : (
+                  lawyers.map((lawyer) => (
+                    <LawyerCard key={lawyer.id} lawyer={lawyer} onRefresh={loadAll} />
+                  ))
+                )}
+              </div>
             </div>
           )}
         </>

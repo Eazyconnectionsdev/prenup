@@ -93,7 +93,8 @@ export function LiabilitiesFields({ data, onChange, readOnly }: Props) {
       <SectionCard
         title={<>Personal Debts &amp; Loans</>}
         icon={<CreditCard className="h-5 w-5" />}
-        tooltip="Loans, outstanding credit cards, or lines of credit held solely in this person's name."
+        colorIndex={0}
+        tooltip="List individual loans, outstanding credit cards, or lines of credit held solely in your name."
       >
         <FieldLabel>
           {ask(
@@ -166,7 +167,8 @@ export function LiabilitiesFields({ data, onChange, readOnly }: Props) {
       <SectionCard
         title={<>Maintenance &amp; Support Payments</>}
         icon={<HandCoins className="h-5 w-5" />}
-        tooltip="Payments required by a court order, the Child Maintenance Service (CMS), or a legally binding agreement."
+        colorIndex={1}
+        tooltip="Declare any ongoing child support, spousal maintenance, or family financial commitments that reduce your available income."
       >
         <Notice>
           Ongoing child maintenance or spousal maintenance payments reduce available income and should
