@@ -69,6 +69,7 @@ export default function InvitePartnerPage() {
         registered: inv.registered,
         emailDiffers: inv.emailDiffers,
         nameDiffers: inv.nameDiffers,
+        linkOnHold: Boolean(inv.conflict?.open),
       }));
     } catch (error) {
       toast.error(getErrorMessage(error, "Unable to load your invitation"));
@@ -125,6 +126,12 @@ export default function InvitePartnerPage() {
   // };
 
   const handleSendInvitation = async () => {
+    // An account has no case until the legal matter is started, and that
+    // happens when the agreement is chosen.
+    if (!user?.inviteCaseId) {
+      toast.error("Please choose your agreement first, then invite your partner.");
+      return;
+    }
     try {
       await Axios.post(`cases/${user.inviteCaseId}/invite`, {
         firstName: partnerData.firstName.trim(),

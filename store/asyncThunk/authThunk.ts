@@ -185,6 +185,101 @@ export const getInviteInfo = createAsyncThunk(
   }
 );
 
+// Signed-in invitee: who invited them, and what accepting would do to a case
+// they already have. `token` is optional (see getPendingInvite).
+export type InvitePreview = {
+  inviter: { firstName: string | null; lastName: string | null };
+  caseNumber: string | null;
+  expiresAt: string;
+  emailMatchesInvite: boolean;
+  // NONE: nothing to give up. DRAFT: unused, confirm to set it aside.
+  // NEEDS_RESOLUTION: has data/payment, our team must review first.
+  // APPROVED: our team cleared it, confirm to proceed.
+  ownCase: "NONE" | "DRAFT" | "NEEDS_RESOLUTION" | "APPROVED";
+  ownCases: { caseNumber: string | null; meaningful: boolean; reasons: string[] }[];
+  resolutionRequested: boolean;
+};
+
+export const getInvitePreview = createAsyncThunk(
+  "auth/getInvitePreview",
+  async (
+    { caseId, token }: { caseId: string; token?: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const { data } = await Axios.get("/auth/invite-preview", {
+        params: { caseId, token: token || undefined },
+      });
+      return data as InvitePreview;
+    } catch (error: any) {
+      if (error.response && error.response.data) {
+        return rejectWithValue(error.response.data);
+      }
+      return rejectWithValue("Can't reach the server. Check your connection and try again.");
+    }
+  }
+);
+
+// Signed-in invitee with an existing account accepts the invitation. The
+// account is linked to the inviter's case; nothing is created or deleted.
+export const acceptInviteExisting = createAsyncThunk(
+  "auth/acceptInviteExisting",
+  async (
+    {
+      caseId,
+      token,
+      confirmSetAsideOwnCase,
+    }: { caseId: string; token?: string; confirmSetAsideOwnCase?: boolean },
+    { rejectWithValue }
+  ) => {
+    try {
+      const { data } = await Axios.post("/auth/accept-invite/existing", {
+        caseId,
+        token: token || undefined,
+        confirmSetAsideOwnCase: confirmSetAsideOwnCase || undefined,
+      });
+      return data as {
+        success: boolean;
+        linked: boolean;
+        caseId?: string;
+        resolutionRequired?: boolean;
+        message?: string;
+      };
+    } catch (error: any) {
+      if (error.response && error.response.data) {
+        return rejectWithValue(error.response.data);
+      }
+      return rejectWithValue("Can't reach the server. Check your connection and try again.");
+    }
+  }
+);
+
+// An open invitation addressed to the signed-in user's email (for someone who
+// signed up on their own instead of using the emailed link).
+export type PendingInvite = {
+  caseId: string;
+  caseNumber: string | null;
+  inviterFirstName: string | null;
+  inviterLastName: string | null;
+  expiresAt: string;
+  resolutionRequested: boolean;
+};
+
+export const getPendingInvite = createAsyncThunk(
+  "auth/getPendingInvite",
+  async (_, { rejectWithValue }) => {
+    try {
+      const { data } = await Axios.get("/auth/pending-invite");
+      return (data?.invite ?? null) as PendingInvite | null;
+    } catch (error: any) {
+      if (error.response && error.response.data) {
+        return rejectWithValue(error.response.data);
+      }
+      return rejectWithValue("Can't reach the server. Check your connection and try again.");
+    }
+  }
+);
+
 // Inviter view: what was typed, live status, and who actually registered.
 export const getPartnerInvite = createAsyncThunk(
   "auth/getPartnerInvite",

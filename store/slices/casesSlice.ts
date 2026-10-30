@@ -2,6 +2,7 @@
 
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import { getCasesDetails } from "../asyncThunk/casesThunk";
+import { getFreshProfile } from "../asyncThunk/authThunk";
 import type { CaseApproval, CaseDetails, CasesState, SectionStatus } from "@/types/store/cases-slice";
 
 /* ---------- Shared sub-shapes ---------- */
@@ -55,6 +56,16 @@ const CasesSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // The user was unlinked from, or moved to, another case (partner removed
+      // by staff, or an invitation accepted): never keep showing the old one.
+      // Clients only: staff open arbitrary cases and have no case of their own.
+      .addCase(getFreshProfile.fulfilled, (state, { payload }) => {
+        if (payload?.user?.role !== "end_user") return;
+        const current = payload.user.inviteCaseId;
+        if (!current || (state.caseId && String(state.caseId) !== String(current))) {
+          return initialState;
+        }
+      })
       .addCase(getCasesDetails.pending, (state) => {
         state.isLoading = true;
       })
