@@ -19,6 +19,7 @@ import type { StepConfig, StepId } from "@/types/dashboard/dashboard-home";
 import { useJointSectionStatus } from "@/hooks/useJointSectionStatus";
 import Axios from "@/lib/ApiConfig";
 import { ServiceStatus } from "@/components/ServiceStatus";
+import PendingPartnerInvite from "@/components/dashboard/PendingPartnerInvite";
 import StatCard, {
   statCardActionClasses,
   statCardBadgeClasses,
@@ -650,6 +651,8 @@ export default function PrenupDashboard() {
   return (
     <div className=" h-full bg-[#F6F6FB]">
       <div className="mx-auto max-w-5xl px-8 py-8">
+        <PendingPartnerInvite />
+
         <div>
           <h1 className="text-[1.75rem] font-bold tracking-tight text-[#1E1B3C]">
             Welcome , {user.firstName} 👋

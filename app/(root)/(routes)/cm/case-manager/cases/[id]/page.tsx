@@ -11,6 +11,7 @@ import AgreementTab from "./components/AgreementTab";
 import CMActionsTab from "./components/CMActionsTabs";
 import TimelineTab from "./components/TimelineTab";
 import AuditTab from "./components/AuditTab";
+import PartnerLinkPanel from "@/components/caseManager/PartnerLinkPanel";
 
 import Axios from "@/lib/ApiConfig";
 
@@ -353,6 +354,8 @@ export default function CaseDetailPage() {
           </div>
         </div>
       </div>
+
+      <PartnerLinkPanel caseId={caseId} caseData={caseData} onChanged={loadCase} />
 
       <div className="bg-white border rounded-xl overflow-hidden">
         <div className="flex overflow-auto border-b">

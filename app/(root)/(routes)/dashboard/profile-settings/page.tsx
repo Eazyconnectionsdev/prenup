@@ -95,8 +95,8 @@ function ProfileSettingsForm({ user }: { user: Record<string, any> }) {
   const dispatch = useDispatch<AppDispatch>();
   const cases = useSelector((state: RootState) => state.cases);
 
-  const displayCaseNumber =
-    cases?.caseNumber || user?.caseNumber || user?.inviteCaseId;
+  // The Case ID is the human-readable case number, never a database id.
+  const displayCaseNumber = cases?.caseNumber || user?.caseNumber;
 
   const initialForm = useMemo(() => toForm(user), [user]);
   const [form, setForm] = useState<ProfileForm>(initialForm);

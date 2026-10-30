@@ -22,6 +22,17 @@ import Google from "@/images/icons/google.png";
 // Said once per page load, however often the effect below is run.
 let sessionNoticeShown = false;
 
+// Where to go after signing in, if the middleware sent us here from a page
+// (e.g. an emailed partner invitation). Same-site paths only.
+function callbackTarget(): string | null {
+  const raw = new URLSearchParams(window.location.search).get("callbackUrl");
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//") || raw.startsWith("/\\")) {
+    return null;
+  }
+  if (raw === "/login" || raw.startsWith("/login?")) return null;
+  return raw;
+}
+
 export default function LoginPageStatic() {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
@@ -72,7 +83,12 @@ export default function LoginPageStatic() {
     try {
       await dispatch(LoginUser(values)).unwrap();
       toast.success("Signed in successfully");
-      router.refresh();
+      const target = callbackTarget();
+      if (target) {
+        router.replace(target);
+      } else {
+        router.refresh();
+      }
     } catch (error) {
       const message = getErrorMessage(
         error,
