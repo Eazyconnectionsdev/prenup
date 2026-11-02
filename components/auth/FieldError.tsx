@@ -18,7 +18,7 @@ type Props = {
   className?: string;
 };
 
-/** Red, inline validation message shown directly under a field. */
+/** Refined, elegant inline validation message shown directly under a field. */
 export default function FieldError({ error, id, className = "" }: Props) {
   const message = getFieldErrorMessage(error);
   if (!message) return null;
@@ -27,12 +27,25 @@ export default function FieldError({ error, id, className = "" }: Props) {
     <p
       id={id}
       role="alert"
-      className={`mt-1.5 flex items-start gap-1 text-[12px] leading-snug text-red-600 ${className}`}
+      className={`mt-1.5 flex items-center gap-1.5 text-[11px] leading-tight text-[#4B5563] font-medium whitespace-nowrap overflow-visible ${className}`}
     >
-      <span aria-hidden className="mt-[1px] select-none">
-        &#9888;
-      </span>
-      <span>{message}</span>
+      <svg
+        className="w-4 h-4 flex-shrink-0"
+        viewBox="0 0 16 16"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+      >
+        <circle cx="8" cy="8" r="7" fill="#E17A84" />
+        <path
+          d="M8 4.2V8.8"
+          stroke="white"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        />
+        <circle cx="8" cy="11.8" r="1.1" fill="white" />
+      </svg>
+      <span className="whitespace-nowrap">{message}</span>
     </p>
   );
 }

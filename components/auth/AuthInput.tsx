@@ -13,13 +13,23 @@ type Props = React.InputHTMLAttributes<HTMLInputElement> & {
   password?: boolean;
   // Optional visible label above the input.
   label?: string;
+  labelClassName?: string;
 };
 
 const base =
-  "w-full px-4 py-2 border rounded placeholder:text-[12px] transition-colors";
+  "w-full rounded-lg border text-[13.5px] text-[#1E293B] px-3.5 py-2 placeholder:text-[13px] placeholder:text-[#9CA3AF] transition-all duration-200 ease-in-out shadow-xs focus:outline-none";
 
 const AuthInput = forwardRef<HTMLInputElement, Props>(function AuthInput(
-  { error, password, label, className = "", type = "text", id, ...rest },
+  {
+    error,
+    password,
+    label,
+    labelClassName = "",
+    className = "",
+    type = "text",
+    id,
+    ...rest
+  },
   ref,
 ) {
   const [visible, setVisible] = useState(false);
@@ -29,12 +39,16 @@ const AuthInput = forwardRef<HTMLInputElement, Props>(function AuthInput(
   const message = getFieldErrorMessage(error);
   const invalid = !!error;
 
+  const stateClasses = invalid
+    ? "border-[#64748B] bg-white focus:border-[#1E293B] focus:ring-2 focus:ring-black/10"
+    : "border-[#94A3B8] bg-white hover:border-[#475569] hover:bg-[#F8FAFC] hover:shadow-xs focus:border-[#1E293B] focus:ring-2 focus:ring-black/10 focus:bg-white";
+
   return (
     <div>
       {label && (
         <label
           htmlFor={inputId}
-          className="mb-1.5 block text-[12px] font-medium text-[#495060]"
+          className={`mb-1.5 block text-[12.5px] font-semibold text-[#374151] tracking-normal ${labelClassName}`}
         >
           {label}
         </label>
@@ -47,11 +61,7 @@ const AuthInput = forwardRef<HTMLInputElement, Props>(function AuthInput(
           type={password ? (visible ? "text" : "password") : type}
           aria-invalid={invalid}
           aria-describedby={message ? errorId : undefined}
-          className={`${base} ${
-            invalid
-              ? "border-red-500 focus:outline-red-500"
-              : "border-[#414c58] focus:outline-[#6a69ff]"
-          } ${password ? "pr-11" : ""} ${className}`}
+          className={`${base} ${stateClasses} ${password ? "pr-10" : ""} ${className}`}
           {...rest}
         />
         {password && (
@@ -59,9 +69,9 @@ const AuthInput = forwardRef<HTMLInputElement, Props>(function AuthInput(
             type="button"
             onClick={() => setVisible((v) => !v)}
             aria-label={visible ? "Hide password" : "Show password"}
-            className="absolute -translate-y-1/2 right-3 top-[22px] cursor-pointer"
+            className="absolute -translate-y-1/2 right-2.5 top-1/2 p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100/70 active:scale-95 transition-all cursor-pointer"
           >
-            <Image src={visible ? Eye : EyeOff} height={20} width={20} alt="" />
+            <Image src={visible ? Eye : EyeOff} height={17} width={17} alt="" className="opacity-75 hover:opacity-100 transition-opacity" />
           </button>
         )}
       </div>
