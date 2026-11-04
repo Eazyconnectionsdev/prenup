@@ -67,7 +67,51 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
         setLoading(true);
         const response = await Axios.get("/case-manager/cases");
 
-        const formatted: RowCase[] = (response.data || []).map((item: any) => {
+        const isCaseManager = currentUser?.role === "case_manager";
+        const formatted: RowCase[] = (response.data || [])
+          .filter((item: any) => {
+            // 1. Partner must be invited
+            if (!item.partnerInvited) return false;
+
+            // 2. Final review must be submitted and accepted by both users
+            const isFinalReviewAccepted =
+              Boolean(item.approval?.user1Approved && item.approval?.user2Approved) ||
+              item.approval?.mutualApprovalAndSnapshot === "COMPLETED" ||
+              [
+                "COUPLE_SUBMITTED",
+                "CM_APPROVED",
+                "PRE_LAWYER_PENDING",
+                "PRE_LAWYER_COMPLETED",
+                "LAWYERS_ASSIGNED",
+                "LAWYER_CLIENT_CONFIRMATION",
+                "LAWYER_REVIEW",
+                "LAWYER_REVIEW_COMPLETED",
+                "LAWYER_ILA_PENDING",
+                "LAWYER_SIGNOFF_COMPLETE",
+                "COMPLETED",
+                "ARCHIVED",
+              ].includes(item.workflowStatus);
+            if (!isFinalReviewAccepted) return false;
+
+            // 3. For a case manager: only show unassigned cases or cases assigned to this case manager
+            if (isCaseManager) {
+              const assignedCm = item.assignedCaseManager;
+              const cmId =
+                assignedCm && typeof assignedCm === "object"
+                  ? assignedCm._id || assignedCm.id || ""
+                  : typeof assignedCm === "string"
+                  ? assignedCm
+                  : "";
+              const isUnassigned = !cmId;
+              const isAssignedToMe = Boolean(
+                cmId && currentUserId && String(cmId) === String(currentUserId)
+              );
+              if (!isUnassigned && !isAssignedToMe) return false;
+            }
+
+            return true;
+          })
+          .map((item: any) => {
           const p1 = item.owner
             ? `${item.owner.firstName ?? ""} ${item.owner.lastName ?? ""}`.trim()
             : "Unknown";
