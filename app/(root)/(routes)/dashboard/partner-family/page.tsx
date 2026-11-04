@@ -1,5 +1,8 @@
 "use client";
 
+import OwnForm from "../family/page";
+import { EditingPartnerProvider } from "@/components/questionnaire/EditingPartnerContext";
+import { useJointSectionStatus } from "@/hooks/useJointSectionStatus";
 import { useState } from "react";
 import { Baby, History, PawPrint, UsersRound } from "lucide-react";
 import { useQuestionnaire } from "@/components/questionnaire/useQuestionnaire";
@@ -19,7 +22,7 @@ import {
 } from "@/components/questionnaire/family";
 import type { ChildRow, FamilyFormData } from "@/types/questionnaire/family";
 
-export default function PartnerFamilyDependentsView() {
+function PartnerFamilyDependentsView() {
   const [formData, setFormData] = useState<FamilyFormData>(initialFamilyData);
   const [children, setChildren] = useState<ChildRow[]>([]);
 
@@ -160,4 +163,18 @@ export default function PartnerFamilyDependentsView() {
       </SectionCard>
     </FormShell>
   );
+}
+
+// The partner who sent the case back for changes edits their partner's answers
+// in the real form; everyone else sees the read-only view.
+export default function PartnerPage() {
+  const { iDisapproved } = useJointSectionStatus();
+  if (iDisapproved) {
+    return (
+      <EditingPartnerProvider>
+        <OwnForm />
+      </EditingPartnerProvider>
+    );
+  }
+  return <PartnerFamilyDependentsView />;
 }

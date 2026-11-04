@@ -25,6 +25,7 @@ import {
   SPOUSAL_MAINTENANCE_LABELS,
 } from "@/lib/matrimonialAgreementLabels";
 import type { SectionProgress } from "@/types/lib/progress-calculator";
+import { resolvePartyInformation } from "@/lib/caseSections";
 
 // One form inside a review section, and what to show for it
 type FormRow = {
@@ -126,10 +127,14 @@ export default function FinalReviewConfirmationPage() {
     iAmWaitingForReview,
     partnerDisapproved,
     isWaitingOnPartner,
+    iDisapproved,
   } = useJointSectionStatus();
 
-  const myData = isUser1 ? cases.myInformation : cases.partnerInformation;
-  const partnerData = isUser1 ? cases.partnerInformation : cases.myInformation;
+  const { mine: myData, theirs: partnerData } = resolvePartyInformation(
+    user?.endUserType,
+    cases.myInformation,
+    cases.partnerInformation,
+  );
   const jointData = cases.jointInformation;
   const matrimonialData = (jointData as any)?.matrimonialAgreement;
 
@@ -141,9 +146,8 @@ export default function FinalReviewConfirmationPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
-  const [showDisapproveModal, setShowDisapproveModal] = useState(false);
-  const [disapproveReason, setDisapproveReason] = useState("");
-  const [isDisapproving, setIsDisapproving] = useState(false);
+  // The reviewing partner's note to the sender, sent with their changes
+  const [changeMessage, setChangeMessage] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
 
   const [p2MadeChanges, setP2MadeChanges] = useState(false);
@@ -237,7 +241,10 @@ export default function FinalReviewConfirmationPage() {
     },
   ];
 
-  // The other party's forms — read-only, so no links
+  // The other party's forms are read-only, until this partner has sent the
+  // case back for changes: then the same forms open on the partner's answers.
+  const partnerHref = (slug: string) =>
+    iDisapproved ? `/dashboard/partner-${slug}` : undefined;
   const partnerRows: FormRow[] = [
     {
       key: "personalInformation",
@@ -245,12 +252,13 @@ export default function FinalReviewConfirmationPage() {
       detail: partnerData?.personalInformation?.firstName
         ? `${partnerData.personalInformation.firstName} ${partnerData.personalInformation.lastName ?? ""}`
         : "Provided by partner",
+      href: partnerHref("personal-info"),
     },
-    { key: "legalDeclaration", label: "Legal Declaration", detail: "Declarations accepted" },
-    { key: "familyAndDependents", label: "Dependents & Family", detail: "Registered & reviewed" },
-    { key: "individualAssets", label: "Individual Assets", detail: "Assets disclosed" },
-    { key: "incomeAndRevenue", label: "Income & Revenue", detail: "Revenue streams disclosed" },
-    { key: "liabilitiesAndDebts", label: "Liabilities & Debts", detail: "Debt schedules disclosed" },
+    { key: "legalDeclaration", label: "Legal Declaration", detail: "Declarations accepted", href: partnerHref("legal-declaration") },
+    { key: "familyAndDependents", label: "Dependents & Family", detail: "Registered & reviewed", href: partnerHref("family") },
+    { key: "individualAssets", label: "Individual Assets", detail: "Assets disclosed", href: partnerHref("individual_assets") },
+    { key: "incomeAndRevenue", label: "Income & Revenue", detail: "Revenue streams disclosed", href: partnerHref("income_revenue") },
+    { key: "liabilitiesAndDebts", label: "Liabilities & Debts", detail: "Debt schedules disclosed", href: partnerHref("liabilities_debts") },
   ];
 
   // Joint forms are editable by whoever holds the pen
@@ -300,15 +308,14 @@ export default function FinalReviewConfirmationPage() {
   ];
 
   // Handlers
-  // Clicking "Make Changes" while the partner is waiting on your review is a
-  // disapproval: it hands editing control back and clears both approvals.
-  const handleDisapprove = async () => {
+  // "Make Changes" while the partner's request is waiting on you hands editing
+  // control to you and clears both approvals. The reason is asked for when you
+  // send it back, not here.
+  const handleReviewerMakeChanges = async () => {
     if (!caseId) return;
-    setIsDisapproving(true);
     setActionError(null);
     try {
-      await Axios.post(`/cases/${caseId}/reject`, { reason: disapproveReason });
-
+      await Axios.post(`/cases/${caseId}/reject`, {});
       dispatch(
         updateJointInformationStatus({ submitted: false, submittedBy: myId ?? null }),
       );
@@ -317,21 +324,16 @@ export default function FinalReviewConfirmationPage() {
           user1Approved: false,
           user2Approved: false,
           disapprovedBy: myId ?? null,
-          disapprovalReason: disapproveReason || null,
+          disapprovalReason: null,
         } as any),
       );
       await dispatch(getCasesDetails(caseId));
-
-      setShowDisapproveModal(false);
-      setDisapproveReason("");
-      toast.success("Sent back for changes. You can now edit the information.");
+      toast.success("You can now edit any of the information.");
       router.push("/dashboard/personal-info");
     } catch (err) {
       setActionError(
-        getErrorMessage(err, "Couldn't send this back right now. Please try again."),
+        getErrorMessage(err, "Couldn't open the information for changes. Please try again."),
       );
-    } finally {
-      setIsDisapproving(false);
     }
   };
 
@@ -359,7 +361,10 @@ export default function FinalReviewConfirmationPage() {
         return;
       }
 
-      await Axios.post(`/cases/${caseId}/joint-information/submit`);
+      await Axios.post(
+        `/cases/${caseId}/joint-information/submit`,
+        iDisapproved ? { message: changeMessage.trim() } : {},
+      );
 
       dispatch(
         updateJointInformationStatus({
@@ -376,6 +381,7 @@ export default function FinalReviewConfirmationPage() {
       );
       await dispatch(getCasesDetails(caseId));
       setJustSubmittedByP1(true);
+      setChangeMessage("");
       setShowExhibitBModal(false);
       toast.success("Approval request sent to your partner.");
     } catch (err) {
@@ -808,6 +814,16 @@ export default function FinalReviewConfirmationPage() {
           </p>
         </div>
 
+        {/* The sender's partner edited and sent it back: show their message */}
+        {isMyTurnToApprove && cases?.approval?.disapprovalReason && (
+          <div className="rounded-2xl border border-[#FDE68A] bg-[#FEF9C3]/70 p-5 shadow-sm">
+            <h3 className="text-sm font-bold text-[#1E1B3C]">Message from your partner</h3>
+            <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-[#6B6B80]">
+              {cases.approval.disapprovalReason}
+            </p>
+          </div>
+        )}
+
         {/* Stage 4: Partner Review Status Matrix */}
         <div className="rounded-2xl border border-[#E7E7F2] bg-white p-5 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#F1F1F6] pb-3">
@@ -953,7 +969,14 @@ export default function FinalReviewConfirmationPage() {
                 <FormRowList section={partnerData} rows={partnerRows} />
 
                 <div className="mt-4 flex justify-end">
-                  {partnerProgress.isComplete ? (
+                  {iDisapproved ? (
+                    <Link
+                      href="/dashboard/partner-personal-info"
+                      className="text-xs font-semibold text-[#6D28D9] hover:underline"
+                    >
+                      Edit Partner&apos;s Information →
+                    </Link>
+                  ) : partnerProgress.isComplete ? (
                     <span className="text-xs text-[#9494AA]">
                       Shared by partner (Read-only)
                     </span>
@@ -1120,7 +1143,7 @@ export default function FinalReviewConfirmationPage() {
               </h3>
               <p className="mt-1 text-xs leading-relaxed text-[#2563EB] md:text-sm">
                 {isMyTurnToApprove
-                  ? "Please review all 4 sections carefully. You can approve the package as presented, or click Make Changes to adjust your questionnaire before sending back for mutual review."
+                  ? "Please review all 4 sections carefully. You can approve the package as presented, or edit anything and send it back to your partner with a message."
                   : "Nothing has been sent to your partner yet. When you send the approval request, your complete information is made available to them for review. They can approve it or make changes — and if they make changes, you will review and approve those before the final confirmation."}
               </p>
             </div>
@@ -1143,7 +1166,7 @@ export default function FinalReviewConfirmationPage() {
               type="button"
               onClick={
                 isMyTurnToApprove
-                  ? () => setShowDisapproveModal(true)
+                  ? handleReviewerMakeChanges
                   : isUser1
                     ? handleP1MakeChanges
                     : handleP2MakeChanges
@@ -1153,7 +1176,7 @@ export default function FinalReviewConfirmationPage() {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
               </svg>
-              <span>{p2MadeChanges ? "Continue Editing" : "Make Changes"}</span>
+              <span>{p2MadeChanges || iDisapproved ? "Continue Editing" : "Make Changes"}</span>
             </button>
             
           </div>
@@ -1219,6 +1242,7 @@ export default function FinalReviewConfirmationPage() {
             )}
           </div>
         </div>
+
       </div>
 
       {showExhibitBModal && (
@@ -1275,6 +1299,21 @@ export default function FinalReviewConfirmationPage() {
               </span>
             </div>
 
+            {iDisapproved && (
+              <div className="mt-5">
+                <label className="block text-xs font-bold text-[#1E1B3C]">
+                  Why did you change the information?
+                </label>
+                <textarea
+                  value={changeMessage}
+                  onChange={(e) => setChangeMessage(e.target.value)}
+                  rows={4}
+                  placeholder="Let your partner know what you changed or why."
+                  className="mt-2 w-full rounded-xl border border-[#D1D1DC] p-3 text-sm text-[#1E1B3C] outline-none focus:border-[#6a69ff]"
+                />
+              </div>
+            )}
+
             <div className="mt-6 flex items-center justify-between gap-3">
               <button
                 type="button"
@@ -1285,7 +1324,11 @@ export default function FinalReviewConfirmationPage() {
               </button>
               <button
                 type="button"
-                disabled={isSubmitting || !canSendForReview}
+                disabled={
+                  isSubmitting ||
+                  !canSendForReview ||
+                  (iDisapproved && !changeMessage.trim())
+                }
                 onClick={handleConfirmSubmitForPartnerReview}
                 className="flex w-1/2 items-center justify-center gap-1.5 rounded-xl bg-[#16A34A] py-3 text-xs font-bold text-white shadow-md transition hover:bg-[#15803D] disabled:opacity-60"
               >
@@ -1388,53 +1431,6 @@ export default function FinalReviewConfirmationPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
                 <span>{isApproving ? "Approving..." : "Approve"}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showDisapproveModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-          <div className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl md:p-8">
-            <h3 className="text-lg font-bold text-[#1E1B3C]">
-              Send back for changes?
-            </h3>
-            <p className="mt-2 text-sm leading-relaxed text-[#6B6B80]">
-              Both approvals will be cleared and editing moves to you. Your partner will
-              be asked to review again once you resubmit.
-            </p>
-
-            <label className="mt-5 block text-xs font-bold text-[#1E1B3C]">
-              What needs changing?
-            </label>
-            <textarea
-              value={disapproveReason}
-              onChange={(e) => setDisapproveReason(e.target.value)}
-              rows={4}
-              placeholder="Let your partner know which details are wrong or missing."
-              className="mt-2 w-full rounded-xl border border-[#D1D1DC] p-3 text-sm text-[#1E1B3C] outline-none focus:border-[#6a69ff]"
-            />
-
-            {actionError && (
-              <p className="mt-3 text-sm font-medium text-red-500">{actionError}</p>
-            )}
-
-            <div className="mt-6 flex items-center justify-between gap-3">
-              <button
-                type="button"
-                onClick={() => setShowDisapproveModal(false)}
-                className="w-1/2 rounded-xl border border-[#D1D1DC] bg-white py-3 text-xs font-bold text-[#6B6B80] transition hover:bg-slate-50"
-              >
-                Go Back
-              </button>
-              <button
-                type="button"
-                disabled={!disapproveReason.trim() || isDisapproving}
-                onClick={handleDisapprove}
-                className="w-1/2 rounded-xl bg-[#EF4444] py-3 text-xs font-bold text-white shadow-md transition hover:bg-[#DC2626] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isDisapproving ? "Sending..." : "Send Back for Changes"}
               </button>
             </div>
           </div>

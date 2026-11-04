@@ -22,18 +22,19 @@ import {
 } from "lucide-react";
 import { AppDispatch, RootState } from "@/store/store";
 import { getCasesDetails } from "@/store/asyncThunk/casesThunk";
+import { resolvePartyInformation } from "@/lib/caseSections";
+import { useJointSectionStatus } from "@/hooks/useJointSectionStatus";
 
 type SectionKey = "section1" | "section2" | "section3" | "section4";
 type LeafDef = { id: string; icon: LucideIcon; label: string };
 
-
 const LEAF_TO_KEY: Record<string, string> = {
   "personal-info": "personalInformation",
   "legal-declaration": "legalDeclaration",
-  "family": "familyAndDependents",
-  "individual_assets": "individualAssets",
-  "income_revenue": "incomeAndRevenue",
-  "liabilities_debts": "liabilitiesAndDebts",
+  family: "familyAndDependents",
+  individual_assets: "individualAssets",
+  income_revenue: "incomeAndRevenue",
+  liabilities_debts: "liabilitiesAndDebts",
   "joint-assets": "jointAssets",
   "joint-income-revenue": "jointIncomeAndRevenue",
   "joint-liabilities-debts": "jointLiabilitiesAndDebts",
@@ -54,8 +55,16 @@ const FINANCIAL_LEAFS: LeafDef[] = [
 
 const JOINT_FINANCIAL_LEAFS: LeafDef[] = [
   { id: "joint-assets", icon: Landmark, label: "Joint Assets" },
-  { id: "joint-income-revenue", icon: TrendingUp, label: "Joint Income & Revenue" },
-  { id: "joint-liabilities-debts", icon: CreditCard, label: "Joint Liabilities & Debts" },
+  {
+    id: "joint-income-revenue",
+    icon: TrendingUp,
+    label: "Joint Income & Revenue",
+  },
+  {
+    id: "joint-liabilities-debts",
+    icon: CreditCard,
+    label: "Joint Liabilities & Debts",
+  },
 ];
 
 const MATRIMONIAL_LEAF: LeafDef = {
@@ -70,7 +79,9 @@ const JOINT_LEAF_IDS = JOINT_LEAFS.map((l) => l.id);
 
 function locateSection(activeLeaf: string): SectionKey | null {
   const isPartner = activeLeaf.startsWith("partner-");
-  const id = (isPartner ? activeLeaf.slice("partner-".length) : activeLeaf).split("/")[0];
+  const id = (
+    isPartner ? activeLeaf.slice("partner-".length) : activeLeaf
+  ).split("/")[0];
 
   if (!isPartner && JOINT_LEAF_IDS.includes(id)) return "section3";
   if (MY_LEAF_IDS.includes(id)) return isPartner ? "section2" : "section1";
@@ -103,7 +114,9 @@ function Collapse({
         open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
       }`}
     >
-      <div className={`min-h-0 overflow-hidden ${bleed ? "-ml-6 pl-6" : ""}`}>{children}</div>
+      <div className={`min-h-0 overflow-hidden ${bleed ? "-ml-6 pl-6" : ""}`}>
+        {children}
+      </div>
     </div>
   );
 }
@@ -116,9 +129,10 @@ function StatusDot({ done, locked }: { done?: boolean; locked?: boolean }) {
         <Check className="h-2.5 w-2.5 text-white" strokeWidth={3.5} />
       </span>
     );
-  return <span className="h-4 w-4 flex-shrink-0 rounded-full border-[1.5px] border-white/20" />;
+  return (
+    <span className="h-4 w-4 flex-shrink-0 rounded-full border-[1.5px] border-white/20" />
+  );
 }
-
 
 function StepHeader({
   number,
@@ -145,9 +159,10 @@ function StepHeader({
   lockReason?: string;
 }) {
   const highlighted = active || open;
-  const percent = progress && progress.total > 0
-    ? Math.round((progress.done / progress.total) * 100)
-    : 0;
+  const percent =
+    progress && progress.total > 0
+      ? Math.round((progress.done / progress.total) * 100)
+      : 0;
 
   const inner = (
     <>
@@ -167,7 +182,9 @@ function StepHeader({
         </span>
 
         {subtitle && (
-          <span className="mt-0.5 block truncate text-[11px] text-[#7F82B5]">{subtitle}</span>
+          <span className="mt-0.5 block truncate text-[11px] text-[#7F82B5]">
+            {subtitle}
+          </span>
         )}
 
         {/* {progress && (
@@ -213,18 +230,26 @@ function StepHeader({
 
   if (href)
     return (
-      <Link href={href} className={cls} aria-current={active ? "page" : undefined}>
+      <Link
+        href={href}
+        className={cls}
+        aria-current={active ? "page" : undefined}
+      >
         {inner}
       </Link>
     );
 
   return (
-    <button type="button" onClick={onClick} className={cls} aria-expanded={open}>
+    <button
+      type="button"
+      onClick={onClick}
+      className={cls}
+      aria-expanded={open}
+    >
       {inner}
     </button>
   );
 }
-
 
 function Leaf({
   id,
@@ -260,13 +285,17 @@ function Leaf({
       />
       <IconC
         className={`h-4 w-4 flex-shrink-0 transition-colors duration-200 ${
-          isActive ? "text-[#B7B4FF]" : "text-[#8A8DC0] group-hover:text-[#C9C7FF]"
+          isActive
+            ? "text-[#B7B4FF]"
+            : "text-[#8A8DC0] group-hover:text-[#C9C7FF]"
         }`}
         strokeWidth={1.8}
       />
       <span
         className={`flex-1 truncate text-[13px] transition-colors duration-200 ${
-          isActive ? "font-medium text-white" : "text-[#B4B7DE] group-hover:text-white"
+          isActive
+            ? "font-medium text-white"
+            : "text-[#B4B7DE] group-hover:text-white"
         }`}
       >
         {label}
@@ -324,8 +353,13 @@ function SubGroup({
         aria-expanded={open}
         className="group -ml-[35px] flex w-[calc(100%+35px)] items-center gap-2.5 rounded-lg px-[11px] py-[7px] text-left transition-colors duration-200 hover:bg-white/[0.04]"
       >
-        <IconC className="h-4 w-4 flex-shrink-0 text-[#A9ACD6]" strokeWidth={1.8} />
-        <span className="flex-1 truncate text-[13px] font-semibold text-[#E4E5F7]">{label}</span>
+        <IconC
+          className="h-4 w-4 flex-shrink-0 text-[#A9ACD6]"
+          strokeWidth={1.8}
+        />
+        <span className="flex-1 truncate text-[13px] font-semibold text-[#E4E5F7]">
+          {label}
+        </span>
         <ChevronRight
           className={`h-3.5 w-3.5 flex-shrink-0 text-[#8A8DC0] transition-transform duration-300 ${
             open ? "rotate-90" : ""
@@ -345,7 +379,6 @@ function Tree({ children }: { children: ReactNode }) {
   return <div className="ml-[26px] pb-0.5 pl-4">{children}</div>;
 }
 
-
 export default function AppSidebar() {
   const dispatch = useDispatch<AppDispatch>();
   const {
@@ -353,13 +386,18 @@ export default function AppSidebar() {
     myInformation,
     partnerInformation,
     jointInformation,
+    preQuestionnaireUser1,
+    preQuestionnaireUser2,
     approval,
     fullyLocked,
   } = useSelector((state: RootState) => state.cases);
   const user = useSelector((state: RootState) => state.auth.user);
+  const { lockedOut } = useJointSectionStatus();
 
   const pathname = usePathname();
-  const activeLeaf = pathname.replace(/^\/dashboard\/?/, "").replace(/\/+$/, "");
+  const activeLeaf = pathname
+    .replace(/^\/dashboard\/?/, "")
+    .replace(/\/+$/, "");
   const isDashboardHome = /^\/dashboard\/?$/.test(pathname);
   const isFinalReview =
     activeLeaf === "final-review-confirmation" ||
@@ -380,18 +418,23 @@ export default function AppSidebar() {
     else if (isDashboardHome) setOpenSection(null);
   }
 
-  const isFirstUser = user?.endUserType === "user1";
   const isPaymentDone = true;
 
-  const myData = isFirstUser ? myInformation : partnerInformation;
-  const partnerData = isFirstUser ? partnerInformation : myInformation;
+  const { mine: myData, theirs: partnerData } = resolvePartyInformation(
+    user?.endUserType,
+    myInformation,
+    partnerInformation,
+  );
 
-  const hasData = (obj?: Record<string, unknown>) => Boolean(obj && Object.keys(obj).length > 0);
+  const hasData = (obj?: Record<string, unknown>) =>
+    Boolean(obj && Object.keys(obj).length > 0);
   const isLeafDone = (leafId: string, info?: Record<string, any>) =>
     hasData(info?.[LEAF_TO_KEY[leafId]]);
 
   const myDoneCount = MY_LEAF_IDS.filter((id) => isLeafDone(id, myData)).length;
-  const jointDoneCount = JOINT_LEAF_IDS.filter((id) => isLeafDone(id, jointInformation)).length;
+  const jointDoneCount = JOINT_LEAF_IDS.filter((id) =>
+    isLeafDone(id, jointInformation),
+  ).length;
 
   // A Financial Disclosure group stays open while one of its pages is open
   const isLeafActive = (leafId: string, partner?: boolean) => {
@@ -399,20 +442,93 @@ export default function AppSidebar() {
     return activeLeaf === routeId || activeLeaf.startsWith(`${routeId}/`);
   };
   const myFinancialActive = FINANCIAL_LEAFS.some((l) => isLeafActive(l.id));
-  const partnerFinancialActive = FINANCIAL_LEAFS.some((l) => isLeafActive(l.id, true));
-  const jointFinancialActive = JOINT_FINANCIAL_LEAFS.some((l) => isLeafActive(l.id));
-  const bothApproved = Boolean(approval?.user1Approved && approval?.user2Approved);
+  const partnerFinancialActive = FINANCIAL_LEAFS.some((l) =>
+    isLeafActive(l.id, true),
+  );
+  const jointFinancialActive = JOINT_FINANCIAL_LEAFS.some((l) =>
+    isLeafActive(l.id),
+  );
+  const bothApproved = Boolean(
+    approval?.user1Approved && approval?.user2Approved,
+  );
   const ilaDone = Boolean(status?.independentLegalAdvice?.submitted);
 
   const caseLocked = Boolean(
     fullyLocked ||
-      bothApproved ||
-      status?.myInformation?.locked ||
-      status?.partnerInformation?.locked ||
-      status?.jointInformation?.locked,
+    bothApproved ||
+    status?.myInformation?.locked ||
+    status?.partnerInformation?.locked ||
+    status?.jointInformation?.locked,
   );
-  const LOCK_REASON = "Locked - both partners have confirmed the agreement";
+  // The partner who sent the request (or whose partner is editing it) waits:
+  // all four agreement steps are locked until it comes back.
+  const senderLocked = lockedOut && !bothApproved;
+  const LOCK_REASON = senderLocked
+    ? "Locked while your partner reviews"
+    : "Locked - both partners have confirmed the agreement";
   const lockedSubtitle = "Confirmed and locked";
+
+  // Independent legal advice opens on the handshake (both partners confirmed)
+  // plus the case manager's approval -- the same point at which the backend
+  // moves the case to LAWYERS_ASSIGNED and emails the four ILA tasks.
+  const caseManagerApproved = Boolean(approval?.caseManagerApproved);
+  const ilaUnlocked = bothApproved && caseManagerApproved;
+  const ilaLockReason = !bothApproved
+    ? "Opens once both partners have confirmed the agreement"
+    : "Opens once your case manager approves the case";
+  const ilaLockedSubtitle = !bothApproved
+    ? "Awaiting mutual confirmation"
+    : "Awaiting case manager approval";
+
+  const { mine: myPre, theirs: partnerPre } = resolvePartyInformation<
+    Record<string, any>
+  >(user?.endUserType, preQuestionnaireUser1, preQuestionnaireUser2);
+
+  // The four independent-legal-advice tabs, in order. Each is a page of its
+  // own; the partner's two only show what the partner has done.
+  const isIlaActive = (route: string) =>
+    activeLeaf === route || activeLeaf.startsWith(`${route}/`);
+  const myQuestionnaireDone = Boolean(myPre?.submitted);
+  const ilaTabs = [
+    {
+      number: 5,
+      route: "lawyer-questionaries",
+      title: "My Pre-Lawyer Questionnaire",
+      subtitle: myQuestionnaireDone ? "Completed" : "Ready to start",
+      locked: !ilaUnlocked,
+      lockReason: ilaLockReason,
+    },
+    {
+      number: 6,
+      route: "lawyer-selection",
+      title: "My Lawyer Selection",
+      subtitle: myPre?.selectedLawyer
+        ? "Completed"
+        : myQuestionnaireDone
+          ? "Ready to choose"
+          : "Available after questionnaire",
+      locked: !ilaUnlocked || !myQuestionnaireDone,
+      lockReason: ilaUnlocked
+        ? "Available after your questionnaire"
+        : ilaLockReason,
+    },
+    {
+      number: 7,
+      route: "partner-lawyer-questionaries",
+      title: "Partner's Pre-Lawyer Questionnaire",
+      subtitle: partnerPre?.submitted ? "Completed" : "Awaiting partner",
+      locked: !ilaUnlocked,
+      lockReason: ilaLockReason,
+    },
+    {
+      number: 8,
+      route: "partner-lawyer-selection",
+      title: "Partner's Lawyer Selection",
+      subtitle: partnerPre?.selectedLawyer ? "Completed" : "Awaiting partner",
+      locked: !ilaUnlocked,
+      lockReason: ilaLockReason,
+    },
+  ];
 
   const finalSubtitle = bothApproved
     ? "Mutual confirmation complete"
@@ -455,13 +571,17 @@ export default function AppSidebar() {
           {isDashboardHome && <ActiveRail />}
           <Home
             className={`h-[18px] w-[18px] ${
-              isDashboardHome ? "text-white" : "text-[#A9ACD6] group-hover:text-white"
+              isDashboardHome
+                ? "text-white"
+                : "text-[#A9ACD6] group-hover:text-white"
             }`}
             strokeWidth={1.8}
           />
           <span
             className={`text-[14px] font-medium ${
-              isDashboardHome ? "text-white" : "text-[#D6D8F2] group-hover:text-white"
+              isDashboardHome
+                ? "text-white"
+                : "text-[#D6D8F2] group-hover:text-white"
             }`}
           >
             Dashboard
@@ -478,17 +598,23 @@ export default function AppSidebar() {
             number={1}
             title="My Questionnaire"
             subtitle={
-              caseLocked ? lockedSubtitle : `${myDoneCount} of ${MY_LEAF_IDS.length} complete`
+              caseLocked
+                ? lockedSubtitle
+                : `${myDoneCount} of ${MY_LEAF_IDS.length} complete`
             }
             progress={
-              caseLocked ? undefined : { done: myDoneCount, total: MY_LEAF_IDS.length }
+              caseLocked
+                ? undefined
+                : { done: myDoneCount, total: MY_LEAF_IDS.length }
             }
             open={openSection === "section1"}
             onClick={() => toggleSection("section1")}
-            locked={caseLocked}
+            locked={caseLocked || senderLocked}
             lockReason={LOCK_REASON}
           />
-          <Collapse open={!caseLocked && openSection === "section1"}>
+          <Collapse
+            open={!caseLocked && !senderLocked && openSection === "section1"}
+          >
             <Tree>
               {PERSONAL_LEAFS.map((leaf) => (
                 <Leaf
@@ -500,7 +626,10 @@ export default function AppSidebar() {
                   lockReason={leafLockReason}
                 />
               ))}
-              <SubGroup label="Financial Disclosure" hasActiveChild={myFinancialActive}>
+              <SubGroup
+                label="Financial Disclosure"
+                hasActiveChild={myFinancialActive}
+              >
                 {FINANCIAL_LEAFS.map((leaf) => (
                   <Leaf
                     key={leaf.id}
@@ -524,10 +653,12 @@ export default function AppSidebar() {
             subtitle={caseLocked ? lockedSubtitle : "Shared by partner"}
             open={openSection === "section2"}
             onClick={() => toggleSection("section2")}
-            locked={caseLocked}
+            locked={caseLocked || senderLocked}
             lockReason={LOCK_REASON}
           />
-          <Collapse open={!caseLocked && openSection === "section2"}>
+          <Collapse
+            open={!caseLocked && !senderLocked && openSection === "section2"}
+          >
             <Tree>
               {PERSONAL_LEAFS.map((leaf) => (
                 <Leaf
@@ -540,7 +671,10 @@ export default function AppSidebar() {
                   isPartner
                 />
               ))}
-              <SubGroup label="Financial Disclosure" hasActiveChild={partnerFinancialActive}>
+              <SubGroup
+                label="Financial Disclosure"
+                hasActiveChild={partnerFinancialActive}
+              >
                 {FINANCIAL_LEAFS.map((leaf) => (
                   <Leaf
                     key={leaf.id}
@@ -563,19 +697,28 @@ export default function AppSidebar() {
             number={3}
             title="Joint Questionnaire"
             subtitle={
-              caseLocked ? lockedSubtitle : `${jointDoneCount} of ${JOINT_LEAF_IDS.length} complete`
+              caseLocked
+                ? lockedSubtitle
+                : `${jointDoneCount} of ${JOINT_LEAF_IDS.length} complete`
             }
             progress={
-              caseLocked ? undefined : { done: jointDoneCount, total: JOINT_LEAF_IDS.length }
+              caseLocked
+                ? undefined
+                : { done: jointDoneCount, total: JOINT_LEAF_IDS.length }
             }
             open={openSection === "section3"}
             onClick={() => toggleSection("section3")}
-            locked={caseLocked}
+            locked={caseLocked || senderLocked}
             lockReason={LOCK_REASON}
           />
-          <Collapse open={!caseLocked && openSection === "section3"}>
+          <Collapse
+            open={!caseLocked && !senderLocked && openSection === "section3"}
+          >
             <Tree>
-              <SubGroup label="Financial Disclosure" hasActiveChild={jointFinancialActive}>
+              <SubGroup
+                label="Financial Disclosure"
+                hasActiveChild={jointFinancialActive}
+              >
                 {JOINT_FINANCIAL_LEAFS.map((leaf) => (
                   <Leaf
                     key={leaf.id}
@@ -587,13 +730,18 @@ export default function AppSidebar() {
                   />
                 ))}
               </SubGroup>
-              <Leaf
-                {...MATRIMONIAL_LEAF}
-                done={isLeafDone(MATRIMONIAL_LEAF.id, jointInformation)}
-                activeLeaf={activeLeaf}
-                locked={isLocked(MATRIMONIAL_LEAF.id)}
-                lockReason={leafLockReason}
-              />
+              <SubGroup
+                label="Matrimonial"
+                hasActiveChild={jointFinancialActive}
+              >
+                <Leaf
+                  {...MATRIMONIAL_LEAF}
+                  done={isLeafDone(MATRIMONIAL_LEAF.id, jointInformation)}
+                  activeLeaf={activeLeaf}
+                  locked={isLocked(MATRIMONIAL_LEAF.id)}
+                  lockReason={leafLockReason}
+                />
+              </SubGroup>
             </Tree>
           </Collapse>
         </div>
@@ -604,9 +752,28 @@ export default function AppSidebar() {
           title="Final Review & Confirmation"
           subtitle={finalSubtitle}
           href="/dashboard/final-review-confirmation"
+          locked={senderLocked}
+          lockReason={LOCK_REASON}
           active={isFinalReview}
         />
 
+        <div className="px-3 pb-1 pt-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6E71A3]">
+          Independent legal advice
+        </div>
+
+        {/* 5–8 — My and my partner's pre-lawyer questionnaire and lawyer selection */}
+        {ilaTabs.map((tab) => (
+          <StepHeader
+            key={tab.route}
+            number={tab.number}
+            title={tab.title}
+            subtitle={ilaUnlocked ? tab.subtitle : ilaLockedSubtitle}
+            href={`/dashboard/${tab.route}`}
+            active={isIlaActive(tab.route)}
+            locked={tab.locked}
+            lockReason={tab.lockReason}
+          />
+        ))}
       </nav>
     </aside>
   );

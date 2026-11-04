@@ -1,5 +1,8 @@
 "use client";
 
+import OwnForm from "../personal-info/page";
+import { EditingPartnerProvider } from "@/components/questionnaire/EditingPartnerContext";
+import { useJointSectionStatus } from "@/hooks/useJointSectionStatus";
 import { useState } from "react";
 import { UserRound } from "lucide-react";
 import { useQuestionnaire } from "@/components/questionnaire/useQuestionnaire";
@@ -10,7 +13,7 @@ import {
 } from "@/components/questionnaire/sections/PersonalInfoFields";
 import type { personalInfoFormData } from "@/types/questionnaire/personal-info";
 
-export default function PartnerPersonalInfoView() {
+function PartnerPersonalInfoView() {
   const [formData, setFormData] = useState<personalInfoFormData>(initialPersonalInfo);
 
   const { isLoading } = useQuestionnaire({
@@ -35,4 +38,18 @@ export default function PartnerPersonalInfoView() {
       <PersonalInfoFields data={formData} readOnly />
     </FormShell>
   );
+}
+
+// The partner who sent the case back for changes edits their partner's answers
+// in the real form; everyone else sees the read-only view.
+export default function PartnerPage() {
+  const { iDisapproved } = useJointSectionStatus();
+  if (iDisapproved) {
+    return (
+      <EditingPartnerProvider>
+        <OwnForm />
+      </EditingPartnerProvider>
+    );
+  }
+  return <PartnerPersonalInfoView />;
 }

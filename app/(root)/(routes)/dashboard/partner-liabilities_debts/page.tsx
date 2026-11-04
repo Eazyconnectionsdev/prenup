@@ -1,5 +1,8 @@
 "use client";
 
+import OwnForm from "../liabilities_debts/page";
+import { EditingPartnerProvider } from "@/components/questionnaire/EditingPartnerContext";
+import { useJointSectionStatus } from "@/hooks/useJointSectionStatus";
 import { useState } from "react";
 import { Wallet } from "lucide-react";
 import { useQuestionnaire } from "@/components/questionnaire/useQuestionnaire";
@@ -11,7 +14,7 @@ import {
 } from "@/components/questionnaire/sections/LiabilitiesFields";
 import type { LiabilitiesData } from "@/types/questionnaire/liabilities-fields";
 
-export default function PartnerLiabilitiesView() {
+function PartnerLiabilitiesView() {
   const [data, setData] = useState<LiabilitiesData>(initialLiabilities);
 
   const { isLoading } = useQuestionnaire({
@@ -32,4 +35,18 @@ export default function PartnerLiabilitiesView() {
       <LiabilitiesFields data={data} readOnly />
     </FormShell>
   );
+}
+
+// The partner who sent the case back for changes edits their partner's answers
+// in the real form; everyone else sees the read-only view.
+export default function PartnerPage() {
+  const { iDisapproved } = useJointSectionStatus();
+  if (iDisapproved) {
+    return (
+      <EditingPartnerProvider>
+        <OwnForm />
+      </EditingPartnerProvider>
+    );
+  }
+  return <PartnerLiabilitiesView />;
 }

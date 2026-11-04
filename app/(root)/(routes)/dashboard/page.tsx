@@ -14,11 +14,16 @@ import { LuChartNoAxesCombined } from "react-icons/lu";
 import { useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import { RootState } from "@/store/store";
-import { calculateOverallProgress } from "@/lib/progressCalculator";
+import {
+  calculateOverallProgress,
+  MY_PARTNER_KEYS,
+} from "@/lib/progressCalculator";
+import { resolvePartyInformation } from "@/lib/caseSections";
 import type { StepConfig, StepId } from "@/types/dashboard/dashboard-home";
 import { useJointSectionStatus } from "@/hooks/useJointSectionStatus";
 import Axios from "@/lib/ApiConfig";
 import { ServiceStatus } from "@/components/ServiceStatus";
+import CaseManagerCard from "@/components/dashboard/CaseManagerCard";
 import StatCard, {
   statCardActionClasses,
   statCardBadgeClasses,
@@ -41,8 +46,8 @@ const steps: StepConfig[] = [
         strokeWidth={1.8}
         className="h-5 w-5"
       >
-        <path d="M9 3h6l3 3v15H6V3z" />
-        <path d="M9 10h6M9 14h6M9 18h3" />
+        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+        <circle cx="12" cy="7" r="4" />
       </svg>
     ),
   },
@@ -60,9 +65,8 @@ const steps: StepConfig[] = [
         strokeWidth={1.8}
         className="h-5 w-5"
       >
-        <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" />
-        <circle cx="9" cy="7" r="4" />
-        <path d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+        <circle cx="12" cy="7" r="4" />
       </svg>
     ),
   },
@@ -81,8 +85,9 @@ const steps: StepConfig[] = [
         strokeWidth={1.8}
         className="h-5 w-5"
       >
-        <rect x="3" y="7" width="18" height="13" rx="2" />
-        <path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2" />
+        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
       </svg>
     ),
   },
@@ -106,62 +111,12 @@ const steps: StepConfig[] = [
   },
 ];
 
-// Each step gets its own tile colour, keyed by id
 const STEP_TILES: Record<StepId, string> = {
   questionnaire: "from-[#FBBF24] to-[#F59E0B]",
   partner_questionnaire: "from-[#FB7185] to-[#E11D48]",
   joint_questionnaire: "from-[#34D399] to-[#059669]",
   final_review: "from-[#60A5FA] to-[#2563EB]",
 };
-
-
-const legalAdvisers = [
-  {
-    name: "David Miller, QC",
-    role: "Senior Family Solicitor · Apex Legal LLP",
-    tag: "SRA regulated #451270",
-    initials: "DM",
-  },
-  {
-    name: "Sarah Jenkins",
-    role: "Partner · Vangard Family Law",
-    tag: "SRA regulated #203491",
-    initials: "SJ",
-  },
-];
-
-const caseDocuments = [
-  {
-    name: "Master Draft Agreement",
-    meta: "v1.2 · Updated 21 Jul 2026",
-    status: "download" as const,
-  },
-  {
-    name: "Schedule of Assets (Combined)",
-    meta: "v1.0 · Updated 20 Jul 2026",
-    status: "download" as const,
-  },
-  {
-    name: "Legal Advice Certificate (P1)",
-    meta: "Pending solicitor review",
-    status: "locked" as const,
-  },
-];
-
-function LockIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.8}
-      className="h-3.5 w-3.5"
-    >
-      <rect x="5" y="10" width="14" height="10" rx="2" />
-      <path d="M8 10V7a4 4 0 018 0v3" />
-    </svg>
-  );
-}
 
 function DownloadIcon() {
   return (
@@ -270,16 +225,18 @@ const hasAllKeys = (
   keys: string[],
 ): boolean => keys.every((key) => hasData(section?.[key]));
 
-const QUESTIONNAIRE_KEYS = [
-  "personalInformation",
-  "legalDeclaration",
-  "familyAndDependents",
-];
-const DISCLOSURE_KEYS = [
-  "individualAssets",
-  "incomeAndRevenue",
-  "liabilitiesAndDebts",
-];
+// A questionnaire only counts as complete once all six of its forms are filled
+// in — the three personal ones plus the three financial disclosures — which is
+// the same set the sidebar and the Final Review page count.
+const QUESTIONNAIRE_KEYS = MY_PARTNER_KEYS;
+
+// Step-card actions. Green once the step is done, primary while it is still
+// the user's to do, muted when the step belongs to the other party.
+const stepButtonBase =
+  "ml-4 flex-shrink-0 rounded-lg px-4 py-2 text-xs font-semibold";
+const stepButtonDone = `${stepButtonBase} bg-[#DCFCE7] text-[#16A34A] hover:bg-[#BBF7D0]`;
+const stepButtonTodo = `${stepButtonBase} bg-primary text-white hover:bg-primary/90`;
+const stepButtonMuted = `${stepButtonBase} bg-[#F1F1F6] text-[#9494AA] hover:bg-[#E8E8F0]`;
 
 // What the dashboard needs from GET /cases/:id/invite. The invite page reads
 // the rest of it.
@@ -352,27 +309,28 @@ export default function PrenupDashboard() {
     "";
 
   // ── Questionnaire completion ─────────────────────────────────────────────────
-  const isMyQuestComplete = hasAllKeys(
-    cases?.myInformation,
-    QUESTIONNAIRE_KEYS,
-  );
+  // "Yours" is always the signed-in user's own section: myInformation for the
+  // owner, partnerInformation for the invited partner.
+  const { mine: myQuestData, theirs: partnerQuestData } =
+    resolvePartyInformation(
+      user?.endUserType,
+      cases?.myInformation,
+      cases?.partnerInformation,
+    );
+
+  const isMyQuestComplete = hasAllKeys(myQuestData, QUESTIONNAIRE_KEYS);
   const isPartnerQuestComplete = hasAllKeys(
-    cases?.partnerInformation,
+    partnerQuestData,
     QUESTIONNAIRE_KEYS,
   );
 
   const isQuestionnaireComplete = isMyQuestComplete && isPartnerQuestComplete;
 
-  const isDisclosureComplete =
-    hasAllKeys(cases?.myInformation, DISCLOSURE_KEYS) &&
-    hasAllKeys(cases?.partnerInformation, DISCLOSURE_KEYS);
-
   const isJointComplete =
     Boolean((cases?.jointInformation as any)?.jointAssets) ||
     Boolean((cases?.jointInformation as any)?.jointLiabilitiesAndDebts);
 
-  const areAll4SectionsComplete =
-    isQuestionnaireComplete && isDisclosureComplete && isJointComplete;
+  const areAll4SectionsComplete = isQuestionnaireComplete && isJointComplete;
 
   const isJointSubmitted = Boolean(
     (cases as any)?.status?.jointInformation?.submitted,
@@ -384,6 +342,8 @@ export default function PrenupDashboard() {
     iAmWaitingForReview,
     partnerDisapproved,
     isWaitingOnPartner,
+    lockedOut,
+    iDisapproved,
   } = useJointSectionStatus();
   const isMutualApproved = Boolean(
     (cases as any)?.approval?.user1Approved &&
@@ -416,17 +376,70 @@ export default function PrenupDashboard() {
 
   const activeIndex = steps.findIndex((s) => !effectiveCompleted.has(s.id));
   const currentIndex = activeIndex === -1 ? steps.length : activeIndex;
+
+  // The case manager, once one has been assigned (populated by the backend)
+  const caseManager =
+    cases.assignedCaseManager && typeof cases.assignedCaseManager === "object"
+      ? cases.assignedCaseManager
+      : null;
+  const caseManagerName = [caseManager?.firstName, caseManager?.lastName]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+  const caseManagerEmail = caseManager?.email ?? "";
   const allStepsDone = steps.every((s) => effectiveCompleted.has(s.id));
+
+  // While a review request is out, the sender is locked out of every step and
+  // the reviewing partner has all of them open.
+  const senderLocked = lockedOut && !isMutualApproved;
+  // Reviewing the request, or editing after sending it back: every step is
+  // "In progress" with a Review button for me, and the other partner's are
+  // locked as "Partner Reviewing".
+  const reviewerOpen = (isMyTurnToApprove || iDisapproved) && !isMutualApproved;
+
+  const REVIEW_TARGETS: Record<StepId, string> = {
+    questionnaire: "/dashboard/personal-info",
+    partner_questionnaire: "/dashboard/partner-personal-info",
+    joint_questionnaire: "/dashboard/joint-assets",
+    final_review: "/dashboard/final-review-confirmation",
+  };
 
   function renderStepButton(step: StepConfig) {
     const isDone = effectiveCompleted.has(step.id);
+
+    if (senderLocked) {
+      return (
+        <button
+          disabled
+          className={`${stepButtonBase} cursor-not-allowed bg-amber-100 text-amber-700 opacity-80`}
+        >
+          Partner Reviewing
+        </button>
+      );
+    }
+
+    if (reviewerOpen) {
+      const isFinal = step.id === "final_review";
+      return (
+        <button
+          onClick={() => router.push(REVIEW_TARGETS[step.id])}
+          className={
+            isFinal
+              ? "ml-4 flex-shrink-0 rounded-lg bg-[#16A34A] px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#15803D]"
+              : stepButtonTodo
+          }
+        >
+          {isFinal ? "Review & Confirm" : "Review"}
+        </button>
+      );
+    }
 
     if (step.id === "questionnaire") {
       if (isDone) {
         return (
           <button
             onClick={() => router.push("/dashboard/personal-info")}
-            className="ml-4 flex-shrink-0 rounded-lg bg-[#DCFCE7] px-4 py-2 text-xs font-semibold text-[#16A34A] hover:bg-[#BBF7D0]"
+            className={stepButtonDone}
           >
             Completed
           </button>
@@ -435,7 +448,7 @@ export default function PrenupDashboard() {
       return (
         <button
           onClick={() => router.push("/dashboard/personal-info")}
-          className="ml-4 flex-shrink-0 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary/90"
+          className={stepButtonTodo}
         >
           Select Terms
         </button>
@@ -447,7 +460,9 @@ export default function PrenupDashboard() {
       return (
         <button
           onClick={() => router.push("/dashboard/partner-personal-info")}
-          className="ml-4 flex-shrink-0 rounded-lg bg-[#F1F1F6] px-4 py-2 text-xs font-semibold text-[#9494AA] hover:bg-[#E8E8F0]"
+          // Stays muted until done: these are the partner's forms to fill in,
+          // not an action this user can take.
+          className={isDone ? stepButtonDone : stepButtonMuted}
         >
           {isDone ? "Completed" : "Select Terms"}
         </button>
@@ -460,7 +475,7 @@ export default function PrenupDashboard() {
           return (
             <button
               onClick={() => setActivePopup("p1-joint-completed")}
-              className="ml-4 flex-shrink-0 rounded-lg bg-[#DCFCE7] px-4 py-2 text-xs font-semibold text-[#16A34A] hover:bg-[#BBF7D0]"
+              className={stepButtonDone}
             >
               Completed
             </button>
@@ -469,7 +484,7 @@ export default function PrenupDashboard() {
         return (
           <button
             onClick={() => setActivePopup("p2-wait-for-partner")}
-            className="ml-4 flex-shrink-0 rounded-lg bg-[#DCFCE7] px-4 py-2 text-xs font-semibold text-[#16A34A] hover:bg-[#BBF7D0]"
+            className={stepButtonDone}
           >
             Completed
           </button>
@@ -479,7 +494,7 @@ export default function PrenupDashboard() {
         return (
           <button
             onClick={() => setActivePopup("p2-joint-initial")}
-            className="ml-4 flex-shrink-0 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary/90"
+            className={stepButtonTodo}
           >
             Select Terms
           </button>
@@ -488,7 +503,7 @@ export default function PrenupDashboard() {
       return (
         <button
           onClick={() => router.push("/dashboard/joint-assets")}
-          className="ml-4 flex-shrink-0 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary/90"
+          className={stepButtonTodo}
         >
           Select Terms
         </button>
@@ -500,7 +515,7 @@ export default function PrenupDashboard() {
         return (
           <button
             onClick={() => router.push("/dashboard/final-review-confirmation")}
-            className="ml-4 flex-shrink-0 rounded-lg bg-[#DCFCE7] px-4 py-2 text-xs font-semibold text-[#16A34A] hover:bg-[#BBF7D0]"
+            className={stepButtonDone}
           >
             Completed
           </button>
@@ -518,23 +533,9 @@ export default function PrenupDashboard() {
         );
       }
 
-      const p1IsWaiting = iAmWaitingForReview && !isMutualApproved;
-      const p2IsWaiting = false;
-
-      if (p1IsWaiting || p2IsWaiting) {
-        return (
-          <button
-            onClick={() => router.push("/dashboard/final-review-confirmation")}
-            className="ml-4 flex-shrink-0 rounded-lg bg-amber-100 px-4 py-2 text-xs font-semibold text-amber-700 hover:bg-amber-200"
-          >
-            Waiting for Partner Review
-          </button>
-        );
-      }
-
       const p1CanReview = isUser1 && areAll4SectionsComplete;
       const p2CanReview = isUser2 && isP1SentForReview;
-      const canReview = isMyTurnToApprove || p1CanReview || p2CanReview;
+      const canReview = isMyTurnToApprove || iDisapproved || p1CanReview || p2CanReview;
 
       if (canReview) {
         return (
@@ -569,7 +570,7 @@ export default function PrenupDashboard() {
           </h1>
           <p className="mt-1 text-sm text-[#6B6B80]">
             {allStepsDone
-              ? "Here is the current status of your prenuptial agreement."
+              ? "Your Draft Agreement is ready, A case Manager will be assigned to you soon"
               : "Your prenup is taking shape."}
           </p>
         </div>
@@ -708,7 +709,13 @@ export default function PrenupDashboard() {
                     </div>
 
                     <div className="hidden w-28 flex-shrink-0 text-right text-xs font-medium text-[#8A8AA0] lg:block">
-                      {isDone ? "Completed" : isActive ? "In progress" : "Not started"}
+                      {senderLocked || reviewerOpen
+                        ? "In progress"
+                        : isDone
+                          ? "Completed"
+                          : isActive
+                            ? "In progress"
+                            : "Not started"}
                     </div>
 
                     {renderStepButton(step)}
@@ -729,39 +736,12 @@ export default function PrenupDashboard() {
         >
           <div className="overflow-hidden">
             <div className="grid gap-6 md:grid-cols-2">
-              {/* Legal advice */}
-              <div className="rounded-2xl border border-[#E7E7F2] bg-white p-6">
-                <h3 className="text-sm font-semibold text-[#1E1B3C]">
-                  Your independent legal advice
-                </h3>
-                <p className="mt-1 text-xs text-[#8A8AA0]">
-                  Under England and Wales law, both partners receive separate
-                  advice from independent law firms.
-                </p>
-                <div className="mt-4 flex flex-col gap-3">
-                  {legalAdvisers.map((adviser) => (
-                    <div
-                      key={adviser.name}
-                      className="flex items-center gap-3 rounded-xl border border-[#EDEDF5] p-3"
-                    >
-                      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[#EDE9FE] text-xs font-semibold text-[#5B21B6]">
-                        {adviser.initials}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-sm font-semibold text-[#1E1B3C]">
-                          {adviser.name}
-                        </div>
-                        <div className="text-xs text-[#8A8AA0]">
-                          {adviser.role}
-                        </div>
-                        <span className="mt-1 inline-block rounded bg-[#DCFCE7] px-1.5 py-0.5 text-[10px] font-semibold text-[#16A34A]">
-                          {adviser.tag}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              {/* Case manager: assigned, or a placeholder until one is */}
+              <CaseManagerCard
+                name={caseManagerName || undefined}
+                email={caseManagerEmail || undefined}
+                status={caseManagerName ? "assigned" : "pending"}
+              />
 
               {/* Documents */}
               <div className="rounded-2xl border border-[#E7E7F2] bg-white p-6">
@@ -772,31 +752,17 @@ export default function PrenupDashboard() {
                   Access and download your initial schedules and master
                   agreement files.
                 </p>
-                <div className="mt-4 flex flex-col gap-3">
-                  {caseDocuments.map((doc) => (
-                    <div
-                      key={doc.name}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-[#EDEDF5] p-3"
-                    >
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-semibold text-[#1E1B3C]">
-                          {doc.name}
-                        </div>
-                        <div className="text-xs text-[#8A8AA0]">{doc.meta}</div>
-                      </div>
-                      {doc.status === "download" ? (
-                        <button className="flex flex-shrink-0 items-center gap-1.5 rounded-lg border border-[#DDD6FE] px-3 py-1.5 text-xs font-semibold text-[#6D28D9] hover:bg-[#FAF9FF]">
-                          <DownloadIcon />
-                          Download
-                        </button>
-                      ) : (
-                        <span className="flex flex-shrink-0 items-center gap-1.5 rounded-lg bg-[#F1F1F6] px-3 py-1.5 text-xs font-semibold text-[#B4B4C4]">
-                          <LockIcon />
-                          Locked
-                        </span>
-                      )}
+                <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-[#EDEDF5] p-3">
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-semibold text-[#1E1B3C]">
+                      Draft Agreement
                     </div>
-                  ))}
+                    <div className="text-xs text-[#8A8AA0]">Your draft agreement is ready</div>
+                  </div>
+                  <button className="flex flex-shrink-0 items-center gap-1.5 rounded-lg border border-[#DDD6FE] px-3 py-1.5 text-xs font-semibold text-[#6D28D9] hover:bg-[#FAF9FF]">
+                    <DownloadIcon />
+                    Download
+                  </button>
                 </div>
               </div>
             </div>

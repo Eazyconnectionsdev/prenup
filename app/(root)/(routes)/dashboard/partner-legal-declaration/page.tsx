@@ -1,5 +1,8 @@
 "use client";
 
+import OwnForm from "../legal-declaration/page";
+import { EditingPartnerProvider } from "@/components/questionnaire/EditingPartnerContext";
+import { useJointSectionStatus } from "@/hooks/useJointSectionStatus";
 import { useState } from "react";
 import { FileText, ShieldCheck } from "lucide-react";
 import { useQuestionnaire } from "@/components/questionnaire/useQuestionnaire";
@@ -17,7 +20,7 @@ import {
 } from "@/components/questionnaire/declarations";
 import type { DeclarationsFormData } from "@/types/questionnaire/declarations";
 
-export default function PartnerLegalDeclarationsView() {
+function PartnerLegalDeclarationsView() {
   const [formData, setFormData] = useState<DeclarationsFormData>(initialDeclarations);
 
   const { isLoading } = useQuestionnaire({
@@ -79,4 +82,18 @@ export default function PartnerLegalDeclarationsView() {
       ))}
     </FormShell>
   );
+}
+
+// The partner who sent the case back for changes edits their partner's answers
+// in the real form; everyone else sees the read-only view.
+export default function PartnerPage() {
+  const { iDisapproved } = useJointSectionStatus();
+  if (iDisapproved) {
+    return (
+      <EditingPartnerProvider>
+        <OwnForm />
+      </EditingPartnerProvider>
+    );
+  }
+  return <PartnerLegalDeclarationsView />;
 }

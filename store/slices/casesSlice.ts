@@ -24,6 +24,7 @@ const initialState: CasesState = {
   fullyLocked: false,
   workflowStatus: "DRAFT",
   agreementType: null,
+  assignedCaseManager: null,
   myInformation: {},
   partnerInformation: {},
   jointInformation: {},
@@ -76,6 +77,7 @@ const CasesSlice = createSlice({
           state.fullyLocked = payload.fullyLocked;
           state.workflowStatus = payload.workflowStatus;
           state.agreementType = payload.agreementType ?? null;
+          state.assignedCaseManager = payload.assignedCaseManager ?? null;
           state.myInformation = payload.myInformation ?? {};
           state.partnerInformation = payload.partnerInformation ?? {};
           state.jointInformation = payload.jointInformation ?? {};

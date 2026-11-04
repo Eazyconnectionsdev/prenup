@@ -1,5 +1,8 @@
 "use client";
 
+import OwnForm from "../individual_assets/page";
+import { EditingPartnerProvider } from "@/components/questionnaire/EditingPartnerContext";
+import { useJointSectionStatus } from "@/hooks/useJointSectionStatus";
 import { useState } from "react";
 import { Landmark } from "lucide-react";
 import { useQuestionnaire } from "@/components/questionnaire/useQuestionnaire";
@@ -11,7 +14,7 @@ import {
 } from "@/components/questionnaire/sections/AssetsFields";
 import type { AssetsData } from "@/types/questionnaire/assets-fields";
 
-export default function PartnerIndividualAssetsView() {
+function PartnerIndividualAssetsView() {
   const [data, setData] = useState<AssetsData>(initialAssets);
 
   const { isLoading } = useQuestionnaire({
@@ -32,4 +35,18 @@ export default function PartnerIndividualAssetsView() {
       <AssetsFields data={data} readOnly />
     </FormShell>
   );
+}
+
+// The partner who sent the case back for changes edits their partner's answers
+// in the real form; everyone else sees the read-only view.
+export default function PartnerPage() {
+  const { iDisapproved } = useJointSectionStatus();
+  if (iDisapproved) {
+    return (
+      <EditingPartnerProvider>
+        <OwnForm />
+      </EditingPartnerProvider>
+    );
+  }
+  return <PartnerIndividualAssetsView />;
 }
