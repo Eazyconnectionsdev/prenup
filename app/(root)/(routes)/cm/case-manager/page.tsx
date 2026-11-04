@@ -15,7 +15,7 @@ export default function Page() {
   useEffect(() => {
     async function fetchCases() {
       try {
-        const { data } = await Axios.get("/cases");
+        const { data } = await Axios.get("/case-manager/cases");
         setCases(data);
       } catch (error) {
         console.log("Error while fetching cases in case manager");

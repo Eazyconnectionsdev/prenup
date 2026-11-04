@@ -97,6 +97,10 @@ export default function CasesTable({
   const [search, setSearch] = useState("");
   const router = useRouter();
 
+  const currentUser = useSelector((state: RootState) => state.auth?.user);
+  const currentUserId = currentUser?._id || currentUser?.id;
+  const isCaseManager = currentUser?.role === "case_manager";
+
   const handleUnclock = async (id: string) => {
     try {
       await Axios.post(`/cases/${id}/unlock`);
@@ -106,7 +110,48 @@ export default function CasesTable({
   };
 
   const normalized = useMemo(() => {
-    return (cases || []).map((c: any, idx: number) => {
+    return (cases || [])
+      .filter((c: any) => {
+        // 1. Case must have partner invited
+        const isPartnerInvited = Boolean(c.partnerInvited);
+        if (!isPartnerInvited) return false;
+
+        // 2. Final review must be submitted and accepted by both users
+        const isFinalReviewAccepted =
+          Boolean(c.approval?.user1Approved && c.approval?.user2Approved) ||
+          c.approval?.mutualApprovalAndSnapshot === "COMPLETED" ||
+          [
+            "COUPLE_SUBMITTED",
+            "CM_APPROVED",
+            "PRE_LAWYER_PENDING",
+            "PRE_LAWYER_COMPLETED",
+            "LAWYERS_ASSIGNED",
+            "LAWYER_CLIENT_CONFIRMATION",
+            "LAWYER_REVIEW",
+            "LAWYER_REVIEW_COMPLETED",
+            "LAWYER_ILA_PENDING",
+            "LAWYER_SIGNOFF_COMPLETE",
+            "COMPLETED",
+            "ARCHIVED",
+          ].includes(c.workflowStatus);
+        if (!isFinalReviewAccepted) return false;
+
+        // 3. For a case manager: only show unassigned cases or cases assigned to this case manager
+        if (isCaseManager) {
+          const assignedCmId =
+            c.assignedCaseManager?._id ||
+            c.assignedCaseManager?.id ||
+            (typeof c.assignedCaseManager === "string" ? c.assignedCaseManager : null);
+          const isUnassigned = !assignedCmId;
+          const isAssignedToMe = Boolean(
+            assignedCmId && currentUserId && String(assignedCmId) === String(currentUserId)
+          );
+          if (!isUnassigned && !isAssignedToMe) return false;
+        }
+
+        return true;
+      })
+      .map((c: any, idx: number) => {
       const id =
         c.id ||
         (typeof c._id === "string" ? c._id : c._id?.$oid) ||
