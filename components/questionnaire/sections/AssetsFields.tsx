@@ -5,6 +5,7 @@ import {
   Boxes,
   Briefcase,
   ChartColumnIncreasing,
+  ChevronDown,
   FileText,
   Gem,
   Home,
@@ -15,6 +16,7 @@ import {
   MatrixBox,
   RowItem,
   SectionCard,
+  Tooltip,
   TreatmentSelect,
   ValueWithUnsure,
   YesNoToggle,
@@ -225,16 +227,25 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
     field: keyof RowOf<K> & string,
     placeholder: string,
     extra: React.InputHTMLAttributes<HTMLInputElement> = {},
+    tooltip?: string,
   ) => (
-    <input
-      type="text"
-      placeholder={placeholder}
-      value={String(row[field] ?? "")}
-      onChange={(e) => update(key, row.id, { [field]: e.target.value } as Partial<RowOf<K>>)}
-      disabled={readOnly}
-      className={inputClasses}
-      {...extra}
-    />
+    <div className="relative w-full">
+      <input
+        type="text"
+        placeholder={placeholder}
+        title={tooltip}
+        value={String(row[field] ?? "")}
+        onChange={(e) => update(key, row.id, { [field]: e.target.value } as Partial<RowOf<K>>)}
+        disabled={readOnly}
+        className={`${inputClasses} ${tooltip ? "pr-9" : ""}`}
+        {...extra}
+      />
+      {tooltip && (
+        <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+          <Tooltip text={tooltip} />
+        </div>
+      )}
+    </div>
   );
 
   const select = <K extends ListKey>(
@@ -243,21 +254,40 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
     field: keyof RowOf<K> & string,
     placeholder: string,
     options: Option[],
-  ) => (
-    <select
-      value={String(row[field] ?? "")}
-      onChange={(e) => update(key, row.id, { [field]: e.target.value } as Partial<RowOf<K>>)}
-      disabled={readOnly}
-      className={inputClasses}
-    >
-      <option value="">{placeholder}</option>
-      {options.map((o) => (
-        <option key={o.value} value={o.value}>
-          {o.label}
-        </option>
-      ))}
-    </select>
-  );
+    tooltip?: string,
+  ) => {
+    const val = String(row[field] ?? "");
+    return (
+      <div className="relative w-full">
+        <select
+          value={val}
+          onChange={(e) => update(key, row.id, { [field]: e.target.value } as Partial<RowOf<K>>)}
+          disabled={readOnly}
+          title={tooltip}
+          className={`${inputClasses} appearance-none ${tooltip ? "pr-16" : "pr-10"} cursor-pointer ${
+            !val ? "text-slate-400" : "text-slate-900 font-medium"
+          }`}
+        >
+          <option value="" disabled className="text-slate-400">
+            {placeholder}
+          </option>
+          {options.map((o) => (
+            <option key={o.value} value={o.value} className="text-slate-900 font-medium">
+              {o.label}
+            </option>
+          ))}
+        </select>
+        <div className={`pointer-events-none absolute ${tooltip ? "right-9" : "right-3.5"} top-1/2 -translate-y-1/2 text-slate-400`}>
+          <ChevronDown className="h-4 w-4" />
+        </div>
+        {tooltip && (
+          <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+            <Tooltip text={tooltip} />
+          </div>
+        )}
+      </div>
+    );
+  };
 
   // Value input with the "I am unsure" checkbox (rows that have `valueUnknown`)
   const value = <K extends ListKey>(
@@ -338,7 +368,7 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
   };
 
   const grid = (cols: string, children: ReactNode) => (
-    <div className={`mb-3.5 grid grid-cols-1 gap-3.5 ${cols}`}>{children}</div>
+    <div className={`mb-3.5 grid grid-cols-1 gap-3.5 items-start ${cols}`}>{children}</div>
   );
 
   return (
@@ -350,7 +380,7 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
           title: "Property & Real Estate",
           icon: <Home className="h-5 w-5" />,
           tooltip:
-            "Include any property or real estate you own or have a financial interest in, including mortgaged properties.",
+            "Include any property you own entirely or partly, including overseas properties and interests held with family members, trusts, or business partners.",
           question: ask(
             "Do you own, partly own, or have a financial interest in any real estate / properties?",
             "Do they own, partly own, or have a financial interest in any real estate / properties?",
@@ -380,24 +410,45 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
               <>
                 {text("realEstate", row, "mortgageBalance", "Mortgage balance (£)", { type: "number" })}
                 {text("realEstate", row, "earlyPenalty", "Early penalty charges (£)", { type: "number" })}
-                {text("realEstate", row, "ownershipShare", "Ownership share %", {
-                  type: "number",
-                  min: 0,
-                  max: 100,
-                })}
+                {text(
+                  "realEstate",
+                  row,
+                  "ownershipShare",
+                  "Ownership share %",
+                  {
+                    type: "number",
+                    min: 0,
+                    max: 100,
+                  },
+                  "Please provide your approximate ownership percentage if the asset is not wholly owned by you.",
+                )}
               </>,
             )}
             {grid(
               "sm:grid-cols-2",
               <>
-                {select("realEstate", row, "ownershipMode", "Ownership mode", [
-                  { value: "Solely", label: "Solely Owned" },
-                  { value: "Jointly", label: "Jointly Owned (with family, business partners, etc.)" },
-                ])}
-                {select("realEstate", row, "thirdPartyInterest", "Third-party interest?", [
-                  { value: "No", label: "No" },
-                  { value: "Yes", label: "Yes" },
-                ])}
+                {select(
+                  "realEstate",
+                  row,
+                  "ownershipMode",
+                  "Ownership mode",
+                  [
+                    { value: "Solely", label: "Solely Owned" },
+                    { value: "Jointly", label: "Jointly Owned (with family, business partners, etc.)" },
+                  ],
+                  "If another person has a legal or beneficial interest in the asset, please select \"Jointly Owned\" and provide further details.",
+                )}
+                {select(
+                  "realEstate",
+                  row,
+                  "thirdPartyInterest",
+                  "Third-party interest?",
+                  [
+                    { value: "No", label: "No" },
+                    { value: "Yes", label: "Yes" },
+                  ],
+                  "Third-party interests may include family loans, trust arrangements, or any person with a financial claim over the asset.",
+                )}
               </>,
             )}
             {row.ownershipMode === "Jointly" && (
@@ -430,7 +481,7 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
           title: "Savings & Investments",
           icon: <ChartColumnIncreasing className="h-5 w-5" />,
           tooltip:
-            "Include all bank accounts, cash savings, ISAs, premium bonds, stocks, and investment portfolios.",
+            "Include bank accounts, ISAs, investment portfolios, premium bonds, cryptocurrency holdings, and cash savings held in your sole name.",
           question: ask(
             "Do you currently hold any personal bank accounts, cash savings, premium bonds, or investment portfolios?",
             "Do they currently hold any personal bank accounts, cash savings, premium bonds, or investment portfolios?",
@@ -460,7 +511,7 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
           title: "Pensions & Retirement Funds",
           icon: <Umbrella className="h-5 w-5" />,
           tooltip:
-            "Include all private, occupational, personal, and state pension entitlements, along with their Cash Equivalent Transfer Values (CETV).",
+            "Pension values may be relevant during relationship breakdowns. Please provide your most recent valuation where available.",
           question: ask(
             "Do you hold any private, corporate, or state pension pots or retirement annuities?",
             "Do they hold any private, corporate, or state pension pots or retirement annuities?",
@@ -489,7 +540,7 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
           title: "Business Interests",
           icon: <Briefcase className="h-5 w-5" />,
           tooltip:
-            "Include any directorships, shares, partnerships, or sole trader businesses you have an interest in.",
+            "Include any companies, partnerships, sole trader businesses, or shareholdings, whether active, dormant, or awaiting sale.",
           question: ask(
             "Are you a director, shareholder, partner, or sole trader in any active or dormant business?",
             "Are they a director, shareholder, partner, or sole trader in any active or dormant business?",
@@ -511,29 +562,42 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
               <>
                 {text("businesses", row, "turnover", "Turnover (£) (optional)", { type: "number" })}
                 {text("businesses", row, "netProfit", "Net profit (£) (optional)", { type: "number" })}
-                {text("businesses", row, "ownershipPercent", "Ownership %", {
-                  type: "number",
-                  min: 0,
-                  max: 100,
-                })}
+                {text(
+                  "businesses",
+                  row,
+                  "ownershipPercent",
+                  "Ownership %",
+                  {
+                    type: "number",
+                    min: 0,
+                    max: 100,
+                  },
+                  "Please provide your approximate ownership percentage if the asset is not wholly owned by you.",
+                )}
               </>,
             )}
             {grid(
               "sm:grid-cols-2",
               <>
                 {value("businesses", row, "valueOfStake", "Value of stake (£)")}
-                <input
-                  type="text"
-                  placeholder={
-                    row.valueUnknown
-                      ? "Not required (value unknown)"
-                      : "Valuation justification (e.g. book value)"
-                  }
-                  value={row.valueUnknown ? "" : row.justification}
-                  disabled={readOnly || row.valueUnknown}
-                  onChange={(e) => update("businesses", row.id, { justification: e.target.value })}
-                  className={inputClasses}
-                />
+                <div className="relative w-full">
+                  <input
+                    type="text"
+                    placeholder={
+                      row.valueUnknown
+                        ? "Not required (value unknown)"
+                        : "Valuation justification (e.g. book value)"
+                    }
+                    title="Please explain how you estimated the value (e.g., latest statement, market estimate, accountant valuation, or book value)."
+                    value={row.valueUnknown ? "" : row.justification}
+                    disabled={readOnly || row.valueUnknown}
+                    onChange={(e) => update("businesses", row.id, { justification: e.target.value })}
+                    className={`${inputClasses} pr-9`}
+                  />
+                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+                    <Tooltip text="Please explain how you estimated the value (e.g., latest statement, market estimate, accountant valuation, or book value)." />
+                  </div>
+                </div>
               </>,
             )}
             {treatment("businesses", row, { options: BUSINESS_TREATMENT_OPTIONS })}
@@ -547,7 +611,8 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
         {
           title: "Intellectual Property",
           icon: <FileText className="h-5 w-5" />,
-          tooltip: "Patents, trademarks, copyrights, licensing rights or other valuable IP.",
+          tooltip:
+            "Intellectual property may include patents, trademarks, copyrights, websites, software, domain names, and royalty arrangements with financial value.",
           question: ask(
             "Do you personally own any intellectual property or licensing rights that have financial value?",
             "Do they personally own any intellectual property or licensing rights that have financial value?",
@@ -590,7 +655,7 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
           title: "High-Value Personal Belongings",
           icon: <Gem className="h-5 w-5" />,
           tooltip:
-            "Include personal property items with an individual value exceeding £5,000, including cars, artwork, jewellery, and digital assets.",
+            "Include items valued individually at more than £5,000, such as vehicles, jewellery, artwork, watches, or digital assets.",
           question: ask(
             "Do you own any personal belongings valued individually over £5,000 (such as vehicles, jewellery, artwork, or cryptocurrency)?",
             "Do they own any personal belongings valued individually over £5,000 (such as vehicles, jewellery, artwork, or cryptocurrency)?",
@@ -620,7 +685,7 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
           title: "Other Personal Assets",
           icon: <Boxes className="h-5 w-5" />,
           tooltip:
-            "Include any other financial assets, interests under trusts, inheritances, or entitlements not listed above.",
+            "Include any inheritances, trust interests, offshore accounts, future entitlements, or assets not captured elsewhere in this questionnaire.",
           question: ask(
             "Have we missed anything? Do you own or expect to receive any other assets, financial interests, inheritances, or property not listed above?",
             "Do they own or expect to receive any other assets, financial interests, inheritances, or property not listed above?",

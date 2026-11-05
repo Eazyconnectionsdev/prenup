@@ -9,6 +9,7 @@ import {
   Briefcase,
   Building2,
   ChartColumnIncreasing,
+  ChevronDown,
   FileText,
   Gem,
   Home,
@@ -28,6 +29,7 @@ import {
   YesNoToggle,
   MatrixBox,
   RowItem,
+  Tooltip,
   ValueWithUnsure,
   TreatmentSelect,
   makeToggleHandler,
@@ -51,6 +53,21 @@ const sharedTreatmentOptions: { value: Treatment; label: string }[] = [
   { value: "Percentage", label: "Share by Percentage" },
   { value: "Custom", label: "Custom Arrangement" },
 ];
+
+const jointTreatmentTooltips = {
+  select:
+    "This records your current intentions. Your independent solicitors will review whether the proposed arrangements are appropriate and legally workable.",
+  contribution:
+    "Explain how ownership or future proceeds should be divided based on financial contributions made by each party.",
+  percentage:
+    "Specify the percentage allocation you would like applied to this asset (e.g., 60% / 40%).",
+  custom:
+    "Describe any bespoke arrangement you would like your solicitors to consider when preparing the draft agreement.",
+};
+
+const jointUnsureTooltip =
+  "An estimated value is sufficient. Your solicitor may request supporting information if a formal valuation becomes necessary.";
+const jointUnsureLabel = "We are unsure of the current value.";
 
 
 const livingArrangementOptions: { value: LivingArrangement; label: string; icon: any }[] =
@@ -538,7 +555,7 @@ useEffect(() => {
                         className={inputClasses}
                       />
                     </div>
-                    <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-3">
+                    <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-3 items-start">
                       <input
                         type="text"
                         placeholder="Postcode"
@@ -579,9 +596,11 @@ useEffect(() => {
                           })
                         }
                         placeholder="Value (GBP)"
+                        label={jointUnsureLabel}
+                        tooltip={jointUnsureTooltip}
                       />
                     </div>
-                    <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-3">
+                    <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-3 items-start">
                       <input
                         type="number"
                         placeholder="Mortgage Balance"
@@ -606,36 +625,53 @@ useEffect(() => {
                         required
                         className={inputClasses}
                       />
-                      <input
-                        type="number"
-                        min={0}
-                        max={100}
-                        placeholder="Ownership Percentage (%)"
-                        value={row.ownershipPercentage}
-                        onChange={(e) =>
-                          updateRow(setSharedRealEstate, row.id, {
-                            ownershipPercentage: e.target.value,
-                          })
-                        }
-                        required
-                        className={inputClasses}
-                      />
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          placeholder="Ownership Percentage (%)"
+                          title="Please provide the current ownership split as recorded in any legal or beneficial ownership arrangements."
+                          value={row.ownershipPercentage}
+                          onChange={(e) =>
+                            updateRow(setSharedRealEstate, row.id, {
+                              ownershipPercentage: e.target.value,
+                            })
+                          }
+                          required
+                          className={`${inputClasses} pr-9 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+                        />
+                        <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+                          <Tooltip text="Please provide the current ownership split as recorded in any legal or beneficial ownership arrangements." />
+                        </div>
+                      </div>
                     </div>
                     <div className="mb-3.5">
-                      <select
-                        value={row.thirdPartyInterest}
-                        onChange={(e) =>
-                          updateRow(setSharedRealEstate, row.id, {
-                            thirdPartyInterest: e.target.value,
-                          })
-                        }
-                        required
-                        className={inputClasses}
-                      >
-                        <option value="">Third-Party Interest?</option>
-                        <option value="No">No</option>
-                        <option value="Yes">Yes</option>
-                      </select>
+                      <div className="relative w-full">
+                        <select
+                          value={row.thirdPartyInterest}
+                          onChange={(e) =>
+                            updateRow(setSharedRealEstate, row.id, {
+                              thirdPartyInterest: e.target.value,
+                            })
+                          }
+                          required
+                          title="This includes loans or financial contributions from parents, family members, trusts, or any other third parties with an interest in the property."
+                          className={`${inputClasses} appearance-none pr-16 cursor-pointer ${
+                            !row.thirdPartyInterest
+                              ? "text-slate-400"
+                              : "text-slate-900 font-medium"
+                          }`}
+                        >
+                          <option value="">Third-Party Interest?</option>
+                          <option value="No">No</option>
+                          <option value="Yes">Yes</option>
+                        </select>
+                        <ChevronDown className="pointer-events-none absolute right-9 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+                          <Tooltip text="This includes loans or financial contributions from parents, family members, trusts, or any other third parties with an interest in the property." />
+                        </div>
+                      </div>
                     </div>
                     {row.thirdPartyInterest === "Yes" && (
                       <textarea
@@ -657,6 +693,7 @@ useEffect(() => {
                       }
                       label="How should this property be treated?"
                       options={sharedTreatmentOptions}
+                      tooltips={jointTreatmentTooltips}
                     />
                   </RowItem>
                 ))}
@@ -760,6 +797,7 @@ useEffect(() => {
                       fields={row}
                       onChange={(f) => updateRow(setSharedSavings, row.id, f)}
                       options={sharedTreatmentOptions}
+                      tooltips={jointTreatmentTooltips}
                     />
                   </RowItem>
                 ))}
@@ -800,7 +838,7 @@ useEffect(() => {
                     key={row.id}
                     onDelete={() => removeRow(setSharedBusinesses, row.id)}
                   >
-                    <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-[2fr_1fr]">
+                    <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-[2fr_1fr] items-start">
                       <input
                         type="text"
                         placeholder="Registered Business Name"
@@ -830,7 +868,7 @@ useEffect(() => {
                         <option value="Partnership">Partnership</option>
                       </select>
                     </div>
-                    <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-3">
+                    <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-3 items-start">
                       <input
                         type="number"
                         placeholder="Last Year Turnover (£)"
@@ -855,22 +893,28 @@ useEffect(() => {
                         required
                         className={inputClasses}
                       />
-                      <input
-                        type="number"
-                        min={0}
-                        max={100}
-                        placeholder="Your Ownership %"
-                        value={row.ownershipPercent}
-                        onChange={(e) =>
-                          updateRow(setSharedBusinesses, row.id, {
-                            ownershipPercent: e.target.value,
-                          })
-                        }
-                        required
-                        className={inputClasses}
-                      />
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          placeholder="Your Ownership %"
+                          title="Please provide the current ownership split as recorded in any legal or beneficial ownership arrangements."
+                          value={row.ownershipPercent}
+                          onChange={(e) =>
+                            updateRow(setSharedBusinesses, row.id, {
+                              ownershipPercent: e.target.value,
+                            })
+                          }
+                          required
+                          className={`${inputClasses} pr-9 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+                        />
+                        <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+                          <Tooltip text="Please provide the current ownership split as recorded in any legal or beneficial ownership arrangements." />
+                        </div>
+                      </div>
                     </div>
-                    <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+                    <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-2 items-start">
                       <ValueWithUnsure
                         id={`val_${row.id}`}
                         value={row.valueOfStake}
@@ -886,24 +930,34 @@ useEffect(() => {
                           })
                         }
                         placeholder="Value of Joint Stake (£)"
+                        label={jointUnsureLabel}
+                        tooltip={jointUnsureTooltip}
                       />
-                      <input
-                        type="text"
-                        placeholder={
-                          row.valueUnknown
-                            ? "Not required (Value unknown)"
-                            : "Valuation Justification"
-                        }
-                        value={row.valueUnknown ? "" : row.justification}
-                        disabled={row.valueUnknown}
-                        onChange={(e) =>
-                          updateRow(setSharedBusinesses, row.id, {
-                            justification: e.target.value,
-                          })
-                        }
-                        required={!row.valueUnknown}
-                        className={inputClasses}
-                      />
+                      <div className="relative w-full">
+                        <input
+                          type="text"
+                          placeholder={
+                            row.valueUnknown
+                              ? "Not required (Value unknown)"
+                              : "Valuation Justification"
+                          }
+                          title="Examples include a recent valuation, accountant estimate, Companies House filings, or a reasonable market estimate."
+                          value={row.valueUnknown ? "" : row.justification}
+                          disabled={row.valueUnknown}
+                          onChange={(e) =>
+                            updateRow(setSharedBusinesses, row.id, {
+                              justification: e.target.value,
+                            })
+                          }
+                          required={!row.valueUnknown}
+                          className={`${inputClasses} ${!row.valueUnknown ? "pr-9" : ""}`}
+                        />
+                        {!row.valueUnknown && (
+                          <div className="absolute right-2.5 top-[23px] -translate-y-1/2">
+                            <Tooltip text="Examples include a recent valuation, accountant estimate, Companies House filings, or a reasonable market estimate." />
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <div className="mb-3.5">
                       <input
@@ -925,6 +979,7 @@ useEffect(() => {
                         updateRow(setSharedBusinesses, row.id, f)
                       }
                       options={sharedTreatmentOptions}
+                      tooltips={jointTreatmentTooltips}
                     />
                   </RowItem>
                 ))}
@@ -1002,7 +1057,7 @@ useEffect(() => {
                         <option value="Other">Other</option>
                       </select>
                     </div>
-                    <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+                    <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-2 items-start">
                       <ValueWithUnsure
                         id={`val_${row.id}`}
                         value={row.value}
@@ -1014,6 +1069,8 @@ useEffect(() => {
                           updateRow(setSharedIP, row.id, { valueUnknown: v })
                         }
                         placeholder="Estimated Valuation (£)"
+                        label={jointUnsureLabel}
+                        tooltip={jointUnsureTooltip}
                       />
                       <input
                         type="text"
@@ -1042,6 +1099,7 @@ useEffect(() => {
                       fields={row}
                       onChange={(f) => updateRow(setSharedIP, row.id, f)}
                       options={sharedTreatmentOptions}
+                      tooltips={jointTreatmentTooltips}
                     />
                   </RowItem>
                 ))}
@@ -1081,7 +1139,7 @@ useEffect(() => {
                     key={row.id}
                     onDelete={() => removeRow(setSharedChattels, row.id)}
                   >
-                    <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-[2fr_1.5fr_1fr]">
+                    <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-[2fr_1.5fr_1fr] items-start">
                       <input
                         type="text"
                         placeholder="Asset Description / Name"
@@ -1124,6 +1182,8 @@ useEffect(() => {
                           })
                         }
                         placeholder="Value (GBP)"
+                        label={jointUnsureLabel}
+                        tooltip={jointUnsureTooltip}
                       />
                     </div>
                     <TreatmentSelect
@@ -1131,6 +1191,7 @@ useEffect(() => {
                       fields={row}
                       onChange={(f) => updateRow(setSharedChattels, row.id, f)}
                       options={sharedTreatmentOptions}
+                      tooltips={jointTreatmentTooltips}
                     />
                   </RowItem>
                 ))}
@@ -1173,7 +1234,7 @@ useEffect(() => {
                     key={row.id}
                     onDelete={() => removeRow(setSharedOtherAssets, row.id)}
                   >
-                    <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-[2fr_1fr]">
+                    <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-[2fr_1fr] items-start">
                       <input
                         type="text"
                         placeholder="Shared Asset Description (e.g. Joint Art Collection, Joint Foreign Asset)"
@@ -1199,6 +1260,8 @@ useEffect(() => {
                           })
                         }
                         placeholder="Estimated Value (GBP)"
+                        label={jointUnsureLabel}
+                        tooltip={jointUnsureTooltip}
                       />
                     </div>
                     <TreatmentSelect
@@ -1209,6 +1272,7 @@ useEffect(() => {
                       }
                       label="How should this shared asset be treated?"
                       options={sharedTreatmentOptions}
+                      tooltips={jointTreatmentTooltips}
                     />
                   </RowItem>
                 ))}

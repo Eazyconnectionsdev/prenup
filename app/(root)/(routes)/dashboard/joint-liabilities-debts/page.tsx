@@ -15,6 +15,7 @@ import {
   YesNoToggle,
   MatrixBox,
   RowItem,
+  Tooltip,
   TreatmentSelect,
   makeToggleHandler,
   updateRow,
@@ -38,6 +39,13 @@ const sharedTreatmentOptions: { value: Treatment; label: string }[] = [
   { value: "Percentage", label: "Share by Percentage" },
   { value: "Custom", label: "Custom Arrangement" },
 ];
+
+const jointLiabilitiesTreatmentTooltips = {
+  select:
+    "This records your current intentions regarding responsibility for this liability. Your independent solicitors will review the proposed arrangements.",
+  custom:
+    "Describe any arrangement that cannot be reflected through equal sharing, contribution-based sharing, or percentage allocations.",
+};
 
 function makeSharedDebtRow(): SharedDebtRow {
   return {
@@ -207,7 +215,7 @@ export default function SharedLiabilitiesForm({
         >
           {sharedDebts.map((row) => (
             <RowItem key={row.id} onDelete={() => removeRow(setSharedDebts, row.id)}>
-              <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-[1.5fr_1fr_1fr]">
+              <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-[1.5fr_1fr_1fr] items-start">
                 <input
                   type="text"
                   placeholder="Lender / Creditor Name"
@@ -233,15 +241,21 @@ export default function SharedLiabilitiesForm({
                   <option value="Tax Liability">Tax Liability</option>
                   <option value="Other">Other</option>
                 </select>
-                <input
-                  type="number"
-                  min={1}
-                  placeholder="Outstanding Balance (£)"
-                  value={row.outstandingBalance}
-                  onChange={(e) => updateRow(setSharedDebts, row.id, { outstandingBalance: e.target.value })}
-                  required
-                  className={inputClasses}
-                />
+                <div className="relative">
+                  <input
+                    type="number"
+                    min={1}
+                    placeholder="Outstanding Balance (£)"
+                    title="Please provide the approximate amount currently outstanding. An estimate is acceptable if the balance changes regularly."
+                    value={row.outstandingBalance}
+                    onChange={(e) => updateRow(setSharedDebts, row.id, { outstandingBalance: e.target.value })}
+                    required
+                    className={`${inputClasses} pr-9 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+                  />
+                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+                    <Tooltip text="Please provide the approximate amount currently outstanding. An estimate is acceptable if the balance changes regularly." />
+                  </div>
+                </div>
               </div>
               <TreatmentSelect
                 id={row.id}
@@ -249,6 +263,7 @@ export default function SharedLiabilitiesForm({
                 onChange={(f) => updateRow(setSharedDebts, row.id, f)}
                 label="How should this liability be treated?"
                 options={sharedTreatmentOptions}
+                tooltips={jointLiabilitiesTreatmentTooltips}
               />
             </RowItem>
           ))}
@@ -272,7 +287,7 @@ export default function SharedLiabilitiesForm({
           {formBody}
           <SubmitBar
             isSaving={isSubmitting}
-            label="Next: Matrimonial Agreement & Review"
+            label="Save & continue"
             withArrow
             backHref="/dashboard/joint-income-revenue"
           />
@@ -303,7 +318,7 @@ export default function SharedLiabilitiesForm({
                 onClick={() => router.push("/dashboard/matrimonial-agreement")}
                 className="inline-flex h-[42px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-[#5B4DF5] hover:from-indigo-700 hover:to-[#4E3EEA] px-7 text-[13.5px] font-semibold text-white shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/30 transition-all focus:outline-none focus:ring-2 focus:ring-[#5B4DF5]/30 cursor-pointer"
               >
-                Next: Matrimonial Agreement & Review →
+                Save &amp; continue →
               </button>
             </div>
           </div>

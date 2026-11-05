@@ -90,7 +90,7 @@ export default function FamilyDependentsForm() {
           title="Prior Marital History"
           icon={<History className="h-5 w-5" />}
           colorIndex={0}
-          tooltip="Disclosing previous marriages is crucial because existing financial orders or maintenance obligations from a prior divorce can affect asset distribution limits in a new agreement."
+          tooltip="Please include any previous marriages or civil partnerships, whether in the UK or overseas."
         >
           <FieldLabel>
             Have you previously been married or in a civil partnership before this relationship?
@@ -114,19 +114,22 @@ export default function FamilyDependentsForm() {
           </div>
 
           {isDivorced && (
-            <label className="mt-4 flex cursor-pointer items-center gap-3 rounded-[10px] border border-dashed border-slate-300 bg-slate-50 p-4">
-              <input
-                type="checkbox"
-                checked={formData.isLegallySeparated}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, isLegallySeparated: e.target.checked }))
-                }
-                className="h-[18px] w-[18px] cursor-pointer accent-indigo-600"
-              />
-              <span className="text-[0.9rem] font-semibold text-slate-900">
-                I am currently legally separated, and my divorce has not yet been finalised.
-              </span>
-            </label>
+            <div className="mt-4 flex items-center justify-between gap-3 rounded-[10px] border border-dashed border-slate-300 bg-slate-50 p-4">
+              <label className="flex cursor-pointer items-center gap-3 flex-1">
+                <input
+                  type="checkbox"
+                  checked={formData.isLegallySeparated}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, isLegallySeparated: e.target.checked }))
+                  }
+                  className="h-[18px] w-[18px] cursor-pointer accent-indigo-600"
+                />
+                <span className="text-[0.9rem] font-semibold text-slate-900">
+                  I am currently legally separated, and my divorce has not yet been finalised.
+                </span>
+              </label>
+              <Tooltip text="You may continue completing your questionnaire; however, your agreement may not be finalized until your divorce or dissolution has been legally completed." />
+            </div>
           )}
 
           {isDivorced && formData.isLegallySeparated && (
@@ -143,7 +146,7 @@ export default function FamilyDependentsForm() {
           title="Current Children"
           icon={<Baby className="h-5 w-5" />}
           colorIndex={1}
-          tooltip="All existing dependents must be declared. UK courts heavily scrutinize prenuptial agreements to ensure the needs and financial stability of any children are fully protected."
+          tooltip="Please include all biological children, legally adopted children, and stepchildren from current or previous relationships."
         >
           <FieldLabel>
             Do you have any children, including biological, adopted, or stepchildren, from this
@@ -166,7 +169,7 @@ export default function FamilyDependentsForm() {
             <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-6">
               <div className="mb-4 flex items-center gap-2 text-[0.8rem] font-bold uppercase tracking-wide text-slate-500">
                 <span>Children&apos;s details</span>
-                <Tooltip text="Enter the legal first and last name of each child, date of birth, and your parental relationship." />
+                <Tooltip text="Provide the child's full legal name, date of birth, and their relationship to you. This information helps your solicitor understand any existing or future family considerations." />
               </div>
 
               {children.map((child) => (
@@ -241,7 +244,7 @@ export default function FamilyDependentsForm() {
                 Do you and your partner plan, or think you may decide in the future, to have or adopt
                 children together?
               </span>
-              <Tooltip text="Anticipating future children is a cornerstone of a robust prenup. If a child is born later and the agreement didn't account for it, a court is highly likely to set the agreement aside due to a change in circumstances." />
+              <Tooltip text="This helps determine whether provisions relating to future children should be considered as part of your agreement." />
             </FieldLabel>
             <select
               id="futureParentalIntentions"
@@ -271,7 +274,7 @@ export default function FamilyDependentsForm() {
                 Do you currently own, or expect to have, any pets whose ownership or care you would
                 like to include in this agreement?
               </span>
-              <Tooltip text="In UK law, pets are technically treated as personal property chattels. Specifying pet ownership and maintenance schedules upfront avoids bitter disputes over care costs and custody if a separation happens." />
+              <Tooltip text="Family pets can be included in an agreement to clarify ownership, care arrangements, and responsibility should circumstances change." />
             </FieldLabel>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {(["Yes", "No"] as const).map((opt) => (

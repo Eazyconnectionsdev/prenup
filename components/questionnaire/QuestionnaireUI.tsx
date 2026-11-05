@@ -30,7 +30,7 @@ export {
 /* ---------------------------------------------------------------------- */
 
 export const inputClasses =
-  "w-full rounded-xl border border-slate-200 bg-[#FBFBFE] px-4 py-3 text-[13.5px] font-medium text-slate-900 transition-all duration-200 placeholder:text-slate-400 hover:border-slate-300 focus:bg-white focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 outline-none disabled:cursor-not-allowed disabled:opacity-70 min-h-[46px]";
+  "w-full rounded-xl border border-slate-200 bg-[#FBFBFE] px-4 py-3 text-[13.5px] font-medium text-slate-900 transition-all duration-200 placeholder:text-slate-400 hover:border-slate-300 focus:bg-white focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 outline-none disabled:cursor-not-allowed disabled:opacity-70 min-h-[46px] h-[46px]";
 
 export const textareaClasses =
   "w-full rounded-xl border border-slate-200 bg-[#FBFBFE] px-4 py-3 text-[13.5px] font-medium text-slate-900 transition-all duration-200 placeholder:text-slate-400 hover:border-slate-300 focus:bg-white focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 outline-none disabled:cursor-not-allowed disabled:opacity-70 min-h-[90px] resize-y";
@@ -674,18 +674,34 @@ export function MatrixBox({ title, children, onAdd, addLabel }: MatrixBoxProps) 
   );
 }
 
-export function RowItem({ children, onDelete }: { children: ReactNode; onDelete?: () => void }) {
+export function RowItem({
+  children,
+  onDelete,
+  title,
+}: {
+  children: ReactNode;
+  onDelete?: () => void;
+  title?: ReactNode;
+}) {
   return (
-    <div className="relative rounded-xl border border-slate-200/90 bg-white p-5 pt-8 shadow-xs">
+    <div className="relative rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs transition-all">
       {onDelete && (
-        <button
-          type="button"
-          onClick={onDelete}
-          aria-label="Remove item"
-          className="absolute right-3.5 top-3.5 flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-500 cursor-pointer"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
+        <div className={`flex items-center ${title ? "justify-between" : "justify-end"} mb-3.5`}>
+          {title && (
+            <div className="text-xs font-semibold text-slate-400">
+              {title}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={onDelete}
+            aria-label="Remove item"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-500 cursor-pointer"
+            title="Remove item"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
       )}
       {children}
     </div>
@@ -704,6 +720,8 @@ export function ValueWithUnsure({
   onUnknownChange,
   placeholder,
   readOnly,
+  label = "I am unsure of the current value.",
+  tooltip = "An estimate is sufficient at this stage. Your solicitor may request supporting documentation or updated valuations later in the process.",
 }: ValueWithUnsureProps) {
   return (
     <div>
@@ -717,16 +735,19 @@ export function ValueWithUnsure({
         placeholder={unknown ? "Value unknown" : placeholder}
         className={inputClasses}
       />
-      <label className="mt-2 flex cursor-pointer items-center gap-2 text-[12.5px] font-medium text-slate-600">
-        <input
-          type="checkbox"
-          checked={unknown}
-          onChange={(e) => onUnknownChange?.(e.target.checked)}
-          disabled={readOnly}
-          className="h-4 w-4 rounded-md border-slate-300 text-indigo-600 focus:ring-indigo-500 accent-indigo-600 cursor-pointer"
-        />
-        I am unsure of the current value.
-      </label>
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <label className="flex cursor-pointer items-center gap-2 text-[12.5px] font-medium text-slate-600">
+          <input
+            type="checkbox"
+            checked={unknown}
+            onChange={(e) => onUnknownChange?.(e.target.checked)}
+            disabled={readOnly}
+            className="h-4 w-4 rounded-md border-slate-300 text-indigo-600 focus:ring-indigo-500 accent-indigo-600 cursor-pointer"
+          />
+          {label}
+        </label>
+        <Tooltip text={tooltip} />
+      </div>
       {!readOnly && (
         <small className="mt-1 block pl-6 text-[12px] leading-tight text-slate-400">
           Please provide an estimated value where possible. You can update this later.
@@ -751,8 +772,43 @@ export function TreatmentSelect({
   label = "How should this be shared?",
   options = allTreatmentOptions,
   readOnly,
+  tooltips,
 }: TreatmentSelectProps) {
   const update = (patch: Partial<TreatmentFields>) => onChange?.({ ...fields, ...patch });
+  const isSettled = label.toLowerCase().includes("settled");
+  const isJointOrProperty = label.toLowerCase().includes("property") || label.toLowerCase().includes("shared");
+
+  const selectTooltip =
+    tooltips?.select ??
+    (isSettled
+      ? "This records your current intentions regarding responsibility for this liability. Your independent solicitor will discuss whether these arrangements are appropriate and legally workable."
+      : isJointOrProperty
+        ? "This records your current intentions. Your independent solicitors will review whether the proposed arrangements are appropriate and legally workable."
+        : "This helps us understand your intentions. Your independent solicitor will discuss whether these arrangements are appropriate and legally workable.");
+
+  const contributionTooltip =
+    tooltips?.contribution ??
+    (isSettled
+      ? "Explain how responsibility should be allocated between the parties, if applicable."
+      : isJointOrProperty
+        ? "Explain how ownership or future proceeds should be divided based on financial contributions made by each party."
+        : "Explain how ownership or entitlement should be determined, for example, based on deposits paid, income contributions, or other financial inputs.");
+
+  const percentageTooltip =
+    tooltips?.percentage ??
+    (isSettled
+      ? "Specify the percentage allocation you would like applied to this liability (e.g., 70% / 30%)."
+      : isJointOrProperty
+        ? "Specify the percentage allocation you would like applied to this asset (e.g., 60% / 40%)."
+        : "Please specify the percentage allocation you would like applied to this asset (e.g., 70% / 30%).");
+
+  const customTooltip =
+    tooltips?.custom ??
+    (isSettled
+      ? "Describe any bespoke arrangement you would like your solicitor to consider."
+      : isJointOrProperty
+        ? "Describe any bespoke arrangement you would like your solicitors to consider when preparing the draft agreement."
+        : "Describe any bespoke arrangements you would like your solicitor to consider when preparing your agreement.");
 
   return (
     <div className="mt-3.5">
@@ -763,7 +819,8 @@ export function TreatmentSelect({
           onChange={(e) => update({ treatment: e.target.value as Treatment })}
           disabled={readOnly}
           required
-          className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 py-3 text-[13.5px] font-medium text-slate-900 shadow-2xs transition-all hover:border-slate-300 focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 outline-none cursor-pointer pr-10"
+          title={selectTooltip}
+          className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 py-3 text-[13.5px] font-medium text-slate-900 shadow-2xs transition-all hover:border-slate-300 focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 outline-none cursor-pointer pr-16"
         >
           <option value="">{label}</option>
           {options.map((o) => (
@@ -772,15 +829,19 @@ export function TreatmentSelect({
             </option>
           ))}
         </select>
-        <div className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+        <div className="pointer-events-none absolute right-9 top-1/2 -translate-y-1/2 text-slate-400">
           <ChevronDown className="h-4.5 w-4.5" />
+        </div>
+        <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+          <Tooltip text={selectTooltip} />
         </div>
       </div>
 
       {fields.treatment === "Contribution" && (
         <div className="mt-3.5 rounded-xl border-l-4 border-[#6366F1] bg-[#F8FAFC] p-4 shadow-xs">
-          <label className="mb-1.5 block text-[13px] font-semibold text-slate-800">
-            Define contribution (e.g., salary, initial deposit):
+          <label className="mb-1.5 flex items-center justify-between gap-2 text-[13px] font-semibold text-slate-800">
+            <span>Define contribution (e.g., salary, initial deposit):</span>
+            <Tooltip text={contributionTooltip} />
           </label>
           <input
             type="text"
@@ -794,8 +855,9 @@ export function TreatmentSelect({
       )}
       {fields.treatment === "Percentage" && (
         <div className="mt-3.5 rounded-xl border-l-4 border-[#6366F1] bg-[#F8FAFC] p-4 shadow-xs">
-          <label className="mb-1.5 block text-[13px] font-semibold text-slate-800">
-            Specify percentage (e.g., 60/40):
+          <label className="mb-1.5 flex items-center justify-between gap-2 text-[13px] font-semibold text-slate-800">
+            <span>Specify percentage (e.g., 60/40):</span>
+            <Tooltip text={percentageTooltip} />
           </label>
           <input
             type="number"
@@ -811,8 +873,9 @@ export function TreatmentSelect({
       )}
       {fields.treatment === "Custom" && (
         <div className="mt-3.5 rounded-xl border-l-4 border-[#6366F1] bg-[#F8FAFC] p-4 shadow-xs">
-          <label className="mb-1.5 block text-[13px] font-semibold text-slate-800">
-            Custom arrangement details:
+          <label className="mb-1.5 flex items-center justify-between gap-2 text-[13px] font-semibold text-slate-800">
+            <span>Custom arrangement details:</span>
+            <Tooltip text={customTooltip} />
           </label>
           <textarea
             value={fields.customText}

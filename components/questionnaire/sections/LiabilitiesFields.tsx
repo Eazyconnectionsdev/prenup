@@ -1,13 +1,14 @@
 "use client";
 
 import React from "react";
-import { CreditCard, HandCoins } from "lucide-react";
+import { ChevronDown, CreditCard, HandCoins } from "lucide-react";
 import {
   FieldLabel,
   MatrixBox,
   Notice,
   RowItem,
   SectionCard,
+  Tooltip,
   TreatmentSelect,
   YesNoToggle,
   emptyTreatment,
@@ -94,7 +95,7 @@ export function LiabilitiesFields({ data, onChange, readOnly }: Props) {
         title={<>Personal Debts &amp; Loans</>}
         icon={<CreditCard className="h-5 w-5" />}
         colorIndex={0}
-        tooltip="List individual loans, outstanding credit cards, or lines of credit held solely in your name."
+        tooltip="Include all debts held in your name, even if someone else helps make repayments."
       >
         <FieldLabel>
           {ask(
@@ -119,37 +120,60 @@ export function LiabilitiesFields({ data, onChange, readOnly }: Props) {
                 key={row.id}
                 onDelete={readOnly ? undefined : () => set({ debts: data.debts.filter((r) => r.id !== row.id) })}
               >
-                <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-[1.5fr_1fr_1fr]">
-                  <input
-                    type="text"
-                    placeholder="Lender / creditor name"
-                    value={row.lenderName}
-                    onChange={(e) => updateDebt(row.id, { lenderName: e.target.value })}
-                    disabled={readOnly}
-                    className={inputClasses}
-                  />
-                  <select
-                    value={row.debtType}
-                    onChange={(e) => updateDebt(row.id, { debtType: e.target.value })}
-                    disabled={readOnly}
-                    className={inputClasses}
-                  >
-                    <option value="">Type of debt</option>
-                    {DEBT_TYPES.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
+                <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-[1.5fr_1fr_1fr] items-start">
+                  <div className="relative w-full">
+                    <input
+                      type="text"
+                      placeholder="Lender / creditor name"
+                      title="Examples include Barclays, HSBC, HMRC, Student Loans Company, or other lenders and creditors."
+                      value={row.lenderName}
+                      onChange={(e) => updateDebt(row.id, { lenderName: e.target.value })}
+                      disabled={readOnly}
+                      className={`${inputClasses} pr-9`}
+                    />
+                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+                      <Tooltip text="Examples include Barclays, HSBC, HMRC, Student Loans Company, or other lenders and creditors." />
+                    </div>
+                  </div>
+                  <div className="relative w-full">
+                    <select
+                      value={row.debtType}
+                      onChange={(e) => updateDebt(row.id, { debtType: e.target.value })}
+                      disabled={readOnly}
+                      title="Select the category that most closely matches the liability. If unsure, select &quot;Other Liability.&quot;"
+                      className={`${inputClasses} appearance-none pr-16 cursor-pointer ${
+                        !row.debtType ? "text-slate-400" : "text-slate-900 font-medium"
+                      }`}
+                    >
+                      <option value="" disabled className="text-slate-400">
+                        Type of debt
                       </option>
-                    ))}
-                  </select>
-                  <input
-                    type="number"
-                    min={1}
-                    placeholder="Outstanding balance (£)"
-                    value={row.outstandingBalance}
-                    onChange={(e) => updateDebt(row.id, { outstandingBalance: e.target.value })}
-                    disabled={readOnly}
-                    className={inputClasses}
-                  />
+                      {DEBT_TYPES.map((o) => (
+                        <option key={o.value} value={o.value} className="text-slate-900 font-medium">
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-9 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+                      <Tooltip text="Select the category that most closely matches the liability. If unsure, select &quot;Other Liability.&quot;" />
+                    </div>
+                  </div>
+                  <div className="relative w-full">
+                    <input
+                      type="number"
+                      min={1}
+                      placeholder="Outstanding balance (£)"
+                      title="Please provide the approximate amount currently outstanding. An estimate is acceptable if the balance changes regularly."
+                      value={row.outstandingBalance}
+                      onChange={(e) => updateDebt(row.id, { outstandingBalance: e.target.value })}
+                      disabled={readOnly}
+                      className={`${inputClasses} pr-9`}
+                    />
+                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+                      <Tooltip text="Please provide the approximate amount currently outstanding. An estimate is acceptable if the balance changes regularly." />
+                    </div>
+                  </div>
                 </div>
                 <TreatmentSelect
                   id={row.id}
@@ -168,7 +192,7 @@ export function LiabilitiesFields({ data, onChange, readOnly }: Props) {
         title={<>Maintenance &amp; Support Payments</>}
         icon={<HandCoins className="h-5 w-5" />}
         colorIndex={1}
-        tooltip="Declare any ongoing child support, spousal maintenance, or family financial commitments that reduce your available income."
+        tooltip="Include payments required under a court order, Child Maintenance Service (CMS) assessment, or legally binding agreement."
       >
         <Notice>
           Ongoing child maintenance or spousal maintenance payments reduce available income and should
@@ -205,20 +229,27 @@ export function LiabilitiesFields({ data, onChange, readOnly }: Props) {
                     : () => set({ maintenance: data.maintenance.filter((r) => r.id !== row.id) })
                 }
               >
-                <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-[1.5fr_1fr_1fr]">
-                  <select
-                    value={row.dependentLink}
-                    onChange={(e) => updateMaintenance(row.id, { dependentLink: e.target.value })}
-                    disabled={readOnly}
-                    className={inputClasses}
-                  >
-                    <option value="">Link to dependent</option>
-                    {DEPENDENT_LINKS.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
+                <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-[1.5fr_1fr_1fr] items-start">
+                  <div className="relative w-full">
+                    <select
+                      value={row.dependentLink}
+                      onChange={(e) => updateMaintenance(row.id, { dependentLink: e.target.value })}
+                      disabled={readOnly}
+                      className={`${inputClasses} appearance-none pr-10 cursor-pointer ${
+                        !row.dependentLink ? "text-slate-400" : "text-slate-900 font-medium"
+                      }`}
+                    >
+                      <option value="" disabled className="text-slate-400">
+                        Link to dependent
                       </option>
-                    ))}
-                  </select>
+                      {DEPENDENT_LINKS.map((o) => (
+                        <option key={o.value} value={o.value} className="text-slate-900 font-medium">
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  </div>
                   <input
                     type="number"
                     min={1}
@@ -228,14 +259,20 @@ export function LiabilitiesFields({ data, onChange, readOnly }: Props) {
                     disabled={readOnly}
                     className={inputClasses}
                   />
-                  <input
-                    type="text"
-                    placeholder="Projected end date (e.g., age 18)"
-                    value={row.projectedEndDate}
-                    onChange={(e) => updateMaintenance(row.id, { projectedEndDate: e.target.value })}
-                    disabled={readOnly}
-                    className={inputClasses}
-                  />
+                  <div className="relative w-full">
+                    <input
+                      type="text"
+                      placeholder="Projected end date (e.g., age 18)"
+                      title="If known, provide the anticipated date or event when this obligation is expected to end (e.g., &quot;June 2032&quot; or &quot;Youngest child reaches age 18&quot;)."
+                      value={row.projectedEndDate}
+                      onChange={(e) => updateMaintenance(row.id, { projectedEndDate: e.target.value })}
+                      disabled={readOnly}
+                      className={`${inputClasses} pr-9`}
+                    />
+                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+                      <Tooltip text="If known, provide the anticipated date or event when this obligation is expected to end (e.g., &quot;June 2032&quot; or &quot;Youngest child reaches age 18&quot;)." />
+                    </div>
+                  </div>
                 </div>
                 <TreatmentSelect
                   id={row.id}
