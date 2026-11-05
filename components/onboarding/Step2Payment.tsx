@@ -1,9 +1,24 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
+import { toast } from 'react-toastify';
+import Axios from '@/lib/ApiConfig';
 import type { RootState } from "@/store/store";
 import type { Step2PaymentProps } from "@/types/onboarding/step2-payment";
+
+type CasePayment = {
+  amount: number;
+  display: string;
+  paid: boolean;
+  paymentStatus: string;
+  onlinePayments: boolean;
+};
+
+const apiMessage = (e: any, fallback: string) => {
+  const m = e?.response?.data?.message;
+  return Array.isArray(m) ? m[0] : typeof m === 'string' && m ? m : fallback;
+};
 
 export const Step2Payment: React.FC<Step2PaymentProps> = ({
   selectedOption,
@@ -11,31 +26,51 @@ export const Step2Payment: React.FC<Step2PaymentProps> = ({
   onPaymentSuccess,
   onChooseService,
   isPaid: propIsPaid,
+  isVerifying,
 }) => {
   const user = useSelector((state: RootState) => state.auth?.user);
+  const caseId: string | undefined = user?.inviteCaseId;
   const [isProcessing, setIsProcessing] = useState(false);
-  const [paymentDone, setPaymentDone] = useState(false);
+  const [payment, setPayment] = useState<CasePayment | null>(null);
 
-  // Price formatting: default to €499
-  const displayPrice = '€499';
+  // Fixed fee and payment state come from the server (GBP).
+  useEffect(() => {
+    if (!caseId) return;
+    let live = true;
+    Axios.get<CasePayment>(`payments/cases/${caseId}`)
+      .then((r) => live && setPayment(r.data))
+      .catch(() => live && setPayment(null));
+    return () => {
+      live = false;
+    };
+  }, [caseId, selectedOption?.id]);
 
-  const isPaid = Boolean(propIsPaid || user?.paymentDone || paymentDone);
+  const displayPrice = payment?.display || '£499.00';
+
+  const isPaid = Boolean(propIsPaid || user?.paymentDone || payment?.paid);
   const hasSelectedService = Boolean(selectedOption && selectedOption.id && selectedOption.id !== 'help-choose');
 
-  const handlePay = () => {
+  // Sends the applicant to Stripe Checkout; Stripe returns them to
+  // /onboarding?payment=success|cancelled.
+  const handlePay = async () => {
     if (!hasSelectedService) {
       if (onChooseService) onChooseService();
       else onBack();
       return;
     }
+    if (!caseId) {
+      toast.error('We could not find your case. Please sign in again.');
+      return;
+    }
     setIsProcessing(true);
-    setTimeout(() => {
+    try {
+      const { data } = await Axios.post<{ url: string }>(`payments/cases/${caseId}/checkout`);
+      if (!data?.url) throw new Error('No checkout link');
+      window.location.assign(data.url);
+    } catch (e) {
+      toast.error(apiMessage(e, 'We could not start the payment. Please try again.'));
       setIsProcessing(false);
-      setPaymentDone(true);
-      setTimeout(() => {
-        onPaymentSuccess();
-      }, 800);
-    }, 1200);
+    }
   };
 
   return (
@@ -156,11 +191,13 @@ export const Step2Payment: React.FC<Step2PaymentProps> = ({
           {hasSelectedService ? (
             <button
               onClick={handlePay}
-              disabled={isProcessing || isPaid}
+              disabled={isProcessing || isPaid || isVerifying}
               className="w-full py-4 px-6 rounded-xl bg-white text-[#0F172A] text-xs md:text-sm font-extrabold tracking-widest uppercase hover:bg-[#C5A880] hover:border-[#C5A880] hover:scale-[1.01] active:scale-[0.99] transition-all shadow-lg flex items-center justify-center space-x-2 disabled:opacity-80 cursor-pointer border border-white"
             >
-              {isProcessing ? (
-                <span>Processing Payment...</span>
+              {isVerifying ? (
+                <span>Confirming Payment...</span>
+              ) : isProcessing ? (
+                <span>Redirecting to Secure Checkout...</span>
               ) : isPaid ? (
                 <span>✓ Payment Complete</span>
               ) : (

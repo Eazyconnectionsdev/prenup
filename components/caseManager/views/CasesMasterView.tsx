@@ -140,6 +140,7 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
           const rawPayment = String(item.paymentStatus || "").toUpperCase();
           const isPaid =
             rawPayment !== "REFUNDED" &&
+            rawPayment !== "PARTIALLY_REFUNDED" &&
             (item.paymentCompleted || rawPayment === "COMPLETED");
 
           return {
@@ -152,6 +153,8 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
             agreementType: item.agreementType || "prenup-marriage",
             paymentStatus: isPaid
               ? "Completed"
+              : rawPayment === "PARTIALLY_REFUNDED"
+              ? "Partially Refunded"
               : rawPayment
               ? rawPayment.charAt(0) + rawPayment.slice(1).toLowerCase()
               : "Pending",
@@ -364,6 +367,7 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
               <option value="Initiated">Initiated</option>
               <option value="Failed">Failed</option>
               <option value="Completed">Completed</option>
+              <option value="Partially Refunded">Partially Refunded</option>
               <option value="Refunded">Refunded</option>
             </select>
           </div>

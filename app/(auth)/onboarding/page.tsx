@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDispatch, useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
 import { HelpCircle } from 'lucide-react';
 import type { AppDispatch, RootState } from '@/store/store';
 import { completeOnboarding, getOnboarding } from '@/store/asyncThunk/casesThunk';
+import { getFreshProfile } from '@/store/asyncThunk/authThunk';
+import Axios from '@/lib/ApiConfig';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import { AgreementCard } from '@/components/onboarding/AgreementCard';
 import { Step2Payment } from '@/components/onboarding/Step2Payment';
@@ -129,6 +131,10 @@ export default function OnboardingPage () {
   const [isHelpModalOpen, setIsHelpModalOpen] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isChecking, setIsChecking] = useState<boolean>(true);
+  const [isVerifying, setIsVerifying] = useState<boolean>(false);
+  // Set once a Stripe payment is confirmed here, so the success step shows
+  // instead of the paid-user redirect to the dashboard.
+  const justPaid = useRef(false);
 
   const caseId: string | undefined = user?.inviteCaseId;
   const userName: string = user?.firstName || 'there';
@@ -145,6 +151,37 @@ export default function OnboardingPage () {
 
   // Onboarding is for user 1 only. Partners (user 2) and users who already
   // completed it go straight to the dashboard.
+  // Back from Stripe Checkout: confirm the payment with the server, refresh
+  // the profile (paymentDone) and show the confirmation step.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const outcome = params.get('payment');
+    if (!outcome) return;
+    const sessionId = params.get('session_id');
+    window.history.replaceState(null, '', window.location.pathname);
+    if (outcome === 'cancelled') {
+      setStep(2);
+      toast.info('Payment was cancelled. You have not been charged.');
+      return;
+    }
+    if (outcome !== 'success' || !sessionId) return;
+    setStep(2);
+    setIsVerifying(true);
+    Axios.get<{ paid: boolean }>(`payments/checkout/${encodeURIComponent(sessionId)}/verify`)
+      .then(async ({ data }) => {
+        if (data.paid) {
+          justPaid.current = true;
+          await dispatch(getFreshProfile()).unwrap().catch(() => undefined);
+          setStep(3);
+          toast.success('Payment received. Thank you!');
+        } else {
+          toast.info('Your payment is still processing. We will update your case once it is confirmed.');
+        }
+      })
+      .catch(() => toast.error('We could not confirm your payment yet. Please refresh in a moment.'))
+      .finally(() => setIsVerifying(false));
+  }, [dispatch]);
+
   useEffect(() => {
     if (user?.endUserType === 'user2') {
       router.replace('/dashboard');
@@ -154,7 +191,7 @@ export default function OnboardingPage () {
     dispatch(getOnboarding(caseId))
       .unwrap()
       .then((res) => {
-        if (res.completed && user?.paymentDone) {
+        if (res.completed && user?.paymentDone && !justPaid.current) {
           router.replace('/dashboard');
           return;
         }
@@ -302,6 +339,7 @@ export default function OnboardingPage () {
         <Step2Payment
           selectedOption={selectedOption}
           isPaid={Boolean(user?.paymentDone)}
+          isVerifying={isVerifying}
           onBack={() => {
             setStep(1);
             window.scrollTo({ top: 0, behavior: 'smooth' });
