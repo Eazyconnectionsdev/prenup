@@ -207,13 +207,14 @@ function CustomTreatmentSelect({
 }) {
   return (
     <div className="w-full">
-      <div className="relative group">
+      <div className="relative group flex items-center">
         <select
           id={`treatment_${id}`}
           value={fields.treatment}
           onChange={(e) => onChange({ treatment: e.target.value as Treatment })}
           disabled={disabled}
-          className={`w-full appearance-none rounded-xl border border-slate-200 bg-[#FBFBFE] px-4 py-3 pr-10 text-[13.5px] font-medium leading-relaxed transition-all duration-200 outline-none hover:border-slate-300 hover:bg-white focus:border-[#6366F1] focus:bg-white focus:ring-4 focus:ring-[#6366F1]/10 disabled:cursor-not-allowed disabled:opacity-70 ${
+          title="This records your current intentions. Your independent solicitor will discuss whether these arrangements are appropriate and legally workable."
+          className={`w-full appearance-none rounded-xl border border-slate-200 bg-[#FBFBFE] px-4 py-3 pr-16 text-[13.5px] font-medium leading-relaxed transition-all duration-200 outline-none hover:border-slate-300 hover:bg-white focus:border-[#6366F1] focus:bg-white focus:ring-4 focus:ring-[#6366F1]/10 disabled:cursor-not-allowed disabled:opacity-70 ${
             !fields.treatment ? "text-slate-600" : "text-slate-900 font-semibold"
           }`}
         >
@@ -226,13 +227,17 @@ function CustomTreatmentSelect({
             </option>
           ))}
         </select>
-        <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 group-hover:text-slate-600 transition-colors" />
+        <ChevronDown className="pointer-events-none absolute right-9 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 group-hover:text-slate-600 transition-colors" />
+        <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+          <InfoTooltip text="This records your current intentions. Your independent solicitor will discuss whether these arrangements are appropriate and legally workable." />
+        </div>
       </div>
 
       {fields.treatment === "Contribution" && (
         <div className="mt-3.5 rounded-xl border-l-4 border-[#6366F1] bg-[#F8FAFC] p-4 shadow-xs">
-          <label className="mb-1.5 block text-[13px] font-semibold text-slate-800">
-            Define contribution (e.g., salary, initial deposit):
+          <label className="mb-1.5 flex items-center justify-between gap-2 text-[13px] font-semibold text-slate-800">
+            <span>Define contribution (e.g., salary, initial deposit):</span>
+            <InfoTooltip text="Explain how entitlement should be determined, for example, based on financial contributions or other agreed arrangements." />
           </label>
           <input
             type="text"
@@ -247,8 +252,9 @@ function CustomTreatmentSelect({
 
       {fields.treatment === "Percentage" && (
         <div className="mt-3.5 rounded-xl border-l-4 border-[#6366F1] bg-[#F8FAFC] p-4 shadow-xs">
-          <label className="mb-1.5 block text-[13px] font-semibold text-slate-800">
-            Specify percentage (e.g., 60/40):
+          <label className="mb-1.5 flex items-center justify-between gap-2 text-[13px] font-semibold text-slate-800">
+            <span>Specify percentage (e.g., 60/40):</span>
+            <InfoTooltip text="Specify the percentage allocation you would like applied to this income stream (e.g., 60% / 40%)." />
           </label>
           <input
             type="number"
@@ -265,8 +271,9 @@ function CustomTreatmentSelect({
 
       {fields.treatment === "Custom" && (
         <div className="mt-3.5 rounded-xl border-l-4 border-[#6366F1] bg-[#F8FAFC] p-4 shadow-xs">
-          <label className="mb-1.5 block text-[13px] font-semibold text-slate-800">
-            Custom arrangement details:
+          <label className="mb-1.5 flex items-center justify-between gap-2 text-[13px] font-semibold text-slate-800">
+            <span>Custom arrangement details:</span>
+            <InfoTooltip text="Describe any bespoke arrangement you would like considered when preparing your agreement." />
           </label>
           <textarea
             value={fields.customText}
@@ -317,25 +324,30 @@ export function IncomeFields({ data, onChange, readOnly }: Props) {
             key={row.id}
             className="relative rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs"
           >
-            {!readOnly && (
-              <button
-                type="button"
-                onClick={() => set({ [key]: data[key].filter((r) => r.id !== row.id) })}
-                aria-label="Remove item"
-                className="absolute right-3.5 top-3.5 flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-500"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            )}
-
-            <div className="mb-2 text-xs font-semibold text-slate-500">
-              Entry #{idx + 1}
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-xs font-semibold text-slate-500">
+                Entry #{idx + 1}
+              </div>
+              {!readOnly && (
+                <button
+                  type="button"
+                  onClick={() => set({ [key]: data[key].filter((r) => r.id !== row.id) })}
+                  aria-label="Remove item"
+                  className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-500 cursor-pointer"
+                  title="Remove item"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
             </div>
 
             <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 mb-3.5">
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-slate-600">
-                  Description
+                <label className="mb-1.5 flex items-center justify-between text-xs font-medium text-slate-600">
+                  <span>{key === "altIncomeRows" ? "Source Name" : "Description"}</span>
+                  {key === "altIncomeRows" && (
+                    <InfoTooltip text="Examples include Rental Income, Dividend Payments, Pension Income, Child Maintenance, Royalty Payments, or Trust Distributions." />
+                  )}
                 </label>
                 <input
                   type="text"
@@ -348,8 +360,9 @@ export function IncomeFields({ data, onChange, readOnly }: Props) {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-slate-600">
-                  Amount
+                <label className="mb-1.5 flex items-center justify-between text-xs font-medium text-slate-600">
+                  <span>Estimated Annual Amount</span>
+                  <InfoTooltip text="Please provide your best estimate of the annual amount received from this income source." />
                 </label>
                 <input
                   type="number"
@@ -405,7 +418,7 @@ export function IncomeFields({ data, onChange, readOnly }: Props) {
             <h2 className="text-base sm:text-[17px] font-bold text-slate-900 tracking-tight">
               Employment Income
             </h2>
-            <InfoTooltip text="Annual salary or wages before tax. Bonuses, commissions, dividends, rental and other income are collected separately below." />
+            <InfoTooltip text="Include your annual salary or wages before tax. Do not include bonuses, commissions, dividends, rental income, or other income sources." />
           </div>
         </div>
 
@@ -413,12 +426,15 @@ export function IncomeFields({ data, onChange, readOnly }: Props) {
         <div className="mb-5">
           <label
             htmlFor="grossAnnualIncome"
-            className="mb-2 block text-[14px] sm:text-[14.5px] font-bold leading-relaxed text-slate-900"
+            className="mb-2 flex items-center justify-between gap-2 text-[14px] sm:text-[14.5px] font-bold leading-relaxed text-slate-900"
           >
-            {ask(
-              "What is your current annual gross employment income (before tax)?",
-              "Current annual gross employment income (before tax)",
-            )}
+            <span>
+              {ask(
+                "What is your current annual gross employment income (before tax)?",
+                "Current annual gross employment income (before tax)",
+              )}
+            </span>
+            <InfoTooltip text="Please provide your current annual income before tax and deductions. An estimate is acceptable if your income varies throughout the year." />
           </label>
           <input
             id="grossAnnualIncome"
@@ -464,7 +480,7 @@ export function IncomeFields({ data, onChange, readOnly }: Props) {
             <h2 className="text-base sm:text-[17px] font-bold text-slate-900 tracking-tight">
               Bonuses &amp; Employment Incentives
             </h2>
-            <InfoTooltip text="Variable items like bonuses, regular overtime, commissions, share options or corporate incentives." />
+            <InfoTooltip text="Include regular bonuses, commissions, overtime payments, RSUs, share options, carried interest, and profit-sharing arrangements." />
           </div>
         </div>
 
@@ -515,7 +531,7 @@ export function IncomeFields({ data, onChange, readOnly }: Props) {
             <h2 className="text-base sm:text-[17px] font-bold text-slate-900 tracking-tight">
               Alternative Income Streams
             </h2>
-            <InfoTooltip text="Recurring income paid individually from investments, trust dividends, business profits or rental yields." />
+            <InfoTooltip text="Include any recurring income not received through employment, including rental income, dividends, royalties, maintenance payments, pension income, or trust distributions." />
           </div>
         </div>
 

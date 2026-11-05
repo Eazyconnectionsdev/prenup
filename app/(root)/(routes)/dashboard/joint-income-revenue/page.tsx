@@ -15,6 +15,7 @@ import {
   YesNoToggle,
   MatrixBox,
   RowItem,
+  Tooltip,
   TreatmentSelect,
   makeToggleHandler,
   updateRow,
@@ -37,6 +38,13 @@ const sharedTreatmentOptions: { value: Treatment; label: string }[] = [
   { value: "Percentage", label: "Share by Percentage" },
   { value: "Custom", label: "Custom Arrangement" },
 ];
+
+const jointIncomeTreatmentTooltips = {
+  select:
+    "This records your current intentions. Your independent solicitors will review the proposed arrangements.",
+  custom:
+    "Describe any arrangement that cannot be reflected through equal sharing, contribution-based sharing, or percentage allocations.",
+};
 
 function makeSharedIncomeRow(): SharedIncomeRow {
   return { id: makeId("sinc"), description: "", source: "", annualIncome: "", ...emptyTreatment };
@@ -151,15 +159,21 @@ export default function SharedIncomeForm({ onContinue }: SharedIncomeFormProps =
               >
                 {sharedIncomeRows.map((row) => (
                   <RowItem key={row.id} onDelete={() => removeRow(setSharedIncomeRows, row.id)}>
-                    <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-3">
-                      <input
-                        type="text"
-                        placeholder="Income Description (e.g. Rental Income, Dividends, Business Income)"
-                        value={row.description}
-                        onChange={(e) => updateRow(setSharedIncomeRows, row.id, { description: e.target.value })}
-                        required
-                        className={inputClasses}
-                      />
+                    <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-3 items-start">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Income Description (e.g. Rental Income, Dividends, Business Income)"
+                          title="Examples include rental income, business profits, dividends, royalties, trust distributions, and investment income."
+                          value={row.description}
+                          onChange={(e) => updateRow(setSharedIncomeRows, row.id, { description: e.target.value })}
+                          required
+                          className={`${inputClasses} pr-9`}
+                        />
+                        <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+                          <Tooltip text="Examples include rental income, business profits, dividends, royalties, trust distributions, and investment income." />
+                        </div>
+                      </div>
                       <input
                         type="text"
                         placeholder="Income Source (e.g. Company X, ABC Property Management, XYZ Trust)"
@@ -168,20 +182,28 @@ export default function SharedIncomeForm({ onContinue }: SharedIncomeFormProps =
                         required
                         className={inputClasses}
                       />
-                      <input
-                        type="number"
-                        placeholder="Annual Income (£)"
-                        value={row.annualIncome}
-                        onChange={(e) => updateRow(setSharedIncomeRows, row.id, { annualIncome: e.target.value })}
-                        required
-                        className={inputClasses}
-                      />
+                      <div className="relative">
+                        <input
+                          type="number"
+                          placeholder="Annual Income (£)"
+                          title="Please provide the approximate annual amount received before any deductions. An estimate is acceptable."
+                          value={row.annualIncome}
+                          onChange={(e) => updateRow(setSharedIncomeRows, row.id, { annualIncome: e.target.value })}
+                          required
+                          className={`${inputClasses} pr-9 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+                        />
+                        <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+                          <Tooltip text="Please provide the approximate annual amount received before any deductions. An estimate is acceptable." />
+                        </div>
+                      </div>
                     </div>
                     <TreatmentSelect
                       id={row.id}
                       fields={row}
                       onChange={(f) => updateRow(setSharedIncomeRows, row.id, f)}
+                      label="How would you like this income to be treated under the agreement?"
                       options={sharedTreatmentOptions}
+                      tooltips={jointIncomeTreatmentTooltips}
                     />
                   </RowItem>
                 ))}

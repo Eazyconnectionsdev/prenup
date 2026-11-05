@@ -61,7 +61,7 @@ const JOINT_FINANCIAL_LEAFS: LeafDef[] = [
 const MATRIMONIAL_LEAF: LeafDef = {
   id: "matrimonial-agreement",
   icon: HeartHandshake,
-  label: "Matrimonial Agreement & Review",
+  label: "Matrimonial Agreement",
 };
 
 const JOINT_LEAFS = [...JOINT_FINANCIAL_LEAFS, MATRIMONIAL_LEAF];

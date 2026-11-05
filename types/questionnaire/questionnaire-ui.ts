@@ -57,6 +57,15 @@ export interface ValueWithUnsureProps {
   onUnknownChange?: (v: boolean) => void;
   placeholder: string;
   readOnly?: boolean;
+  label?: string;
+  tooltip?: string;
+}
+
+export interface TreatmentSelectTooltips {
+  select?: string;
+  contribution?: string;
+  percentage?: string;
+  custom?: string;
 }
 
 export interface TreatmentSelectProps {
@@ -66,4 +75,5 @@ export interface TreatmentSelectProps {
   label?: string;
   options?: { value: Treatment; label: string }[];
   readOnly?: boolean;
+  tooltips?: TreatmentSelectTooltips;
 }
