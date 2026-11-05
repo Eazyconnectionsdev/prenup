@@ -28,6 +28,9 @@ interface RowCase {
   caseManager: string;
   caseManagerId: string;
   priority: string;
+  partnerJoined: boolean;
+  mutualApproved: boolean;
+  readyForArchive: boolean;
 }
 
 export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
@@ -133,9 +136,11 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
             ? assignedCm
             : "";
 
+          // Refunded wins over paymentCompleted, which a refund does not clear.
+          const rawPayment = String(item.paymentStatus || "").toUpperCase();
           const isPaid =
-            item.paymentCompleted ||
-            String(item.paymentStatus).toUpperCase() === "COMPLETED";
+            rawPayment !== "REFUNDED" &&
+            (item.paymentCompleted || rawPayment === "COMPLETED");
 
           return {
             id: item._id,
@@ -145,11 +150,20 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
             p1Email: item.owner?.email || "",
             p2Email: item.invitedUser?.email || item.invitedEmail || "",
             agreementType: item.agreementType || "prenup-marriage",
-            paymentStatus: isPaid ? "Completed" : item.paymentStatus || "Pending",
+            paymentStatus: isPaid
+              ? "Completed"
+              : rawPayment
+              ? rawPayment.charAt(0) + rawPayment.slice(1).toLowerCase()
+              : "Pending",
             workflowStage: item.workflowStatus || "DRAFT",
             caseManager: cm || "Unassigned",
             caseManagerId: cmId,
             priority: (item.priority || "MEDIUM").toUpperCase(),
+            partnerJoined: Boolean(item.invitedUser),
+            mutualApproved:
+              item.approval?.mutualApprovalAndSnapshot === "COMPLETED" ||
+              Boolean(item.approval?.user1Approved && item.approval?.user2Approved),
+            readyForArchive: Boolean(item.readyForArchive),
           };
         });
 
@@ -183,13 +197,25 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
     return rawCases.filter((c) => {
       // 1. Stage filter
       if (stageFilter !== "ALL") {
-        if (stageFilter === "NOT_PAID" && c.paymentStatus === "Completed") return false;
-        if (stageFilter === "PARTNER_NOT_JOINED" && c.p2 !== "Not Invited" && !c.p2.includes("@")) return false;
-        if (stageFilter === "CM_NOT_ASSIGNED" && c.caseManager !== "Unassigned") return false;
-        if (!["NOT_PAID", "PARTNER_NOT_JOINED", "CM_NOT_ASSIGNED"].includes(stageFilter)) {
-          if (!c.workflowStage.toLowerCase().includes(stageFilter.toLowerCase().replace(/_/g, " "))) {
-            // fuzzy match
-          }
+        switch (stageFilter) {
+          case "NOT_PAID":
+            if (c.paymentStatus === "Completed") return false;
+            break;
+          case "PARTNER_NOT_JOINED":
+            if (c.partnerJoined) return false;
+            break;
+          case "PARTNER_REVIEW":
+            if (c.mutualApproved) return false;
+            break;
+          case "CM_NOT_ASSIGNED":
+            if (c.caseManagerId) return false;
+            break;
+          case "READY_FOR_ARCHIVE":
+            if (!c.readyForArchive) return false;
+            break;
+          default:
+            // Every other option is a workflowStatus value.
+            if (c.workflowStage !== stageFilter) return false;
         }
       }
 
