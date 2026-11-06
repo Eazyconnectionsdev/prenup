@@ -40,6 +40,10 @@ export default function RegisterPartnerPage() {
       caseId: "",
     });
 
+  // The invited address already has an account: they sign in and accept
+  // instead of registering a second one.
+  const [accountExists, setAccountExists] = useState<boolean>(false);
+
   const [form, setForm] = useState<FormState>({
     firstName: "",
     lastName: "",
@@ -76,6 +80,7 @@ export default function RegisterPartnerPage() {
           email: info.email ?? prev.email,
           phone: info.mobileNumber ?? prev.phone,
         }));
+        setAccountExists(Boolean(info.accountExists));
       })
       .catch((error) => {
         toast.error(getErrorMessage(error, "This invite link is not valid"));
@@ -171,10 +176,57 @@ try {
 } catch (error: unknown) {
   console.error(error);
 
+  // They registered separately in the meantime: hand over to sign-in.
+  if ((error as { code?: string } | null)?.code === "ACCOUNT_EXISTS") {
+    setAccountExists(true);
+    return;
+  }
+
   toast.error(getErrorMessage(error, "Failed to create account"));
 }
 
   };
+
+  const goToSignIn = () => {
+    const target = `/accept-invite?${new URLSearchParams({
+      caseId: inviteData.caseId,
+      token: inviteData.token,
+    }).toString()}`;
+    router.push(`/login?callbackUrl=${encodeURIComponent(target)}`);
+  };
+
+  if (accountExists) {
+    return (
+      <section className="relative flex min-h-screen overflow-hidden bg-white">
+        <div className="absolute top-8 left-8 flex items-center">
+          <BrandLogo surface="light" height={34} priority />
+        </div>
+
+        <div className="flex flex-1 items-center justify-center px-6">
+          <div className="w-full max-w-[500px] text-center">
+            <h1 className="mb-2 text-[32px] font-medium text-[#495060]">
+              You already have an account
+            </h1>
+
+            <p className="mb-8 text-[#7A7A7A]">
+              There is already an account for {form.email || "this email"}, so
+              there is nothing to register. Sign in and accept the invitation
+              to join your partner. You will not need to create a new account
+              or delete anything.
+            </p>
+
+            <button
+              type="button"
+              onClick={goToSignIn}
+              className="w-full rounded bg-[#6A69FF] py-3 text-white transition hover:opacity-90"
+            >
+              Sign in to accept the invitation
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (<section className="relative flex min-h-screen overflow-hidden bg-white">
     {/* Logo */}

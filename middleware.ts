@@ -26,7 +26,8 @@ const ROLE_HOME: Record<string, string> = {
 };
 
 const ROLE_EXTRA_PATHS: Record<string, string[]> = {
-  end_user: [],
+  // Signed-in invitees accept a partner invitation here.
+  end_user: ["/accept-invite"],
 };
 
 async function getRoleFromToken(token: string | undefined): Promise<string | null> {
@@ -68,8 +69,25 @@ export default async function middleware(req: NextRequest) {
 
   if (!isLoggedIn && !isPublicRoute) {
     const loginUrl = new URL(DEFAULT_LOGIN_REDIRECT, nextUrl);
-    loginUrl.searchParams.set("callbackUrl", nextUrl.pathname);
+    // Keep the query: an invitation link carries its case and token there.
+    loginUrl.searchParams.set("callbackUrl", nextUrl.pathname + nextUrl.search);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // A signed-in client who opens an emailed invitation link (which points at
+  // the registration page) already has an account: take them to accept it
+  // instead of bouncing them to the dashboard and losing the invitation.
+  if (
+    isLoggedIn &&
+    role === "end_user" &&
+    nextUrl.pathname === "/register-partner" &&
+    nextUrl.searchParams.get("caseId") &&
+    nextUrl.searchParams.get("token")
+  ) {
+    const accept = new URL("/accept-invite", nextUrl);
+    accept.searchParams.set("caseId", nextUrl.searchParams.get("caseId")!);
+    accept.searchParams.set("token", nextUrl.searchParams.get("token")!);
+    return NextResponse.redirect(accept);
   }
 
   const homePath = role ? ROLE_HOME[role] : null;

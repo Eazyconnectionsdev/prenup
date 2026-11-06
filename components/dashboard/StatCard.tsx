@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Check } from "lucide-react";
 import type { ReactNode } from "react";
 
 /**
@@ -34,6 +35,20 @@ export const statCardBadgeClasses = pillClasses;
 
 /** Plain words in the action's place, on a card with nothing to click. */
 export const statCardCaptionClasses = "flex-shrink-0 text-xs text-[#9494AA]";
+
+/**
+ * Sits in the icon's place once the case manager has approved the case: at
+ * that point the card has no move left on it, so the corner says how the case
+ * stands instead of repeating what the card is about.
+ */
+export function ApprovedPill() {
+  return (
+    <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-[#DCFCE7] px-2.5 py-1 text-[0.7rem] font-semibold text-[#16A34A]">
+      <Check className="h-3 w-3" aria-hidden="true" />
+      Approved
+    </span>
+  );
+}
 
 type Props = {
   /** What the card is about, in the top line. */

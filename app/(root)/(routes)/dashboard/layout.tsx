@@ -1,3 +1,4 @@
+import OnboardingGate from "@/components/onboarding/OnboardingGate";
 import Sidebar from "@/components/Layout/Sidebar";
 import TopBar from "@/components/Layout/TopBar";
 import EditingPartnerBanner from "@/components/Layout/EditingPartnerBanner";
@@ -10,6 +11,7 @@ export default function MainLayouyt({
 }) {
   return (
     <Sidebar>
+      {/* <OnboardingGate /> */}
       <TopBar />
       <EditLockRedirect />
       <EditingPartnerBanner />

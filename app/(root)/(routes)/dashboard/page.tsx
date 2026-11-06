@@ -21,10 +21,15 @@ import {
 import { resolvePartyInformation } from "@/lib/caseSections";
 import type { StepConfig, StepId } from "@/types/dashboard/dashboard-home";
 import { useJointSectionStatus } from "@/hooks/useJointSectionStatus";
+import { isCaseManagerApproved } from "@/lib/caseStage";
 import Axios from "@/lib/ApiConfig";
 import { ServiceStatus } from "@/components/ServiceStatus";
 import CaseManagerCard from "@/components/dashboard/CaseManagerCard";
+import AgreementDocumentCard from "@/components/dashboard/AgreementDocumentCard";
+import LegalAdviceJourney from "@/components/dashboard/LegalAdviceJourney";
+import LegalTeamCard from "@/components/dashboard/LegalTeamCard";
 import StatCard, {
+  ApprovedPill,
   statCardActionClasses,
   statCardBadgeClasses,
   statCardCaptionClasses,
@@ -118,22 +123,6 @@ const STEP_TILES: Record<StepId, string> = {
   final_review: "from-[#60A5FA] to-[#2563EB]",
 };
 
-function DownloadIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.8}
-      className="h-3.5 w-3.5"
-    >
-      <path d="M12 4v11" />
-      <path d="M7 11l5 5 5-5" />
-      <path d="M5 20h14" />
-    </svg>
-  );
-}
-
 // The step count sits inside a ring that fills by the same percentage, so
 // the figure beside it never stands alone.
 function ProgressDial({
@@ -188,13 +177,7 @@ function ProgressDial({
 
 // One dash per step, so the row is a count the eye can check as well as a
 // bar. The ring and the percentage already say it as a figure.
-function StepTrack({
-  completed,
-  total,
-}: {
-  completed: number;
-  total: number;
-}) {
+function StepTrack({ completed, total }: { completed: number; total: number }) {
   if (total <= 0) {
     return <div className="h-1.5 w-full rounded-full bg-[#EDEDF5]" />;
   }
@@ -247,9 +230,7 @@ type InviteSummary = {
 
 // ─── Popup IDs ───────────────────────────────────────────────────────────────
 type PopupId =
-  | "p2-joint-initial"
-  | "p1-joint-completed"
-  | "p2-wait-for-partner";
+  "p2-joint-initial" | "p1-joint-completed" | "p2-wait-for-partner";
 
 export default function PrenupDashboard() {
   const router = useRouter();
@@ -347,7 +328,7 @@ export default function PrenupDashboard() {
   } = useJointSectionStatus();
   const isMutualApproved = Boolean(
     (cases as any)?.approval?.user1Approved &&
-      (cases as any)?.approval?.user2Approved,
+    (cases as any)?.approval?.user2Approved,
   );
 
   const progressResult = calculateOverallProgress({
@@ -387,7 +368,28 @@ export default function PrenupDashboard() {
     .join(" ")
     .trim();
   const caseManagerEmail = caseManager?.email ?? "";
-  const allStepsDone = steps.every((s) => effectiveCompleted.has(s.id));
+
+  // ── Dashboard stages ───────────────────────────────────────────────────────
+  // 1. The journey: the four questionnaire steps, up to final review.
+  // 2. Mutually confirmed: the journey gives way to the generated agreement
+  //    and whoever is looking after the case.
+  // 3. Case manager approved: the independent legal advice steps open up,
+  //    here and in the sidebar.
+  const isAgreementReady = isMutualApproved;
+  const caseManagerApproved = isCaseManagerApproved(
+    cases?.approval,
+    cases?.workflowStatus,
+  );
+  const isLegalAdviceStage = isAgreementReady && caseManagerApproved;
+
+  // Each partner's own pre-lawyer questionnaire, whichever side they are on
+  const { mine: myPre, theirs: partnerPre } = resolvePartyInformation<
+    Record<string, any>
+  >(
+    user?.endUserType,
+    cases?.preQuestionnaireUser1 as Record<string, any>,
+    cases?.preQuestionnaireUser2 as Record<string, any>,
+  );
 
   // While a review request is out, the sender is locked out of every step and
   // the reviewing partner has all of them open.
@@ -454,7 +456,6 @@ export default function PrenupDashboard() {
         </button>
       );
     }
-
 
     if (step.id === "partner_questionnaire") {
       return (
@@ -535,7 +536,8 @@ export default function PrenupDashboard() {
 
       const p1CanReview = isUser1 && areAll4SectionsComplete;
       const p2CanReview = isUser2 && isP1SentForReview;
-      const canReview = isMyTurnToApprove || iDisapproved || p1CanReview || p2CanReview;
+      const canReview =
+        isMyTurnToApprove || iDisapproved || p1CanReview || p2CanReview;
 
       if (canReview) {
         return (
@@ -569,9 +571,13 @@ export default function PrenupDashboard() {
             Welcome , {user.firstName} 👋
           </h1>
           <p className="mt-1 text-sm text-[#6B6B80]">
-            {allStepsDone
-              ? "Your Draft Agreement is ready, A case Manager will be assigned to you soon"
-              : "Your prenup is taking shape."}
+            {!isAgreementReady
+              ? "Your prenup is taking shape."
+              : isLegalAdviceStage
+                ? "Your case is approved. Next, each of you picks an independent lawyer."
+                : caseManagerName
+                  ? "Your draft agreement is ready and your case manager is reviewing it."
+                  : "Your draft agreement is ready. A case manager will be assigned to you soon."}
           </p>
         </div>
 
@@ -603,7 +609,10 @@ export default function PrenupDashboard() {
             }
           />
 
-          <ServiceStatus agreementType={cases?.agreementType} />
+          <ServiceStatus
+            agreementType={cases?.agreementType}
+            approved={isLegalAdviceStage}
+          />
 
           {isUser2 ? (
             <StatCard
@@ -615,17 +624,27 @@ export default function PrenupDashboard() {
           ) : hasP2Joined ? (
             <StatCard
               label="Your partner"
-              icon={<UserRoundCheck className="h-5 w-5 text-[#6D4AFF]" />}
+              icon={
+                isLegalAdviceStage ? (
+                  <ApprovedPill />
+                ) : (
+                  <UserRoundCheck className="h-5 w-5 text-[#6D4AFF]" />
+                )
+              }
               value={partnerName}
               subtitle={partnerEmail || "Partner has joined your case"}
               subtitleTooltip={partnerEmail || undefined}
               /* Nothing left to do here, so the slot holds a state, not a
                  button — which also keeps the card's height steady. */
               action={
-                <span className={statCardBadgeClasses}>
-                  <Check className="h-3.5 w-3.5" aria-hidden="true" />
-                  Joined
-                </span>
+                isLegalAdviceStage ? (
+                  <span className={statCardCaptionClasses}>Completed</span>
+                ) : (
+                  <span className={statCardBadgeClasses}>
+                    <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                    Joined
+                  </span>
+                )
               }
             />
           ) : isPartnerInvited ? (
@@ -664,13 +683,14 @@ export default function PrenupDashboard() {
           )}
         </div>
 
-        {!allStepsDone && (
+        {!isAgreementReady && (
           <div className="mt-8 bg-white p-5 rounded-2xl shadow-sm">
             <h2 className="text-lg font-bold tracking-tight text-[#1E1B3C]">
               Your Prenup Journey
             </h2>
             <p className="mt-1 text-sm text-[#6B6B80]">
-              Welcome to your dashboard! This page will help guide you through your prenup journey.
+              Welcome to your dashboard! This page will help guide you through
+              your prenup journey.
             </p>
 
             <div className="mt-5 flex flex-col gap-3">
@@ -729,45 +749,40 @@ export default function PrenupDashboard() {
         {/* Reveal-on-complete section */}
         <div
           className={`grid transition-all duration-500 ease-out ${
-            allStepsDone
+            isAgreementReady
               ? "mt-6 grid-rows-[1fr] opacity-100"
               : "mt-0 grid-rows-[0fr] opacity-0"
           }`}
         >
           <div className="overflow-hidden">
-            <div className="grid gap-6 md:grid-cols-2">
-              {/* Case manager: assigned, or a placeholder until one is */}
-              <CaseManagerCard
-                name={caseManagerName || undefined}
-                email={caseManagerEmail || undefined}
-                status={caseManagerName ? "assigned" : "pending"}
+            <div className="grid items-start gap-6 md:grid-cols-2">
+              {/* The generated agreement, straight from the case's versions */}
+              <AgreementDocumentCard
+                caseId={cases?.caseId ?? null}
+                agreementType={cases?.agreementType}
               />
 
-              {/* Documents */}
-              <div className="rounded-2xl border border-[#E7E7F2] bg-white p-6">
-                <h3 className="text-sm font-semibold text-[#1E1B3C]">
-                  Case documents and drafts
-                </h3>
-                <p className="mt-1 text-xs text-[#8A8AA0]">
-                  Access and download your initial schedules and master
-                  agreement files.
-                </p>
-                <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-[#EDEDF5] p-3">
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold text-[#1E1B3C]">
-                      Draft Agreement
-                    </div>
-                    <div className="text-xs text-[#8A8AA0]">Your draft agreement is ready</div>
-                  </div>
-                  <button className="flex flex-shrink-0 items-center gap-1.5 rounded-lg border border-[#DDD6FE] px-3 py-1.5 text-xs font-semibold text-[#6D28D9] hover:bg-[#FAF9FF]">
-                    <DownloadIcon />
-                    Download
-                  </button>
-                </div>
-              </div>
+              {/* Up to approval the couple deal with their case manager; from
+                  then on the card beside the agreement is their own two
+                  independent solicitors. */}
+              {isLegalAdviceStage ? (
+                <LegalTeamCard myPre={myPre} partnerPre={partnerPre} />
+              ) : (
+                <CaseManagerCard
+                  name={caseManagerName || undefined}
+                  email={caseManagerEmail || undefined}
+                  status={caseManagerName ? "assigned" : "pending"}
+                />
+              )}
             </div>
           </div>
         </div>
+
+        {/* Once the case manager has approved, the earlier journey is behind
+            them: the independent legal advice steps are all that is left. */}
+        {isLegalAdviceStage && (
+          <LegalAdviceJourney myPre={myPre} partnerPre={partnerPre} />
+        )}
       </div>
 
       {/* ── Popups ─────────────────────────────────────────────────────────── */}
@@ -786,7 +801,13 @@ export default function PrenupDashboard() {
               className="absolute right-4 top-4 text-[#9494AA] hover:text-[#1E1B3C]"
               aria-label="Close"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                className="h-5 w-5"
+              >
                 <path d="M18 6L6 18M6 6l12 12" />
               </svg>
             </button>
@@ -795,20 +816,30 @@ export default function PrenupDashboard() {
             {activePopup === "p2-joint-initial" && (
               <>
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#EDE9FE] text-[#6D28D9]">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-5 w-5">
-                    <circle cx="12" cy="12" r="10" /><path d="M12 8v4m0 4h.01" />
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={1.8}
+                    className="h-5 w-5"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 8v4m0 4h.01" />
                   </svg>
                 </div>
                 <h2 className="mt-4 text-base font-semibold text-[#1E1B3C]">
                   Joint Questionnaire
                 </h2>
                 <p className="mt-2 text-sm text-[#6B6B80]">
-                  Your partner will submit the completed information for your review.
+                  Your partner will submit the completed information for your
+                  review.
                 </p>
                 <p className="mt-1 text-sm text-[#6B6B80]">
                   If you have not completed your{" "}
-                  <span className="font-medium text-[#1E1B3C]">Personal Questionnaire</span>,
-                  please complete it first.
+                  <span className="font-medium text-[#1E1B3C]">
+                    Personal Questionnaire
+                  </span>
+                  , please complete it first.
                 </p>
                 <div className="mt-5 flex gap-3">
                   <button
@@ -834,7 +865,13 @@ export default function PrenupDashboard() {
             {activePopup === "p1-joint-completed" && (
               <>
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#DCFCE7] text-[#16A34A]">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-5 w-5">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={1.8}
+                    className="h-5 w-5"
+                  >
                     <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
@@ -842,8 +879,8 @@ export default function PrenupDashboard() {
                   Partner&apos;s Review Pending
                 </h2>
                 <p className="mt-2 text-sm text-[#6B6B80]">
-                  Your partner has completed all the section information.
-                  Please review all sections and make your final confirmation.
+                  Your partner has completed all the section information. Please
+                  review all sections and make your final confirmation.
                 </p>
                 <div className="mt-5 flex gap-3">
                   <button
@@ -869,8 +906,15 @@ export default function PrenupDashboard() {
             {activePopup === "p2-wait-for-partner" && (
               <>
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-amber-600">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-5 w-5">
-                    <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={1.8}
+                    className="h-5 w-5"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 6v6l4 2" />
                   </svg>
                 </div>
                 <h2 className="mt-4 text-base font-semibold text-[#1E1B3C]">
@@ -889,7 +933,6 @@ export default function PrenupDashboard() {
                 </div>
               </>
             )}
-
           </div>
         </div>
       )}

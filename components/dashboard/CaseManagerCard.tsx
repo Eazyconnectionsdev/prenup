@@ -45,7 +45,7 @@ export default function CaseManagerCard({
   return (
     <section
       aria-label="Assigned case manager"
-      className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+      className="w-full rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
     >
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-sm font-semibold text-gray-900">Assigned Case Manager</h3>

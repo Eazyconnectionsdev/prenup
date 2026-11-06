@@ -59,8 +59,9 @@ const TopBar = ({
   const [copied, setCopied] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const displayCaseNumber =
-    cases?.caseNumber || user?.caseNumber || caseId || user?.inviteCaseId;
+  // The Case ID is the human-readable case number, never a database id: an
+  // account has no Case ID until its legal matter is started.
+  const displayCaseNumber = cases?.caseNumber || user?.caseNumber;
   const initials =
     `${user?.firstName?.charAt(0) ?? ""}${user?.lastName?.charAt(0) ?? ""}`.toUpperCase() || "U";
   const badge = notificationCount > 99 ? "99+" : String(notificationCount);

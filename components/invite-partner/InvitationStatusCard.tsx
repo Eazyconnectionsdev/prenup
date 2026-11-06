@@ -140,6 +140,14 @@ export const InvitationStatusCard: React.FC<InvitationStatusCardProps> = ({
           </div>
 
 
+          {partnerData.linkOnHold && !accepted && (
+            <p className="rounded-xl border border-[#FDE68A] bg-[#FFFBEB] p-3 text-xs font-semibold leading-relaxed text-[#92400E]">
+              Your partner has responded, but our team needs to complete a quick
+              check before they can be linked to your case. We&apos;ll be in
+              touch if we need anything from you.
+            </p>
+          )}
+
           {!accepted && !partnerData.acceptedAt && (
             <div className="grid grid-cols-2 gap-3">
               <button

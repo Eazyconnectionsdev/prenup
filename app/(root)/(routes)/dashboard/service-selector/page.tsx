@@ -9,7 +9,9 @@ import {
   completeOnboarding,
   getCasesDetails,
   getOnboarding,
+  startCase,
 } from "@/store/asyncThunk/casesThunk";
+import { getFreshProfile } from "@/store/asyncThunk/authThunk";
 import { setAgreementType } from "@/store/slices/casesSlice";
 import { getErrorMessage } from "@/lib/getErrorMessage";
 import {
@@ -276,16 +278,26 @@ export default function ServiceSelector({
       toast.error("Please choose an option to continue.");
       return;
     }
-    if (!caseId) {
-      toast.error("We couldn't find your case. Please sign in again.");
+    if (!isCaseOwner) {
+      toast.error("Only the person who started the case can choose the service.");
       return;
     }
 
     setIsSaving(true);
     try {
+      // Choosing an agreement is what starts the legal matter, so this is
+      // where the Case ID is issued (an account alone doesn't have one).
+      // Idempotent on the server, so a retry gets the same case back.
+      let activeCaseId = caseId;
+      if (!activeCaseId) {
+        const started = await dispatch(startCase()).unwrap();
+        activeCaseId = started._id;
+        await dispatch(getFreshProfile());
+      }
+
       await dispatch(
         completeOnboarding({
-          caseId,
+          caseId: activeCaseId,
           agreementType,
           residesInUK: Boolean(confirmed.residency),
           understandsService: Boolean(confirmed.final),
@@ -294,7 +306,7 @@ export default function ServiceSelector({
 
       dispatch(setAgreementType(agreementType));
       setSavedType(agreementType);
-      await dispatch(getCasesDetails(caseId));
+      await dispatch(getCasesDetails(activeCaseId));
       toast.success("Your service selection has been saved.");
 
       if (onContinue) {

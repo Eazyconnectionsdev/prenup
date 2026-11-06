@@ -12,6 +12,7 @@ import TimelineTab from "./components/TimelineTab";
 import EmailsTab from "./components/EmailsTab";
 import AuditTab from "./components/AuditTab";
 
+import PartnerLinkPanel from "@/components/caseManager/PartnerLinkPanel";
 import Axios from "@/lib/ApiConfig";
 
 export default function AdminCaseDetailPage() {
@@ -172,6 +173,8 @@ export default function AdminCaseDetailPage() {
           </span>
         </div>
       </div>
+
+      <PartnerLinkPanel caseId={caseId} caseData={caseData} onChanged={loadCase} />
 
       {/* Tabs Container */}
       <div className="bg-white border rounded-xl overflow-hidden">

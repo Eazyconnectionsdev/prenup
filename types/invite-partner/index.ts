@@ -22,6 +22,9 @@ export interface PartnerData {
   registered?: RegisteredPartner | null;
   emailDiffers?: boolean;
   nameDiffers?: boolean;
+  // The invited person's account needs a review by our team before they can
+  // be linked. The inviter is not told why.
+  linkOnHold?: boolean;
 }
 
 export type InviteTrackingStatus =
@@ -29,7 +32,8 @@ export type InviteTrackingStatus =
   | 'OPENED'
   | 'ACCEPTED'
   | 'EXPIRED'
-  | 'REVOKED';
+  | 'REVOKED'
+  | 'REMOVED';
 
 export interface RegisteredPartner {
   _id: string;

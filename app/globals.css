@@ -130,3 +130,49 @@
     color: var(--color-foreground);
   }
 }
+
+/* Bright Animated Sunset Ambient Background Animations */
+@keyframes sunset-float-1 {
+  0% { transform: translate(0px, 0px) scale(1); }
+  50% { transform: translate(45px, -35px) scale(1.12); }
+  100% { transform: translate(-25px, 30px) scale(0.96); }
+}
+
+@keyframes sunset-float-2 {
+  0% { transform: translate(0px, 0px) scale(1); }
+  50% { transform: translate(-45px, 40px) scale(1.15); }
+  100% { transform: translate(30px, -25px) scale(0.92); }
+}
+
+@keyframes sunset-float-3 {
+  0% { transform: translate(0px, 0px) scale(1); }
+  50% { transform: translate(35px, 45px) scale(1.1); }
+  100% { transform: translate(-35px, -30px) scale(1.02); }
+}
+
+@keyframes sunset-aurora {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-sunset-orb-1 {
+  animation: sunset-float-1 12s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+.animate-sunset-orb-2 {
+  animation: sunset-float-2 16s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+.animate-sunset-orb-3 {
+  animation: sunset-float-3 14s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+.animate-sunset-aurora {
+  background-size: 200% 200%;
+  animation: sunset-aurora 15s ease-in-out infinite;
+}
+

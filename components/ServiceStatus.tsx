@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { Check, Crown } from "lucide-react";
 import StatCard, {
+  ApprovedPill,
   statCardActionClasses,
   statCardBadgeClasses,
+  statCardCaptionClasses,
 } from "@/components/dashboard/StatCard";
 import {
   agreementTypeLabel,
@@ -19,9 +21,15 @@ const CrownIcon = (
 export function ServiceStatus({
   agreementType,
   upgradeHref = SERVICE_SELECTOR_HREF,
+  approved = false,
 }: {
   agreementType?: string | null;
   upgradeHref?: string;
+  /**
+   * The case manager has approved the case, so the service is settled: the
+   * card stops inviting a change of plan and reports where the case stands.
+   */
+  approved?: boolean;
 }) {
   const service = agreementTypeServiceLabel(agreementType);
 
@@ -37,6 +45,19 @@ export function ServiceStatus({
             Choose
           </Link>
         }
+      />
+    );
+  }
+
+  if (approved) {
+    return (
+      <StatCard
+        tooltip={agreementTypeLabel(agreementType) ?? undefined}
+        label="Selected service"
+        icon={<ApprovedPill />}
+        value={service}
+        subtitle={agreementTypeSituationLabel(agreementType)}
+        action={<span className={statCardCaptionClasses}>Completed</span>}
       />
     );
   }

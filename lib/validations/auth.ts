@@ -28,15 +28,16 @@ export const loginSchema = z.object({
 
 export const registerSchema = z
   .object({
-    firstName: name("First name"),
-    lastName: name("Last name"),
+    firstName: z.string().trim().min(1, "First name is required").max(50, "First name is too long"),
+    middleName: z.string().trim().max(50, "Middle name is too long").optional(),
+    lastName: z.string().trim().min(1, "Last name is required").max(50, "Last name is too long"),
     email,
     phone: z
       .string()
       .refine(isValidPhone, "Enter a valid phone number, e.g. +14165550192"),
     password: newPassword,
     confirmPassword: z.string().min(1, "Please confirm your password"),
-    marketingConsent: z.boolean(),
+    marketingConsent: z.boolean().optional(),
     acceptedTerms: z.boolean().refine((v) => v, {
       message: "You must accept the Terms & Conditions and Privacy Policy",
     }),
