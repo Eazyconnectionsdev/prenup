@@ -1,12 +1,18 @@
 import Axios from "@/lib/ApiConfig";
 import { getErrorMessage } from "./http-error";
-import type { ApiResult, CheckInResult, CheckOutResult, DiffParagraph, LockStatus, VersionDetail, VersionEntry } from "@/types/agreement";
+import type {
+  ApiResult,
+  CheckInResult,
+  CheckOutResult,
+  DiffParagraph,
+  LockStatus,
+  VersionDetail,
+  VersionEntry,
+} from "@/types/agreement";
 
-export async function fetchCaseDetails(
-  caseId: string,
-){
+export async function fetchCaseDetails(caseId: string) {
   try {
-     const { data } = await Axios.get(`/cases/${caseId}`);
+    const { data } = await Axios.get(`/cases/${caseId}`);
     return { success: true, data };
   } catch (error) {
     return {
@@ -129,15 +135,13 @@ export async function checkInDocument(
   }
 }
 
-
 export async function downloadVersionFile(
   fileUrl: string,
   fileName: string,
 ): Promise<ApiResult<void>> {
   try {
-
-    console.log(":fileUrl", fileUrl)
-    console.log(":fileName", fileName)
+    console.log(":fileUrl", fileUrl);
+    console.log(":fileName", fileName);
 
     const res = await fetch(fileUrl);
     if (!res.ok) {
@@ -174,6 +178,27 @@ export async function compareDocumentVersions(
     return {
       success: false,
       error: getErrorMessage(error, "Failed to compare versions."),
+    };
+  }
+}
+/**
+ * Builds the partners' own version of the agreement from their confirmed
+ * answers. The final-review page fires this as soon as the second partner
+ * approves; the dashboard offers it again if that call never landed.
+ */
+export async function generateUserAgreement(
+  caseId: string,
+): Promise<ApiResult<{ success?: boolean }>> {
+  try {
+    const { data } = await Axios.post(`/agreement/${caseId}/document/generate`);
+    return { success: true, data };
+  } catch (error) {
+    return {
+      success: false,
+      error: getErrorMessage(
+        error,
+        "Couldn't generate the agreement right now. Please try again.",
+      ),
     };
   }
 }

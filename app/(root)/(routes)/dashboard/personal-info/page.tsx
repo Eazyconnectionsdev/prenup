@@ -5,6 +5,7 @@ import Link from "next/link";
 import { UserRound, Globe, Home, ArrowRight, ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
 import { useQuestionnaire } from "@/components/questionnaire/useQuestionnaire";
+import { useJointSectionStatus } from "@/hooks/useJointSectionStatus";
 import { LoadingState, Tooltip } from "@/components/questionnaire/QuestionnaireUI";
 import {
   calculateAge,
@@ -70,6 +71,7 @@ function daysUntil(dateValue: string): number | null {
 
 export default function PersonalInfoForm() {
   const [formData, setFormData] = useState<personalInfoFormData>(initialPersonalInfo);
+  const { lockedOut: iAmWaitingForReview } = useJointSectionStatus();
 
   const { isLoading, isSaving, save, stepInfo } = useQuestionnaire({
     step: "personal-info",
@@ -501,7 +503,7 @@ export default function PersonalInfoForm() {
               </Link>
               <button
                 type="submit"
-                disabled={isSaving}
+                disabled={isSaving || iAmWaitingForReview}
                 className="inline-flex h-[42px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-[#5B4DF5] hover:from-indigo-700 hover:to-[#4E3EEA] px-7 text-[13.5px] font-semibold text-white shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/30 transition-all focus:outline-none focus:ring-2 focus:ring-[#5B4DF5]/30 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
               >
                 {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}

@@ -9,6 +9,8 @@ import { getErrorMessage } from "@/lib/api/http-error";
 import { AppDispatch, RootState } from "@/store/store";
 import { getCasesDetails } from "@/store/asyncThunk/casesThunk";
 import { getStep } from "./steps";
+import { useEditingPartnerForm } from "./EditingPartnerContext";
+import { otherSectionName, ownSectionName } from "@/lib/caseSections";
 import type { QuestionnaireStepSlug } from "@/types/questionnaire/steps";
 import type { Options } from "@/types/questionnaire/use-questionnaire";
 
@@ -19,10 +21,18 @@ export function useQuestionnaire({ step, source = "own", onLoad }: Options) {
   const caseId = useSelector((state: RootState) => state.auth.caseId);
 
   const stepInfo = getStep(step);
-  const isUser1 = user?.endUserType === "user1";
-  const ownSection = isUser1 ? "myInformation" : "partnerInformation";
-  const otherSection = isUser1 ? "partnerInformation" : "myInformation";
-  const sectionName = source === "own" ? ownSection : otherSection;
+  // The invited partner's own answers live in `partnerInformation`; the
+  // owner's in `myInformation`. Resolved centrally so every screen agrees.
+  const isInvitedPartner = user?.endUserType === "user2";
+
+  // The `partner-…` pages show this same form on the other partner's answers
+  // for the partner who sent the case back for changes.
+  const editingPartner = useEditingPartnerForm() && source === "own";
+
+  const sectionName =
+    source === "own" && !editingPartner
+      ? ownSectionName(user?.endUserType)
+      : otherSectionName(user?.endUserType);
 
   const [isLoading, setIsLoading] = useState(Boolean(caseId && user?.endUserType));
   const [isSaving, setIsSaving] = useState(false);
@@ -60,7 +70,13 @@ export function useQuestionnaire({ step, source = "own", onLoad }: Options) {
       return;
     }
 
-    const apiStep = isUser1 ? stepInfo.apiStep : `partner-${stepInfo.apiStep}`;
+    // The `partner-` steps write to `partnerInformation`, which is the invited
+    // partner's own section -- so that is the prefix THEY save through.
+    // Editing the other partner's answers flips which section is written to.
+    const writesPartnerSection = isInvitedPartner !== editingPartner;
+    const apiStep = writesPartnerSection
+      ? `partner-${stepInfo.apiStep}`
+      : stepInfo.apiStep;
 
     try {
       setIsSaving(true);
@@ -68,7 +84,15 @@ export function useQuestionnaire({ step, source = "own", onLoad }: Options) {
       toast.success(`${stepInfo.title} saved.`);
       dispatch(getCasesDetails(caseId));
       // The last step has no next form, so stay on the page
-      if (stepInfo.nextPath) router.push(stepInfo.nextPath);
+      if (stepInfo.nextPath) {
+        // Stay on the partner's pages while editing their answers
+        const isQuestionnairePath = stepInfo.nextPath !== "/dashboard/joint-assets";
+        router.push(
+          editingPartner && isQuestionnairePath
+            ? stepInfo.nextPath.replace("/dashboard/", "/dashboard/partner-")
+            : stepInfo.nextPath,
+        );
+      }
     } catch (error) {
       toast.error(
         getErrorMessage(error, `Couldn't save ${stepInfo.title.toLowerCase()}.`),

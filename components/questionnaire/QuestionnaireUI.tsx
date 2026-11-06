@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowLeft, ArrowRight, ChevronDown, Info, Loader2, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useJointSectionStatus } from "@/hooks/useJointSectionStatus";
 import type { Treatment, TreatmentFields, YesNo } from "@/types/forms/form-primitives";
 import type {
   CheckCardProps,
@@ -241,12 +242,21 @@ export function SubmitBar({
   backLabel?: string;
 }) {
   const pathname = usePathname();
+  // Nothing can be saved while the partner is reviewing or editing.
+  const { lockedOut: iAmWaitingForReview } = useJointSectionStatus();
 
+  // On the partner's pages (editing their answers) the form is the same one,
+  // so step back through the partner's pages too.
+  const onPartnerPage = Boolean(pathname?.startsWith("/dashboard/partner-"));
+  const ownPath = onPartnerPage
+    ? pathname!.replace("/dashboard/partner-", "/dashboard/")
+    : pathname;
+  const ownBack = ownPath ? DEFAULT_PREV_ROUTES[ownPath] : undefined;
   const effectiveBackHref =
     backHref ??
-    (pathname && DEFAULT_PREV_ROUTES[pathname] !== undefined
-      ? DEFAULT_PREV_ROUTES[pathname]
-      : undefined);
+    (ownBack !== undefined && onPartnerPage && ownBack.startsWith("/dashboard/") && ownBack !== "/dashboard/"
+      ? ownBack.replace("/dashboard/", "/dashboard/partner-")
+      : ownBack);
 
   const displayLabel = label.includes("→") ? label : withArrow ? `${label} →` : label;
 
@@ -278,7 +288,8 @@ export function SubmitBar({
         )}
         <button
           type="submit"
-          disabled={isSaving}
+          disabled={isSaving || iAmWaitingForReview}
+          title={iAmWaitingForReview ? "Your partner is reviewing or editing. Editing is locked." : undefined}
           className="inline-flex h-[42px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-[#5B4DF5] hover:from-indigo-700 hover:to-[#4E3EEA] px-7 text-[13.5px] font-semibold text-white shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/30 transition-all focus:outline-none focus:ring-2 focus:ring-[#5B4DF5]/30 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
         >
           {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}

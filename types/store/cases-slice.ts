@@ -117,7 +117,8 @@ export interface CaseDetails {
   workflowStatus: string;
   // The service picked in onboarding / the service selector
   agreementType: string | null;
-  assignedCaseManager: string | null;
+  // Populated with name and email once a case manager is assigned
+  assignedCaseManager: string | { _id: string; firstName?: string | null; lastName?: string | null; email?: string } | null;
   createdAt: string;
   updatedAt: string;
   myInformation?: InformationSection;
@@ -145,6 +146,7 @@ export interface CasesState {
   paymentCompleted?: boolean;
   workflowStatus: string;
   agreementType: string | null;
+  assignedCaseManager: CaseDetails["assignedCaseManager"];
   myInformation: InformationSection;
   partnerInformation: InformationSection;
   jointInformation : JointInformationSection;

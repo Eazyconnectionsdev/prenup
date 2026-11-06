@@ -14,13 +14,22 @@ import { LuChartNoAxesCombined } from "react-icons/lu";
 import { useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import { RootState } from "@/store/store";
-import { calculateOverallProgress } from "@/lib/progressCalculator";
+import {
+  calculateOverallProgress,
+  MY_PARTNER_KEYS,
+} from "@/lib/progressCalculator";
+import { resolvePartyInformation } from "@/lib/caseSections";
 import type { StepConfig, StepId } from "@/types/dashboard/dashboard-home";
 import { useJointSectionStatus } from "@/hooks/useJointSectionStatus";
+import { isCaseManagerApproved } from "@/lib/caseStage";
 import Axios from "@/lib/ApiConfig";
 import { ServiceStatus } from "@/components/ServiceStatus";
-import PendingPartnerInvite from "@/components/dashboard/PendingPartnerInvite";
+import CaseManagerCard from "@/components/dashboard/CaseManagerCard";
+import AgreementDocumentCard from "@/components/dashboard/AgreementDocumentCard";
+import LegalAdviceJourney from "@/components/dashboard/LegalAdviceJourney";
+import LegalTeamCard from "@/components/dashboard/LegalTeamCard";
 import StatCard, {
+  ApprovedPill,
   statCardActionClasses,
   statCardBadgeClasses,
   statCardCaptionClasses,
@@ -28,12 +37,11 @@ import StatCard, {
 
 const steps: StepConfig[] = [
   {
-    id: "stage_1",
-    stageNumber: "1",
-    title: "Stage 1: Registration and Payment",
+    id: "questionnaire",
+    title: "Fill out your questionnaire",
     description:
-      "Applicant registered, partner invited & package payment completed.",
-    cta: "View Status",
+      "Select your prenup terms. We guide you through state-specific processes.",
+    cta: "Select Terms",
     completedLabel: "Completed",
     icon: (
       <svg
@@ -43,18 +51,16 @@ const steps: StepConfig[] = [
         strokeWidth={1.8}
         className="h-5 w-5"
       >
-        <rect x="2" y="5" width="20" height="14" rx="2" />
-        <line x1="2" y1="10" x2="22" y2="10" />
+        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+        <circle cx="12" cy="7" r="4" />
       </svg>
     ),
   },
   {
-    id: "stage_2",
-    stageNumber: "2",
-    title: "Stage 2: Application — Primary Applicant",
-    description:
-      "Personal info, declarations, assets, debts, joint finances & matrimonial agreement (10 sections).",
-    cta: "Fill Application",
+    id: "partner_questionnaire",
+    title: "Partners Questionnaire",
+    description: "Your partner prenup terms.",
+    cta: "Select Terms",
     completedLabel: "Completed",
     icon: (
       <svg
@@ -64,18 +70,17 @@ const steps: StepConfig[] = [
         strokeWidth={1.8}
         className="h-5 w-5"
       >
-        <path d="M9 3h6l3 3v15H6V3z" />
-        <path d="M9 10h6M9 14h6M9 18h3" />
+        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+        <circle cx="12" cy="7" r="4" />
       </svg>
     ),
   },
   {
-    id: "stage_3",
-    stageNumber: "3",
-    title: "Stage 3: Application — Secondary Applicant",
+    id: "joint_questionnaire",
+    title: "Joint Questionnaire",
     description:
-      "Partner personal info, declarations, assets, income & liabilities (6 sections).",
-    cta: "Partner Application",
+      "Select your Joint terms. We guide you through state-specific processes.",
+    cta: "Select Terms",
     completedLabel: "Completed",
     icon: (
       <svg
@@ -85,18 +90,16 @@ const steps: StepConfig[] = [
         strokeWidth={1.8}
         className="h-5 w-5"
       >
-        <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" />
+        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
         <circle cx="9" cy="7" r="4" />
-        <path d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+        <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
       </svg>
     ),
   },
   {
-    id: "stage_4",
-    stageNumber: "4",
-    title: "Stage 4: Partner Review Stage",
-    description:
-      "Multi-turn package review, approvals & mutual snapshot.",
+    id: "final_review",
+    title: "Final Review & Confirmation",
+    description: "Your Contract is Almost done!",
     cta: "Review & Confirm",
     completedLabel: "Completed",
     icon: (
@@ -113,82 +116,12 @@ const steps: StepConfig[] = [
   },
 ];
 
-// Each step gets its own tile colour, keyed by id
-const STEP_TILES: Record<string, string> = {
-  stage_1: "from-[#FBBF24] to-[#F59E0B]",
-  stage_2: "from-[#34D399] to-[#059669]",
-  stage_3: "from-[#FB7185] to-[#E11D48]",
-  stage_4: "from-[#60A5FA] to-[#2563EB]",
+const STEP_TILES: Record<StepId, string> = {
   questionnaire: "from-[#FBBF24] to-[#F59E0B]",
   partner_questionnaire: "from-[#FB7185] to-[#E11D48]",
   joint_questionnaire: "from-[#34D399] to-[#059669]",
   final_review: "from-[#60A5FA] to-[#2563EB]",
 };
-
-
-const legalAdvisers = [
-  {
-    name: "David Miller, QC",
-    role: "Senior Family Solicitor · Apex Legal LLP",
-    tag: "SRA regulated #451270",
-    initials: "DM",
-  },
-  {
-    name: "Sarah Jenkins",
-    role: "Partner · Vangard Family Law",
-    tag: "SRA regulated #203491",
-    initials: "SJ",
-  },
-];
-
-const caseDocuments = [
-  {
-    name: "Master Draft Agreement",
-    meta: "v1.2 · Updated 21 Jul 2026",
-    status: "download" as const,
-  },
-  {
-    name: "Schedule of Assets (Combined)",
-    meta: "v1.0 · Updated 20 Jul 2026",
-    status: "download" as const,
-  },
-  {
-    name: "Legal Advice Certificate (P1)",
-    meta: "Pending solicitor review",
-    status: "locked" as const,
-  },
-];
-
-function LockIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.8}
-      className="h-3.5 w-3.5"
-    >
-      <rect x="5" y="10" width="14" height="10" rx="2" />
-      <path d="M8 10V7a4 4 0 018 0v3" />
-    </svg>
-  );
-}
-
-function DownloadIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.8}
-      className="h-3.5 w-3.5"
-    >
-      <path d="M12 4v11" />
-      <path d="M7 11l5 5 5-5" />
-      <path d="M5 20h14" />
-    </svg>
-  );
-}
 
 // The step count sits inside a ring that fills by the same percentage, so
 // the figure beside it never stands alone.
@@ -244,13 +177,7 @@ function ProgressDial({
 
 // One dash per step, so the row is a count the eye can check as well as a
 // bar. The ring and the percentage already say it as a figure.
-function StepTrack({
-  completed,
-  total,
-}: {
-  completed: number;
-  total: number;
-}) {
+function StepTrack({ completed, total }: { completed: number; total: number }) {
   if (total <= 0) {
     return <div className="h-1.5 w-full rounded-full bg-[#EDEDF5]" />;
   }
@@ -281,16 +208,18 @@ const hasAllKeys = (
   keys: string[],
 ): boolean => keys.every((key) => hasData(section?.[key]));
 
-const QUESTIONNAIRE_KEYS = [
-  "personalInformation",
-  "legalDeclaration",
-  "familyAndDependents",
-];
-const DISCLOSURE_KEYS = [
-  "individualAssets",
-  "incomeAndRevenue",
-  "liabilitiesAndDebts",
-];
+// A questionnaire only counts as complete once all six of its forms are filled
+// in — the three personal ones plus the three financial disclosures — which is
+// the same set the sidebar and the Final Review page count.
+const QUESTIONNAIRE_KEYS = MY_PARTNER_KEYS;
+
+// Step-card actions. Green once the step is done, primary while it is still
+// the user's to do, muted when the step belongs to the other party.
+const stepButtonBase =
+  "ml-4 flex-shrink-0 rounded-lg px-4 py-2 text-xs font-semibold";
+const stepButtonDone = `${stepButtonBase} bg-[#DCFCE7] text-[#16A34A] hover:bg-[#BBF7D0]`;
+const stepButtonTodo = `${stepButtonBase} bg-primary text-white hover:bg-primary/90`;
+const stepButtonMuted = `${stepButtonBase} bg-[#F1F1F6] text-[#9494AA] hover:bg-[#E8E8F0]`;
 
 // What the dashboard needs from GET /cases/:id/invite. The invite page reads
 // the rest of it.
@@ -301,9 +230,7 @@ type InviteSummary = {
 
 // ─── Popup IDs ───────────────────────────────────────────────────────────────
 type PopupId =
-  | "p2-joint-initial"
-  | "p1-joint-completed"
-  | "p2-wait-for-partner";
+  "p2-joint-initial" | "p1-joint-completed" | "p2-wait-for-partner";
 
 export default function PrenupDashboard() {
   const router = useRouter();
@@ -363,27 +290,28 @@ export default function PrenupDashboard() {
     "";
 
   // ── Questionnaire completion ─────────────────────────────────────────────────
-  const isMyQuestComplete = hasAllKeys(
-    cases?.myInformation,
-    QUESTIONNAIRE_KEYS,
-  );
+  // "Yours" is always the signed-in user's own section: myInformation for the
+  // owner, partnerInformation for the invited partner.
+  const { mine: myQuestData, theirs: partnerQuestData } =
+    resolvePartyInformation(
+      user?.endUserType,
+      cases?.myInformation,
+      cases?.partnerInformation,
+    );
+
+  const isMyQuestComplete = hasAllKeys(myQuestData, QUESTIONNAIRE_KEYS);
   const isPartnerQuestComplete = hasAllKeys(
-    cases?.partnerInformation,
+    partnerQuestData,
     QUESTIONNAIRE_KEYS,
   );
 
   const isQuestionnaireComplete = isMyQuestComplete && isPartnerQuestComplete;
 
-  const isDisclosureComplete =
-    hasAllKeys(cases?.myInformation, DISCLOSURE_KEYS) &&
-    hasAllKeys(cases?.partnerInformation, DISCLOSURE_KEYS);
-
   const isJointComplete =
     Boolean((cases?.jointInformation as any)?.jointAssets) ||
     Boolean((cases?.jointInformation as any)?.jointLiabilitiesAndDebts);
 
-  const areAll4SectionsComplete =
-    isQuestionnaireComplete && isDisclosureComplete && isJointComplete;
+  const areAll4SectionsComplete = isQuestionnaireComplete && isJointComplete;
 
   const isJointSubmitted = Boolean(
     (cases as any)?.status?.jointInformation?.submitted,
@@ -395,10 +323,12 @@ export default function PrenupDashboard() {
     iAmWaitingForReview,
     partnerDisapproved,
     isWaitingOnPartner,
+    lockedOut,
+    iDisapproved,
   } = useJointSectionStatus();
   const isMutualApproved = Boolean(
     (cases as any)?.approval?.user1Approved &&
-      (cases as any)?.approval?.user2Approved,
+    (cases as any)?.approval?.user2Approved,
   );
 
   const progressResult = calculateOverallProgress({
@@ -407,32 +337,11 @@ export default function PrenupDashboard() {
     jointInformation: cases.jointInformation,
   });
 
-  const isPaymentDone = Boolean(
-    cases?.paymentCompleted ||
-      (cases as any)?.paymentDone ||
-      user?.paymentDone,
-  );
-  const isStage1Complete = isPaymentDone && hasP2Joined;
-  const isStage2Complete =
-    isMyQuestComplete &&
-    hasAllKeys(cases?.myInformation, DISCLOSURE_KEYS) &&
-    isJointComplete;
-  const isStage3Complete =
-    isPartnerQuestComplete &&
-    hasAllKeys(cases?.partnerInformation, DISCLOSURE_KEYS);
-  const isStage4Complete = isMutualApproved;
-
   const [activePopup, setActivePopup] = useState<PopupId | null>(null);
   const [completed] = useState<Set<StepId>>(new Set());
 
   const effectiveCompleted = useMemo(() => {
     const merged = new Set(completed);
-    if (isStage1Complete) merged.add("stage_1");
-    if (isStage2Complete) merged.add("stage_2");
-    if (isStage3Complete) merged.add("stage_3");
-    if (isStage4Complete) merged.add("stage_4");
-
-    // Legacy fallback
     if (isMyQuestComplete) merged.add("questionnaire");
     if (isPartnerQuestComplete) merged.add("partner_questionnaire");
     if (isJointComplete) merged.add("joint_questionnaire");
@@ -440,10 +349,6 @@ export default function PrenupDashboard() {
     return merged;
   }, [
     completed,
-    isStage1Complete,
-    isStage2Complete,
-    isStage3Complete,
-    isStage4Complete,
     isMyQuestComplete,
     isPartnerQuestComplete,
     isJointComplete,
@@ -452,103 +357,115 @@ export default function PrenupDashboard() {
 
   const activeIndex = steps.findIndex((s) => !effectiveCompleted.has(s.id));
   const currentIndex = activeIndex === -1 ? steps.length : activeIndex;
-  const allStepsDone = steps.every((s) => effectiveCompleted.has(s.id));
+
+  // The case manager, once one has been assigned (populated by the backend)
+  const caseManager =
+    cases.assignedCaseManager && typeof cases.assignedCaseManager === "object"
+      ? cases.assignedCaseManager
+      : null;
+  const caseManagerName = [caseManager?.firstName, caseManager?.lastName]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+  const caseManagerEmail = caseManager?.email ?? "";
+
+  // ── Dashboard stages ───────────────────────────────────────────────────────
+  // 1. The journey: the four questionnaire steps, up to final review.
+  // 2. Mutually confirmed: the journey gives way to the generated agreement
+  //    and whoever is looking after the case.
+  // 3. Case manager approved: the independent legal advice steps open up,
+  //    here and in the sidebar.
+  const isAgreementReady = isMutualApproved;
+  const caseManagerApproved = isCaseManagerApproved(
+    cases?.approval,
+    cases?.workflowStatus,
+  );
+  const isLegalAdviceStage = isAgreementReady && caseManagerApproved;
+
+  // Each partner's own pre-lawyer questionnaire, whichever side they are on
+  const { mine: myPre, theirs: partnerPre } = resolvePartyInformation<
+    Record<string, any>
+  >(
+    user?.endUserType,
+    cases?.preQuestionnaireUser1 as Record<string, any>,
+    cases?.preQuestionnaireUser2 as Record<string, any>,
+  );
+
+  // While a review request is out, the sender is locked out of every step and
+  // the reviewing partner has all of them open.
+  const senderLocked = lockedOut && !isMutualApproved;
+  // Reviewing the request, or editing after sending it back: every step is
+  // "In progress" with a Review button for me, and the other partner's are
+  // locked as "Partner Reviewing".
+  const reviewerOpen = (isMyTurnToApprove || iDisapproved) && !isMutualApproved;
+
+  const REVIEW_TARGETS: Record<StepId, string> = {
+    questionnaire: "/dashboard/personal-info",
+    partner_questionnaire: "/dashboard/partner-personal-info",
+    joint_questionnaire: "/dashboard/joint-assets",
+    final_review: "/dashboard/final-review-confirmation",
+  };
 
   function renderStepButton(step: StepConfig) {
     const isDone = effectiveCompleted.has(step.id);
 
-    // ── STAGE 1: Registration and Payment ──
-    if (step.id === "stage_1") {
-      if (isStage1Complete) {
-        return (
-          <button
-            onClick={() => router.push("/dashboard/service-selector")}
-            className="ml-4 flex-shrink-0 rounded-lg bg-[#DCFCE7] px-4 py-2 text-xs font-semibold text-[#16A34A] hover:bg-[#BBF7D0]"
-          >
-            Completed
-          </button>
-        );
-      }
-      if (!isPaymentDone) {
-        return (
-          <button
-            onClick={() => router.push("/dashboard/service-selector")}
-            className="ml-4 flex-shrink-0 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary/90"
-          >
-            Complete Payment
-          </button>
-        );
-      }
+    if (senderLocked) {
       return (
         <button
-          onClick={() => router.push("/dashboard/invite-partner")}
-          className="ml-4 flex-shrink-0 rounded-lg bg-[#6D28D9] px-4 py-2 text-xs font-semibold text-white hover:bg-[#5B21B6]"
+          disabled
+          className={`${stepButtonBase} cursor-not-allowed bg-amber-100 text-amber-700 opacity-80`}
         >
-          Invite Partner
+          Partner Reviewing
         </button>
       );
     }
 
-    // ── STAGE 2: Application — Primary Applicant (10 Sections) ──
-    if (step.id === "stage_2" || step.id === "questionnaire") {
-      if (isStage2Complete) {
+    if (reviewerOpen) {
+      const isFinal = step.id === "final_review";
+      return (
+        <button
+          onClick={() => router.push(REVIEW_TARGETS[step.id])}
+          className={
+            isFinal
+              ? "ml-4 flex-shrink-0 rounded-lg bg-[#16A34A] px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#15803D]"
+              : stepButtonTodo
+          }
+        >
+          {isFinal ? "Review & Confirm" : "Review"}
+        </button>
+      );
+    }
+
+    if (step.id === "questionnaire") {
+      if (isDone) {
         return (
           <button
             onClick={() => router.push("/dashboard/personal-info")}
-            className="ml-4 flex-shrink-0 rounded-lg bg-[#DCFCE7] px-4 py-2 text-xs font-semibold text-[#16A34A] hover:bg-[#BBF7D0]"
+            className={stepButtonDone}
           >
             Completed
-          </button>
-        );
-      }
-      if (isUser1) {
-        return (
-          <button
-            onClick={() => router.push("/dashboard/personal-info")}
-            className="ml-4 flex-shrink-0 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary/90"
-          >
-            Fill Application
           </button>
         );
       }
       return (
         <button
           onClick={() => router.push("/dashboard/personal-info")}
-          className="ml-4 flex-shrink-0 rounded-lg bg-[#F1F1F6] px-4 py-2 text-xs font-semibold text-[#9494AA] hover:bg-[#E8E8F0]"
+          className={stepButtonTodo}
         >
-          View Details
+          Select Terms
         </button>
       );
     }
 
-    // ── STAGE 3: Application — Secondary Applicant (6 Sections) ──
-    if (step.id === "stage_3" || step.id === "partner_questionnaire") {
-      if (isStage3Complete) {
-        return (
-          <button
-            onClick={() => router.push("/dashboard/partner-personal-info")}
-            className="ml-4 flex-shrink-0 rounded-lg bg-[#DCFCE7] px-4 py-2 text-xs font-semibold text-[#16A34A] hover:bg-[#BBF7D0]"
-          >
-            Completed
-          </button>
-        );
-      }
-      if (isUser2) {
-        return (
-          <button
-            onClick={() => router.push("/dashboard/partner-personal-info")}
-            className="ml-4 flex-shrink-0 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary/90"
-          >
-            Fill Application
-          </button>
-        );
-      }
+    if (step.id === "partner_questionnaire") {
       return (
         <button
           onClick={() => router.push("/dashboard/partner-personal-info")}
-          className="ml-4 flex-shrink-0 rounded-lg bg-[#F1F1F6] px-4 py-2 text-xs font-semibold text-[#9494AA] hover:bg-[#E8E8F0]"
+          // Stays muted until done: these are the partner's forms to fill in,
+          // not an action this user can take.
+          className={isDone ? stepButtonDone : stepButtonMuted}
         >
-          Partner Pending
+          {isDone ? "Completed" : "Select Terms"}
         </button>
       );
     }
@@ -559,7 +476,7 @@ export default function PrenupDashboard() {
           return (
             <button
               onClick={() => setActivePopup("p1-joint-completed")}
-              className="ml-4 flex-shrink-0 rounded-lg bg-[#DCFCE7] px-4 py-2 text-xs font-semibold text-[#16A34A] hover:bg-[#BBF7D0]"
+              className={stepButtonDone}
             >
               Completed
             </button>
@@ -568,29 +485,38 @@ export default function PrenupDashboard() {
         return (
           <button
             onClick={() => setActivePopup("p2-wait-for-partner")}
-            className="ml-4 flex-shrink-0 rounded-lg bg-[#DCFCE7] px-4 py-2 text-xs font-semibold text-[#16A34A] hover:bg-[#BBF7D0]"
+            className={stepButtonDone}
           >
             Completed
+          </button>
+        );
+      }
+      if (isUser2) {
+        return (
+          <button
+            onClick={() => setActivePopup("p2-joint-initial")}
+            className={stepButtonTodo}
+          >
+            Select Terms
           </button>
         );
       }
       return (
         <button
           onClick={() => router.push("/dashboard/joint-assets")}
-          className="ml-4 flex-shrink-0 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary/90"
+          className={stepButtonTodo}
         >
           Select Terms
         </button>
       );
     }
 
-    // ── STAGE 4: Partner Review Stage ──
-    if (step.id === "stage_4" || step.id === "final_review") {
+    if (step.id === "final_review") {
       if (isMutualApproved) {
         return (
           <button
             onClick={() => router.push("/dashboard/final-review-confirmation")}
-            className="ml-4 flex-shrink-0 rounded-lg bg-[#DCFCE7] px-4 py-2 text-xs font-semibold text-[#16A34A] hover:bg-[#BBF7D0]"
+            className={stepButtonDone}
           >
             Completed
           </button>
@@ -608,21 +534,10 @@ export default function PrenupDashboard() {
         );
       }
 
-      const p1IsWaiting = iAmWaitingForReview && !isMutualApproved;
-      if (p1IsWaiting) {
-        return (
-          <button
-            onClick={() => router.push("/dashboard/final-review-confirmation")}
-            className="ml-4 flex-shrink-0 rounded-lg bg-amber-100 px-4 py-2 text-xs font-semibold text-amber-700 hover:bg-amber-200"
-          >
-            Waiting for Partner Review
-          </button>
-        );
-      }
-
       const p1CanReview = isUser1 && areAll4SectionsComplete;
       const p2CanReview = isUser2 && isP1SentForReview;
-      const canReview = isMyTurnToApprove || p1CanReview || p2CanReview;
+      const canReview =
+        isMyTurnToApprove || iDisapproved || p1CanReview || p2CanReview;
 
       if (canReview) {
         return (
@@ -651,16 +566,18 @@ export default function PrenupDashboard() {
   return (
     <div className=" h-full bg-[#F6F6FB]">
       <div className="mx-auto max-w-5xl px-8 py-8">
-        <PendingPartnerInvite />
-
         <div>
           <h1 className="text-[1.75rem] font-bold tracking-tight text-[#1E1B3C]">
             Welcome , {user.firstName} 👋
           </h1>
           <p className="mt-1 text-sm text-[#6B6B80]">
-            {allStepsDone
-              ? "Here is the current status of your prenuptial agreement."
-              : "Your prenup is taking shape."}
+            {!isAgreementReady
+              ? "Your prenup is taking shape."
+              : isLegalAdviceStage
+                ? "Your case is approved. Next, each of you picks an independent lawyer."
+                : caseManagerName
+                  ? "Your draft agreement is ready and your case manager is reviewing it."
+                  : "Your draft agreement is ready. A case manager will be assigned to you soon."}
           </p>
         </div>
 
@@ -692,7 +609,10 @@ export default function PrenupDashboard() {
             }
           />
 
-          <ServiceStatus agreementType={cases?.agreementType} />
+          <ServiceStatus
+            agreementType={cases?.agreementType}
+            approved={isLegalAdviceStage}
+          />
 
           {isUser2 ? (
             <StatCard
@@ -704,17 +624,27 @@ export default function PrenupDashboard() {
           ) : hasP2Joined ? (
             <StatCard
               label="Your partner"
-              icon={<UserRoundCheck className="h-5 w-5 text-[#6D4AFF]" />}
+              icon={
+                isLegalAdviceStage ? (
+                  <ApprovedPill />
+                ) : (
+                  <UserRoundCheck className="h-5 w-5 text-[#6D4AFF]" />
+                )
+              }
               value={partnerName}
               subtitle={partnerEmail || "Partner has joined your case"}
               subtitleTooltip={partnerEmail || undefined}
               /* Nothing left to do here, so the slot holds a state, not a
                  button — which also keeps the card's height steady. */
               action={
-                <span className={statCardBadgeClasses}>
-                  <Check className="h-3.5 w-3.5" aria-hidden="true" />
-                  Joined
-                </span>
+                isLegalAdviceStage ? (
+                  <span className={statCardCaptionClasses}>Completed</span>
+                ) : (
+                  <span className={statCardBadgeClasses}>
+                    <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                    Joined
+                  </span>
+                )
               }
             />
           ) : isPartnerInvited ? (
@@ -753,13 +683,14 @@ export default function PrenupDashboard() {
           )}
         </div>
 
-        {!allStepsDone && (
+        {!isAgreementReady && (
           <div className="mt-8 bg-white p-5 rounded-2xl shadow-sm">
             <h2 className="text-lg font-bold tracking-tight text-[#1E1B3C]">
               Your Prenup Journey
             </h2>
             <p className="mt-1 text-sm text-[#6B6B80]">
-              Welcome to your dashboard! This page will help guide you through your prenup journey.
+              Welcome to your dashboard! This page will help guide you through
+              your prenup journey.
             </p>
 
             <div className="mt-5 flex flex-col gap-3">
@@ -798,7 +729,13 @@ export default function PrenupDashboard() {
                     </div>
 
                     <div className="hidden w-28 flex-shrink-0 text-right text-xs font-medium text-[#8A8AA0] lg:block">
-                      {isDone ? "Completed" : isActive ? "In progress" : "Not started"}
+                      {senderLocked || reviewerOpen
+                        ? "In progress"
+                        : isDone
+                          ? "Completed"
+                          : isActive
+                            ? "In progress"
+                            : "Not started"}
                     </div>
 
                     {renderStepButton(step)}
@@ -812,86 +749,40 @@ export default function PrenupDashboard() {
         {/* Reveal-on-complete section */}
         <div
           className={`grid transition-all duration-500 ease-out ${
-            allStepsDone
+            isAgreementReady
               ? "mt-6 grid-rows-[1fr] opacity-100"
               : "mt-0 grid-rows-[0fr] opacity-0"
           }`}
         >
           <div className="overflow-hidden">
-            <div className="grid gap-6 md:grid-cols-2">
-              {/* Legal advice */}
-              <div className="rounded-2xl border border-[#E7E7F2] bg-white p-6">
-                <h3 className="text-sm font-semibold text-[#1E1B3C]">
-                  Your independent legal advice
-                </h3>
-                <p className="mt-1 text-xs text-[#8A8AA0]">
-                  Under England and Wales law, both partners receive separate
-                  advice from independent law firms.
-                </p>
-                <div className="mt-4 flex flex-col gap-3">
-                  {legalAdvisers.map((adviser) => (
-                    <div
-                      key={adviser.name}
-                      className="flex items-center gap-3 rounded-xl border border-[#EDEDF5] p-3"
-                    >
-                      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[#EDE9FE] text-xs font-semibold text-[#5B21B6]">
-                        {adviser.initials}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-sm font-semibold text-[#1E1B3C]">
-                          {adviser.name}
-                        </div>
-                        <div className="text-xs text-[#8A8AA0]">
-                          {adviser.role}
-                        </div>
-                        <span className="mt-1 inline-block rounded bg-[#DCFCE7] px-1.5 py-0.5 text-[10px] font-semibold text-[#16A34A]">
-                          {adviser.tag}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+            <div className="grid items-start gap-6 md:grid-cols-2">
+              {/* The generated agreement, straight from the case's versions */}
+              <AgreementDocumentCard
+                caseId={cases?.caseId ?? null}
+                agreementType={cases?.agreementType}
+              />
 
-              {/* Documents */}
-              <div className="rounded-2xl border border-[#E7E7F2] bg-white p-6">
-                <h3 className="text-sm font-semibold text-[#1E1B3C]">
-                  Case documents and drafts
-                </h3>
-                <p className="mt-1 text-xs text-[#8A8AA0]">
-                  Access and download your initial schedules and master
-                  agreement files.
-                </p>
-                <div className="mt-4 flex flex-col gap-3">
-                  {caseDocuments.map((doc) => (
-                    <div
-                      key={doc.name}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-[#EDEDF5] p-3"
-                    >
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-semibold text-[#1E1B3C]">
-                          {doc.name}
-                        </div>
-                        <div className="text-xs text-[#8A8AA0]">{doc.meta}</div>
-                      </div>
-                      {doc.status === "download" ? (
-                        <button className="flex flex-shrink-0 items-center gap-1.5 rounded-lg border border-[#DDD6FE] px-3 py-1.5 text-xs font-semibold text-[#6D28D9] hover:bg-[#FAF9FF]">
-                          <DownloadIcon />
-                          Download
-                        </button>
-                      ) : (
-                        <span className="flex flex-shrink-0 items-center gap-1.5 rounded-lg bg-[#F1F1F6] px-3 py-1.5 text-xs font-semibold text-[#B4B4C4]">
-                          <LockIcon />
-                          Locked
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
+              {/* Up to approval the couple deal with their case manager; from
+                  then on the card beside the agreement is their own two
+                  independent solicitors. */}
+              {isLegalAdviceStage ? (
+                <LegalTeamCard myPre={myPre} partnerPre={partnerPre} />
+              ) : (
+                <CaseManagerCard
+                  name={caseManagerName || undefined}
+                  email={caseManagerEmail || undefined}
+                  status={caseManagerName ? "assigned" : "pending"}
+                />
+              )}
             </div>
           </div>
         </div>
+
+        {/* Once the case manager has approved, the earlier journey is behind
+            them: the independent legal advice steps are all that is left. */}
+        {isLegalAdviceStage && (
+          <LegalAdviceJourney myPre={myPre} partnerPre={partnerPre} />
+        )}
       </div>
 
       {/* ── Popups ─────────────────────────────────────────────────────────── */}
@@ -910,7 +801,13 @@ export default function PrenupDashboard() {
               className="absolute right-4 top-4 text-[#9494AA] hover:text-[#1E1B3C]"
               aria-label="Close"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                className="h-5 w-5"
+              >
                 <path d="M18 6L6 18M6 6l12 12" />
               </svg>
             </button>
@@ -919,20 +816,30 @@ export default function PrenupDashboard() {
             {activePopup === "p2-joint-initial" && (
               <>
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#EDE9FE] text-[#6D28D9]">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-5 w-5">
-                    <circle cx="12" cy="12" r="10" /><path d="M12 8v4m0 4h.01" />
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={1.8}
+                    className="h-5 w-5"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 8v4m0 4h.01" />
                   </svg>
                 </div>
                 <h2 className="mt-4 text-base font-semibold text-[#1E1B3C]">
                   Joint Questionnaire
                 </h2>
                 <p className="mt-2 text-sm text-[#6B6B80]">
-                  Your partner will submit the completed information for your review.
+                  Your partner will submit the completed information for your
+                  review.
                 </p>
                 <p className="mt-1 text-sm text-[#6B6B80]">
                   If you have not completed your{" "}
-                  <span className="font-medium text-[#1E1B3C]">Personal Questionnaire</span>,
-                  please complete it first.
+                  <span className="font-medium text-[#1E1B3C]">
+                    Personal Questionnaire
+                  </span>
+                  , please complete it first.
                 </p>
                 <div className="mt-5 flex gap-3">
                   <button
@@ -958,7 +865,13 @@ export default function PrenupDashboard() {
             {activePopup === "p1-joint-completed" && (
               <>
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#DCFCE7] text-[#16A34A]">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-5 w-5">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={1.8}
+                    className="h-5 w-5"
+                  >
                     <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
@@ -966,8 +879,8 @@ export default function PrenupDashboard() {
                   Partner&apos;s Review Pending
                 </h2>
                 <p className="mt-2 text-sm text-[#6B6B80]">
-                  Your partner has completed all the section information.
-                  Please review all sections and make your final confirmation.
+                  Your partner has completed all the section information. Please
+                  review all sections and make your final confirmation.
                 </p>
                 <div className="mt-5 flex gap-3">
                   <button
@@ -993,8 +906,15 @@ export default function PrenupDashboard() {
             {activePopup === "p2-wait-for-partner" && (
               <>
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-amber-600">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-5 w-5">
-                    <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={1.8}
+                    className="h-5 w-5"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 6v6l4 2" />
                   </svg>
                 </div>
                 <h2 className="mt-4 text-base font-semibold text-[#1E1B3C]">
@@ -1013,7 +933,6 @@ export default function PrenupDashboard() {
                 </div>
               </>
             )}
-
           </div>
         </div>
       )}

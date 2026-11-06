@@ -38,9 +38,8 @@ export function JointStatusBanner({ isReviewPage = false }: { isReviewPage?: boo
     return box(
       "bg-indigo-50 text-indigo-700",
       <>
-        Your partner has asked you to approve the joint information. Please review Joint Assets,
-        Joint Income, Joint Liabilities and the Matrimonial Agreement, then approve or make changes
-        on the Final Review page.
+        Your partner has asked you to approve the information. Review it, then approve it or click
+        Make Changes on the Final Review page to edit anything.
         {reviewLink}
       </>,
     );

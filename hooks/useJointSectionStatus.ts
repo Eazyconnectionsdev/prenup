@@ -30,6 +30,9 @@ export function useJointSectionStatus() {
 
   // Owner edits first; after a disapproval the disapproving partner edits next
   const isMyTurn = submittedById === null ? isOwner : submittedById === myId;
+  const isMyTurnToApprove =
+    reviewPending && submittedById !== null && submittedById !== myId;
+  const iAmWaitingForReview = reviewPending && submittedById === myId;
   const canEdit = !locked && !reviewPending && isMyTurn;
 
   return {
@@ -40,10 +43,15 @@ export function useJointSectionStatus() {
     locked,
     reviewPending,
     canEdit,
-    iAmWaitingForReview: reviewPending && submittedById === myId,
-    isMyTurnToApprove: reviewPending && submittedById !== null && submittedById !== myId,
+    iAmWaitingForReview,
+    isMyTurnToApprove,
     isWaitingOnPartner: !locked && !reviewPending && !isMyTurn,
     partnerDisapproved: !!disapprovedById && disapprovedById !== myId,
     iDisapproved: canEdit && !!disapprovedById && disapprovedById === myId,
+    // Read-only for me: my request is being reviewed, or my partner sent it
+    // back and is editing. Everything, my own information included, is locked.
+    lockedOut:
+      iAmWaitingForReview ||
+      (!locked && !reviewPending && !isMyTurn && !!disapprovedById && disapprovedById !== myId),
   };
 }
