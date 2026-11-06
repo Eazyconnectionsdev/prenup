@@ -8,6 +8,7 @@ import {
   Baby,
   Briefcase,
   CalendarClock,
+  ChevronDown,
   FileSignature,
   Gem,
   Gift,
@@ -875,21 +876,28 @@ export default function MatrimonialAgreementPage() {
 
                     <div>
                       <label className={subLabelClasses}>Future Matrimonial Treatment</label>
-                      <select
-                        required
-                        value={row.treatment}
-                        onChange={(e) =>
-                          updateRow(setEntries, row.id, { treatment: e.target.value as Treatment })
-                        }
-                        className={fieldClasses}
-                      >
-                        <option value="">How should this inheritance be treated?</option>
-                        {inheritanceTreatmentOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="relative w-full">
+                        <select
+                          required
+                          value={row.treatment}
+                          onChange={(e) =>
+                            updateRow(setEntries, row.id, { treatment: e.target.value as Treatment })
+                          }
+                          title="This records your current intentions. Your independent solicitors will discuss whether the proposed arrangements are appropriate and legally workable."
+                          className={`${fieldClasses} appearance-none pr-16 cursor-pointer`}
+                        >
+                          <option value="">How should this inheritance be treated?</option>
+                          {inheritanceTreatmentOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="pointer-events-none absolute right-9 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+                          <Tooltip text="This records your current intentions. Your independent solicitors will discuss whether the proposed arrangements are appropriate and legally workable." />
+                        </div>
+                      </div>
 
                       {row.treatment === "Contribution" && (
                         <NestedBlock>
@@ -927,7 +935,10 @@ export default function MatrimonialAgreementPage() {
 
                       {row.treatment === "Custom" && (
                         <NestedBlock>
-                          <label className={nestedLabelClasses}>Custom Arrangement</label>
+                          <div className="flex items-center justify-between gap-2 mb-1.5">
+                            <label className={nestedLabelClasses}>Custom Arrangement</label>
+                            <Tooltip text="Describe any bespoke arrangements you would like your independent solicitors to consider when preparing the draft agreement." />
+                          </div>
                           <textarea
                             rows={2}
                             required

@@ -130,6 +130,60 @@ export default function CMActionsTab({ caseData }: Props) {
   const currentUser = useSelector((state: RootState) => state.auth?.user);
   const isAdmin = currentUser?.role === "admin" || currentUser?.role === "superadmin";
 
+  // A case is "fully ready" for case-manager actions only when:
+  //   1. The partner has been invited (partnerInvited === true)
+  //   2. The final review has been accepted by both users
+  // Until that is true, only sections 1 (Case Details & Priority) and
+  // 2 (Case Assignment) are shown; all other actions are restricted.
+  const currentUserId = currentUser?._id || currentUser?.id;
+
+  // 1. Partner invited check
+  const isPartnerInvited = Boolean(caseData?.partnerInvited);
+
+  // 2. Final review submitted & accepted by both users
+  const isFinalReviewAccepted =
+    Boolean(caseData?.approval?.user1Approved && caseData?.approval?.user2Approved) ||
+    caseData?.approval?.mutualApprovalAndSnapshot === "COMPLETED" ||
+    [
+      "COUPLE_SUBMITTED",
+      "CM_APPROVED",
+      "PRE_LAWYER_PENDING",
+      "PRE_LAWYER_COMPLETED",
+      "LAWYERS_ASSIGNED",
+      "LAWYER_CLIENT_CONFIRMATION",
+      "LAWYER_REVIEW",
+      "LAWYER_REVIEW_COMPLETED",
+      "LAWYER_ILA_PENDING",
+      "LAWYER_SIGNOFF_COMPLETE",
+      "COMPLETED",
+      "ARCHIVED",
+    ].includes(caseData?.workflowStatus);
+
+  // 3. Assignment checks
+  const assignedCm = caseData?.assignedCaseManager;
+  const assignedCmId =
+    assignedCm && typeof assignedCm === "object"
+      ? assignedCm._id || assignedCm.id || ""
+      : typeof assignedCm === "string"
+      ? assignedCm
+      : "";
+
+  const isCaseAssigned = Boolean(assignedCmId);
+  const isAssignedToMe = Boolean(
+    assignedCmId && currentUserId && String(assignedCmId) === String(currentUserId)
+  );
+
+  // When a case comes into case manager, only Case Details & Priority (Section 1)
+  // and Case Assignment (Section 2) are enabled.
+  // Full actions (Case Review & Decision, Case Manager Notes) are only unlocked
+  // once the case is assigned to the current case manager (or admin), and
+  // partner is invited & final review is accepted.
+  const canPerformFullActions =
+    isPartnerInvited &&
+    isFinalReviewAccepted &&
+    isCaseAssigned &&
+    (isAssignedToMe || isAdmin);
+
   // 1. Case Details / Priority
   const [priority, setPriority] = useState<string>(caseData?.priority || "LOW");
   const [savingPriority, setSavingPriority] = useState(false);
@@ -469,205 +523,239 @@ export default function CMActionsTab({ caseData }: Props) {
         </CardContent>
       </Card>
 
-      {/* ── 3. Case Review & Decision ── */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-bold flex items-center justify-between">
-            <span>3. Case Review &amp; Decision</span>
-            <span className="text-[11px] font-normal text-slate-500">
-              Approve case with confirmation attachments or return to draft
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Section A: Approve Case */}
-          <div className="p-5 rounded-xl border border-slate-200 bg-slate-50/70 space-y-5">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-              <div className="flex items-center gap-2">
-                <FileCheck2 className="w-4 h-4 text-emerald-600" />
-                <h4 className="text-xs font-bold uppercase text-slate-800 tracking-wider">
-                  A. Approve Case
-                </h4>
-              </div>
-              {isApproved && (
-                <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  Approved at{" "}
-                  {caseData?.cmApprovedAt
-                    ? new Date(caseData.cmApprovedAt).toLocaleTimeString()
-                    : "—"}
-                </span>
-              )}
-            </div>
+    
 
-            {/* Row 1: Primary Applicant Confirmation */}
-            <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-3">
-              <Label className="text-xs font-bold text-slate-900 block">
-                Primary Applicant ({p1Name}) Confirmation Documents
-              </Label>
-              <FancyFileUpload
-                id="p1-confirm-files"
-                files={p1Files}
-                onChange={setP1Files}
-                multiple={true}
-              />
-              <div>
-                <Label className="text-[11px] font-semibold text-slate-500 block mb-1">
-                  Confirmation Notes
-                </Label>
-                <Textarea
-                  value={p1Notes}
-                  onChange={(e) => setP1Notes(e.target.value)}
-                  placeholder="Notes for Primary Applicant confirmation..."
-                  className="text-xs min-h-[120px] bg-white resize-y"
-                />
-              </div>
-            </div>
-
-            {/* Row 2: Secondary Applicant Confirmation */}
-            <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-3">
-              <Label className="text-xs font-bold text-slate-900 block">
-                Secondary Applicant ({p2Name}) Confirmation Documents
-              </Label>
-              <FancyFileUpload
-                id="p2-confirm-files"
-                files={p2Files}
-                onChange={setP2Files}
-                multiple={true}
-              />
-              <div>
-                <Label className="text-[11px] font-semibold text-slate-500 block mb-1">
-                  Confirmation Notes
-                </Label>
-                <Textarea
-                  value={p2Notes}
-                  onChange={(e) => setP2Notes(e.target.value)}
-                  placeholder="Notes for Secondary Applicant confirmation..."
-                  className="text-xs min-h-[120px] bg-white resize-y"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-1">
-              <Button
-                onClick={handleApproveCase}
-                disabled={loading}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
-              >
-                {loading ? "Processing..." : "Approve Case"}
-              </Button>
-            </div>
-          </div>
-
-          {/* Section B: Return To Draft */}
-          <div className="p-5 rounded-xl border border-rose-200 bg-rose-50/40 space-y-4">
-            <div className="flex items-center gap-2 border-b border-rose-200 pb-3">
-              <ArrowLeft className="w-4 h-4 text-rose-600" />
-              <h4 className="text-xs font-bold uppercase text-rose-900 tracking-wider">
-                B. Return to Draft
-              </h4>
-            </div>
-            <p className="text-xs text-rose-800">
-              Provide a clear reason. The case will be unlocked and returned to the couple for corrections.
-            </p>
-
-            <div>
-              <Label className="text-xs font-bold text-slate-900 block mb-1">
-                Reason for Returning to Draft
-              </Label>
-              <Textarea
-                value={draftReason}
-                onChange={(e) => setDraftReason(e.target.value)}
-                placeholder="State exact reasons and instructions for the couple..."
-                className="bg-white text-xs min-h-[130px] resize-y"
-              />
-            </div>
-
-            <div className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-2">
-              <Label className="text-xs font-bold text-slate-900 block">
-                Supporting Attachments (Optional)
-              </Label>
-              <FancyFileUpload
-                id="draft-support-files"
-                files={draftFiles}
-                onChange={setDraftFiles}
-                multiple={true}
-              />
-            </div>
-
-            <div className="flex justify-end pt-1">
-              <Button
-                variant="destructive"
-                onClick={handleReturnToDraft}
-                disabled={loading}
-                className="font-bold text-xs"
-              >
-                Return To Draft
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* ── 4. Case Manager Notes ── */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-bold">4. Case Manager Notes</CardTitle>
-        </CardHeader>
-
-        <CardContent className="space-y-4">
-          <Select value={noteCategory} onValueChange={setNoteCategory}>
-            <SelectTrigger className="w-full bg-white">
-              <SelectValue placeholder="Select note category" />
-            </SelectTrigger>
-            <SelectContent>
-              {NOTE_CATEGORIES.map((cat) => (
-                <SelectItem key={cat.value} value={cat.value}>
-                  {cat.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Textarea
-            value={noteText}
-            onChange={(e) => setNoteText(e.target.value)}
-            placeholder="Enter internal operational or clarification note..."
-            className="text-xs min-h-[100px] bg-white resize-y"
-          />
-
-          <Button onClick={handleAddNote} size="sm" className="font-bold">
-            Save Note
-          </Button>
-
-          {/* Notes History */}
-          <div className="pt-4 border-t border-slate-200 space-y-3">
-            <h5 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-              Notes History
-            </h5>
-            {notes.length === 0 ? (
-              <p className="text-xs text-slate-400">No notes recorded yet.</p>
-            ) : (
-              notes.map((note) => (
-                <div
-                  key={note.id || note._id}
-                  className="border rounded-lg p-3 bg-slate-50 text-xs"
-                >
-                  <span className="font-bold text-sky-900 bg-sky-100 px-2 py-0.5 rounded text-[10px]">
-                    {note.category}
-                  </span>
-                  <p className="text-slate-700 mt-1.5 whitespace-pre-wrap">{note.note}</p>
-                  {note.createdAt && (
-                    <span className="text-[10px] text-slate-400 block mt-1">
-                      {new Date(note.createdAt).toLocaleString()}
+      {/* Sections 3 & 4 are only available once the partner is invited and both
+           users have accepted the final review. */}
+      {canPerformFullActions ? (
+        <>
+  {/* ── 3. Case Review & Decision ── */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm font-bold flex items-center justify-between">
+                    <span>3. Case Review &amp; Decision</span>
+                    <span className="text-[11px] font-normal text-slate-500">
+                      Approve case with confirmation attachments or return to draft
                     </span>
-                  )}
-                </div>
-              ))
-            )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Section A: Approve Case */}
+                  <div className="p-5 rounded-xl border border-slate-200 bg-slate-50/70 space-y-5">
+                    <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                      <div className="flex items-center gap-2">
+                        <FileCheck2 className="w-4 h-4 text-emerald-600" />
+                        <h4 className="text-xs font-bold uppercase text-slate-800 tracking-wider">
+                          A. Approve Case
+                        </h4>
+                      </div>
+                      {isApproved && (
+                        <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          Approved at{" "}
+                          {caseData?.cmApprovedAt
+                            ? new Date(caseData.cmApprovedAt).toLocaleTimeString()
+                            : "—"}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Row 1: Primary Applicant Confirmation */}
+                    <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-3">
+                      <Label className="text-xs font-bold text-slate-900 block">
+                        Primary Applicant ({p1Name}) Confirmation Documents
+                      </Label>
+                      <FancyFileUpload
+                        id="p1-confirm-files"
+                        files={p1Files}
+                        onChange={setP1Files}
+                        multiple={true}
+                      />
+                      <div>
+                        <Label className="text-[11px] font-semibold text-slate-500 block mb-1">
+                          Confirmation Notes
+                        </Label>
+                        <Textarea
+                          value={p1Notes}
+                          onChange={(e) => setP1Notes(e.target.value)}
+                          placeholder="Notes for Primary Applicant confirmation..."
+                          className="text-xs min-h-[120px] bg-white resize-y"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Row 2: Secondary Applicant Confirmation */}
+                    <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-3">
+                      <Label className="text-xs font-bold text-slate-900 block">
+                        Secondary Applicant ({p2Name}) Confirmation Documents
+                      </Label>
+                      <FancyFileUpload
+                        id="p2-confirm-files"
+                        files={p2Files}
+                        onChange={setP2Files}
+                        multiple={true}
+                      />
+                      <div>
+                        <Label className="text-[11px] font-semibold text-slate-500 block mb-1">
+                          Confirmation Notes
+                        </Label>
+                        <Textarea
+                          value={p2Notes}
+                          onChange={(e) => setP2Notes(e.target.value)}
+                          placeholder="Notes for Secondary Applicant confirmation..."
+                          className="text-xs min-h-[120px] bg-white resize-y"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end pt-1">
+                      <Button
+                        onClick={handleApproveCase}
+                        disabled={loading}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                      >
+                        {loading ? "Processing..." : "Approve Case"}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Section B: Return To Draft */}
+                  <div className="p-5 rounded-xl border border-rose-200 bg-rose-50/40 space-y-4">
+                    <div className="flex items-center gap-2 border-b border-rose-200 pb-3">
+                      <ArrowLeft className="w-4 h-4 text-rose-600" />
+                      <h4 className="text-xs font-bold uppercase text-rose-900 tracking-wider">
+                        B. Return to Draft
+                      </h4>
+                    </div>
+                    <p className="text-xs text-rose-800">
+                      Provide a clear reason. The case will be unlocked and returned to the couple for corrections.
+                    </p>
+
+                    <div>
+                      <Label className="text-xs font-bold text-slate-900 block mb-1">
+                        Reason for Returning to Draft
+                      </Label>
+                      <Textarea
+                        value={draftReason}
+                        onChange={(e) => setDraftReason(e.target.value)}
+                        placeholder="State exact reasons and instructions for the couple..."
+                        className="bg-white text-xs min-h-[130px] resize-y"
+                      />
+                    </div>
+
+                    <div className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-2">
+                      <Label className="text-xs font-bold text-slate-900 block">
+                        Supporting Attachments (Optional)
+                      </Label>
+                      <FancyFileUpload
+                        id="draft-support-files"
+                        files={draftFiles}
+                        onChange={setDraftFiles}
+                        multiple={true}
+                      />
+                    </div>
+
+                    <div className="flex justify-end pt-1">
+                      <Button
+                        variant="destructive"
+                        onClick={handleReturnToDraft}
+                        disabled={loading}
+                        className="font-bold text-xs"
+                      >
+                        Return To Draft
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* ── 4. Case Manager Notes ── */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm font-bold">4. Case Manager Notes</CardTitle>
+                </CardHeader>
+
+                <CardContent className="space-y-4">
+                  <Select value={noteCategory} onValueChange={setNoteCategory}>
+                    <SelectTrigger className="w-full bg-white">
+                      <SelectValue placeholder="Select note category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {NOTE_CATEGORIES.map((cat) => (
+                        <SelectItem key={cat.value} value={cat.value}>
+                          {cat.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Textarea
+                    value={noteText}
+                    onChange={(e) => setNoteText(e.target.value)}
+                    placeholder="Enter internal operational or clarification note..."
+                    className="text-xs min-h-[100px] bg-white resize-y"
+                  />
+
+                  <Button onClick={handleAddNote} size="sm" className="font-bold">
+                    Save Note
+                  </Button>
+
+                  {/* Notes History */}
+                  <div className="pt-4 border-t border-slate-200 space-y-3">
+                    <h5 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      Notes History
+                    </h5>
+                    {notes.length === 0 ? (
+                      <p className="text-xs text-slate-400">No notes recorded yet.</p>
+                    ) : (
+                      notes.map((note) => (
+                        <div
+                          key={note.id || note._id}
+                          className="border rounded-lg p-3 bg-slate-50 text-xs"
+                        >
+                          <span className="font-bold text-sky-900 bg-sky-100 px-2 py-0.5 rounded text-[10px]">
+                            {note.category}
+                          </span>
+                          <p className="text-slate-700 mt-1.5 whitespace-pre-wrap">{note.note}</p>
+                          {note.createdAt && (
+                            <span className="text-[10px] text-slate-400 block mt-1">
+                              {new Date(note.createdAt).toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </CardContent>
+          </Card>
+        </>
+      ) : (
+        <div className="p-4 rounded-xl border border-amber-200 bg-amber-50 text-xs text-amber-900 space-y-1">
+          <div className="flex items-center gap-2 font-bold text-amber-800">
+            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>Case Actions Restricted</span>
           </div>
-        </CardContent>
-      </Card>
+          <p className="text-amber-800">
+            {!isPartnerInvited || !isFinalReviewAccepted ? (
+              <>
+                This case cannot proceed to full case-manager actions until the partner has been invited
+                and both applicants have submitted and accepted their final review.
+              </>
+            ) : !isCaseAssigned ? (
+              <>
+                This case is currently unassigned. Only <strong>Case Details &amp; Priority</strong> and{" "}
+                <strong>Case Assignment</strong> are available. Assign this case to a Case Manager to enable
+                case review, approval, return to draft, and notes.
+              </>
+            ) : (
+              <>
+                This case is currently assigned to another Case Manager. Full review, decision, and notes
+                actions are restricted to the assigned Case Manager.
+              </>
+            )}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

@@ -6,4 +6,6 @@ export interface Step2PaymentProps {
   onPaymentSuccess: () => void;
   onChooseService?: () => void;
   isPaid?: boolean;
+  // True while a return from Stripe Checkout is being confirmed
+  isVerifying?: boolean;
 }

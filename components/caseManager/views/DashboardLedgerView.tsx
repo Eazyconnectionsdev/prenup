@@ -1,8 +1,11 @@
 ﻿"use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useSelector } from "react-redux";
+import type { RootState } from "@/store/store";
 import { useRouter } from "next/navigation";
 import Axios from "@/lib/ApiConfig";
+import { toStageFacts, countByStageFilter, type CaseStageFacts } from "@/lib/caseStages";
 import {
   FileText,
   CreditCard,
@@ -13,19 +16,47 @@ import {
   ChevronRight,
 } from "lucide-react";
 
+const ALL_FILTERS = [
+  "NOT_PAID",
+  "DRAFT",
+  "CM_REVIEW",
+  "LEGAL_REVIEW",
+  "COMPLETED",
+  "PARTNER_NOT_JOINED",
+  "APPLICANT_DRAFTING",
+  "PARTNER_REVIEW",
+  "CM_NOT_ASSIGNED",
+  "MY_ACTIVE_REVIEWS",
+  "PRE_LAWYER_PENDING",
+  "LAWYER_ASSIGNMENT_PENDING",
+  "P1_CONFIRMATION_PENDING",
+  "P2_CONFIRMATION_PENDING",
+  "P1_LAWYER_APPROVAL_PENDING",
+  "P2_LAWYER_APPROVAL_PENDING",
+  "FINAL_CONFIRMATION_PENDING",
+  "EXECUTION_PACK_GENERATED",
+  "READY_FOR_ARCHIVE",
+];
+
 export const DashboardLedgerView: React.FC = () => {
   const router = useRouter();
 
-  const [dashboardData, setDashboardData] = useState<any>(null);
+  const currentUser = useSelector((state: RootState) => state.auth?.user);
+  const currentUserId = String(currentUser?._id || currentUser?.id || "");
+
+  const [cases, setCases] = useState<CaseStageFacts[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Counts come from the same case list and the same rules as the Cases page,
+  // so clicking a tile always shows exactly that many cases.
   const getDashboard = async () => {
     try {
       setLoading(true);
-      const { data } = await Axios.get("/case-manager/dashboard");
-      setDashboardData(data);
+      const { data } = await Axios.get("/case-manager/cases");
+      setCases((Array.isArray(data) ? data : []).map(toStageFacts));
     } catch (error) {
       console.error("Dashboard fetch error", error);
+      setCases([]);
     } finally {
       setLoading(false);
     }
@@ -34,6 +65,11 @@ export const DashboardLedgerView: React.FC = () => {
   useEffect(() => {
     getDashboard();
   }, []);
+
+  const counts = useMemo(
+    () => countByStageFilter(cases, ALL_FILTERS, currentUserId),
+    [cases, currentUserId]
+  );
 
   const handleNavigate = (filter: string) => {
     router.push(`/cm/cases?status=${encodeURIComponent(filter)}`);
@@ -47,148 +83,49 @@ export const DashboardLedgerView: React.FC = () => {
     );
   }
 
-  // Raw counts extracted from API
-  const totalCases = dashboardData?.totalCases ?? 10;
-  const notPaidCount =
-    (dashboardData?.partnerFilling?.partnerNotInvited ?? 0) > 0
-      ? dashboardData?.partnerFilling?.partnerNotInvited
-      : 2;
-  const applicantDraftingCount =
-    (dashboardData?.partnerFilling?.partnerFilling ?? 0) > 0
-      ? dashboardData?.partnerFilling?.partnerFilling
-      : 3;
-  const cmReviewCount =
-    (dashboardData?.cmReview?.awaitingCmReview ?? 0) > 0
-      ? dashboardData?.cmReview?.awaitingCmReview
-      : 2;
-  const legalReviewCount =
-    (dashboardData?.legalReview?.total ?? 0) > 0
-      ? dashboardData?.legalReview?.total
-      : 2;
-  const completedCount =
-    (dashboardData?.completed?.total ?? 0) > 0
-      ? dashboardData?.completed?.total
-      : 1;
+  const totalCases = cases.length;
+  const notPaidCount = counts.NOT_PAID;
+  const applicantDraftingCount = counts.DRAFT;
+  const cmReviewCount = counts.CM_REVIEW;
+  const legalReviewCount = counts.LEGAL_REVIEW;
+  const completedCount = counts.COMPLETED;
 
-  // Group 1: Applicant Drafting (Column 1)
+  const item = (title: string, subtitle: string, filter: string, color: string) => ({
+    title,
+    subtitle,
+    filter,
+    count: counts[filter] ?? 0,
+    color: (counts[filter] ?? 0) > 0 ? color : "text-slate-400",
+  });
+
+  // Group 1: Applicant Drafting (Column 1) - these three add up to the column total.
   const col1Items = [
-    {
-      title: "Partner Not Joined",
-      subtitle: "P2 invitation not accepted",
-      count: dashboardData?.partnerFilling?.partnerNotInvited ?? 1,
-      filter: "PARTNER_NOT_JOINED",
-      color: "text-amber-500",
-    },
-    {
-      title: "Applicants Drafting",
-      subtitle: "P1/P2 forms incomplete",
-      count: dashboardData?.partnerFilling?.partnerFilling ?? 1,
-      filter: "APPLICANT_DRAFTING",
-      color: "text-amber-500",
-    },
-    {
-      title: "Partner Review / Mutual Approval",
-      subtitle: "Awaiting partner review or approval",
-      count: dashboardData?.cmReview?.returnedToDraft ?? 1,
-      filter: "PARTNER_REVIEW",
-      color: "text-amber-500",
-    },
+    item("Partner Not Joined", "P2 invitation not accepted", "PARTNER_NOT_JOINED", "text-amber-500"),
+    item("Applicants Drafting", "P1/P2 forms incomplete", "APPLICANT_DRAFTING", "text-amber-500"),
+    item("Partner Review / Mutual Approval", "Awaiting partner review or approval", "PARTNER_REVIEW", "text-amber-500"),
   ];
 
   // Group 2: Case Manager Review (Column 2)
   const col2Items = [
-    {
-      title: "Case Manager Not Assigned",
-      subtitle: "Submitted by couple; unassigned or not yet reviewed",
-      count: dashboardData?.cmReview?.awaitingCmReview ?? 2,
-      filter: "AWAITING_CM_REVIEW",
-      color: "text-blue-600",
-    },
-    {
-      title: "My Active Reviews",
-      subtitle: "Assigned to you; in progress",
-      count: 1,
-      filter: "MY_ACTIVE_REVIEWS",
-      color: "text-blue-600",
-    },
-    {
-      title: "Pre-Lawyer Questionnaire Pending",
-      subtitle: "CM approved; waiting for applicant completion",
-      count: 1,
-      filter: "PRE_LAWYER_PENDING",
-      color: "text-blue-600",
-    },
-    {
-      title: "Lawyer Assignment Pending",
-      subtitle: "CM approved; waiting to assign lawyers",
-      count: 0,
-      filter: "LAWYER_ASSIGNMENT_PENDING",
-      color: "text-slate-400",
-    },
+    item("Case Manager Not Assigned", "Submitted by couple; no case manager yet", "CM_NOT_ASSIGNED", "text-blue-600"),
+    item("My Active Reviews", "Submitted and assigned to you", "MY_ACTIVE_REVIEWS", "text-blue-600"),
+    item("Pre-Lawyer Questionnaire Pending", "Lawyers assigned; waiting for applicant questionnaires", "PRE_LAWYER_PENDING", "text-blue-600"),
+    item("Lawyer Assignment Pending", "CM approved; waiting to assign lawyers", "LAWYER_ASSIGNMENT_PENDING", "text-blue-600"),
   ];
 
   // Group 3: Legal Review (Column 3)
   const col3Items = [
-    {
-      title: "P1 Questionnaire Pending",
-      subtitle: "Awaiting P1 completion",
-      count: dashboardData?.legalReview?.preLawyer?.p1QuestionnairePending ?? 0,
-      filter: "P1_QUESTIONNAIRE_PENDING",
-      color: "text-slate-400",
-    },
-    {
-      title: "P2 Questionnaire Pending",
-      subtitle: "Awaiting P2 completion",
-      count: dashboardData?.legalReview?.preLawyer?.p2QuestionnairePending ?? 0,
-      filter: "P2_QUESTIONNAIRE_PENDING",
-      color: "text-slate-400",
-    },
-    {
-      title: "P1 Confirmation Pending",
-      subtitle: "Awaiting P1 confirmation",
-      count: dashboardData?.legalReview?.clientConfirmation?.p1ConfirmationPending ?? 0,
-      filter: "P1_CONFIRMATION_PENDING",
-      color: "text-slate-400",
-    },
-    {
-      title: "P2 Confirmation Pending",
-      subtitle: "Awaiting P2 confirmation",
-      count: dashboardData?.legalReview?.clientConfirmation?.p2ConfirmationPending ?? 0,
-      filter: "P2_CONFIRMATION_PENDING",
-      color: "text-slate-400",
-    },
-    {
-      title: "P1 Lawyer Approval & ILA Pending",
-      subtitle: "Draft and ILA not yet completed",
-      count: dashboardData?.legalReview?.lawyerSignOff?.p1LawyerApprovalPending ?? 0,
-      filter: "P1_LAWYER_APPROVAL_PENDING",
-      color: "text-slate-400",
-    },
-    {
-      title: "P2 Lawyer Approval & ILA Pending",
-      subtitle: "Draft and ILA not yet completed",
-      count: dashboardData?.legalReview?.lawyerSignOff?.p2LawyerApprovalPending ?? 0,
-      filter: "P2_LAWYER_APPROVAL_PENDING",
-      color: "text-slate-400",
-    },
+    item("P1 Confirmation Pending", "Awaiting P1 confirmation", "P1_CONFIRMATION_PENDING", "text-purple-600"),
+    item("P2 Confirmation Pending", "Awaiting P2 confirmation", "P2_CONFIRMATION_PENDING", "text-purple-600"),
+    item("P1 Lawyer Approval & ILA Pending", "Draft and ILA not yet completed", "P1_LAWYER_APPROVAL_PENDING", "text-purple-600"),
+    item("P2 Lawyer Approval & ILA Pending", "Draft and ILA not yet completed", "P2_LAWYER_APPROVAL_PENDING", "text-purple-600"),
+    item("Final Client Confirmation Pending", "Both lawyers signed off; awaiting final confirmations", "FINAL_CONFIRMATION_PENDING", "text-purple-600"),
   ];
 
   // Group 4: Completed (Column 4)
   const col4Items = [
-    {
-      title: "Execution Pack Generated",
-      subtitle: "Agreement ready for dispatch",
-      count: dashboardData?.completed?.executionPackGenerated ?? 0,
-      filter: "EXECUTION_PACK_GENERATED",
-      color: "text-slate-400",
-    },
-    {
-      title: "Ready for Archive",
-      subtitle: "Done & dusted",
-      count: dashboardData?.readyForArchive?.total ?? 0,
-      filter: "READY_FOR_ARCHIVE",
-      color: "text-slate-400",
-    },
+    item("Execution Pack Generated", "Agreement ready for dispatch", "EXECUTION_PACK_GENERATED", "text-emerald-600"),
+    item("Ready for Archive", "Done & dusted", "READY_FOR_ARCHIVE", "text-emerald-600"),
   ];
 
   return (
@@ -262,7 +199,7 @@ export const DashboardLedgerView: React.FC = () => {
 
         {/* Applicant Drafting */}
         <div
-          onClick={() => handleNavigate("APPLICANT_DRAFTING")}
+          onClick={() => handleNavigate("DRAFT")}
           className="bg-white border border-slate-200/90 rounded-2xl p-4 flex items-center gap-3.5 shadow-2xs hover:shadow-xs transition-all cursor-pointer"
         >
           <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0">
@@ -280,7 +217,7 @@ export const DashboardLedgerView: React.FC = () => {
 
         {/* Case Manager Review */}
         <div
-          onClick={() => handleNavigate("AWAITING_CM_REVIEW")}
+          onClick={() => handleNavigate("CM_REVIEW")}
           className="bg-white border border-slate-200/90 rounded-2xl p-4 flex items-center gap-3.5 shadow-2xs hover:shadow-xs transition-all cursor-pointer"
         >
           <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">
@@ -347,7 +284,7 @@ export const DashboardLedgerView: React.FC = () => {
               </h3>
             </div>
             <span className="w-6 h-6 rounded-full bg-amber-50 text-amber-600 text-xs font-bold flex items-center justify-center">
-              {col1Items.reduce((acc, curr) => acc + curr.count, 0)}
+              {counts.DRAFT}
             </span>
           </div>
           <p className="text-[11px] text-slate-500 leading-relaxed -mt-2">
@@ -392,7 +329,7 @@ export const DashboardLedgerView: React.FC = () => {
               </h3>
             </div>
             <span className="w-6 h-6 rounded-full bg-blue-50 text-blue-600 text-xs font-bold flex items-center justify-center">
-              {col2Items.reduce((acc, curr) => acc + curr.count, 0)}
+              {counts.CM_REVIEW}
             </span>
           </div>
           <p className="text-[11px] text-slate-500 leading-relaxed -mt-2">
@@ -437,7 +374,7 @@ export const DashboardLedgerView: React.FC = () => {
               </h3>
             </div>
             <span className="w-6 h-6 rounded-full bg-purple-50 text-purple-600 text-xs font-bold flex items-center justify-center">
-              {col3Items.reduce((acc, curr) => acc + curr.count, 0)}
+              {counts.LEGAL_REVIEW}
             </span>
           </div>
           <p className="text-[11px] text-slate-500 leading-relaxed -mt-2">
@@ -482,7 +419,7 @@ export const DashboardLedgerView: React.FC = () => {
               </h3>
             </div>
             <span className="w-6 h-6 rounded-full bg-emerald-50 text-emerald-600 text-xs font-bold flex items-center justify-center">
-              {col4Items.reduce((acc, curr) => acc + curr.count, 0)}
+              {counts.COMPLETED}
             </span>
           </div>
           <p className="text-[11px] text-slate-500 leading-relaxed -mt-2">
