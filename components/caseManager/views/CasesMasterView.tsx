@@ -7,6 +7,7 @@ import type { RootState } from "@/store/store";
 import { Eye, RotateCcw, Filter, Search } from "lucide-react";
 import Axios from "@/lib/ApiConfig";
 import type { FilterState } from "@/types/case-manager";
+import { toStageFacts, matchesStageFilter, type CaseStageFacts } from "@/lib/caseStages";
 
 interface CasesMasterViewProps {
   filters?: FilterState;
@@ -15,7 +16,7 @@ interface CasesMasterViewProps {
   onSelectCase?: (caseId: string) => void;
 }
 
-interface RowCase {
+interface RowCase extends CaseStageFacts {
   id: string;
   caseNumber: string;
   p1: string;
@@ -24,13 +25,8 @@ interface RowCase {
   p2Email: string;
   agreementType: string;
   paymentStatus: string;
-  workflowStage: string;
   caseManager: string;
-  caseManagerId: string;
   priority: string;
-  partnerJoined: boolean;
-  mutualApproved: boolean;
-  readyForArchive: boolean;
 }
 
 export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
@@ -70,50 +66,8 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
         setLoading(true);
         const response = await Axios.get("/case-manager/cases");
 
-        const isCaseManager = currentUser?.role === "case_manager";
+        // Every case, from not paid through completed; the filters below narrow them.
         const formatted: RowCase[] = (response.data || [])
-          .filter((item: any) => {
-            // 1. Partner must be invited
-            if (!item.partnerInvited) return false;
-
-            // 2. Final review must be submitted and accepted by both users
-            const isFinalReviewAccepted =
-              Boolean(item.approval?.user1Approved && item.approval?.user2Approved) ||
-              item.approval?.mutualApprovalAndSnapshot === "COMPLETED" ||
-              [
-                "COUPLE_SUBMITTED",
-                "CM_APPROVED",
-                "PRE_LAWYER_PENDING",
-                "PRE_LAWYER_COMPLETED",
-                "LAWYERS_ASSIGNED",
-                "LAWYER_CLIENT_CONFIRMATION",
-                "LAWYER_REVIEW",
-                "LAWYER_REVIEW_COMPLETED",
-                "LAWYER_ILA_PENDING",
-                "LAWYER_SIGNOFF_COMPLETE",
-                "COMPLETED",
-                "ARCHIVED",
-              ].includes(item.workflowStatus);
-            if (!isFinalReviewAccepted) return false;
-
-            // 3. For a case manager: only show unassigned cases or cases assigned to this case manager
-            if (isCaseManager) {
-              const assignedCm = item.assignedCaseManager;
-              const cmId =
-                assignedCm && typeof assignedCm === "object"
-                  ? assignedCm._id || assignedCm.id || ""
-                  : typeof assignedCm === "string"
-                  ? assignedCm
-                  : "";
-              const isUnassigned = !cmId;
-              const isAssignedToMe = Boolean(
-                cmId && currentUserId && String(cmId) === String(currentUserId)
-              );
-              if (!isUnassigned && !isAssignedToMe) return false;
-            }
-
-            return true;
-          })
           .map((item: any) => {
           const p1 = item.owner
             ? `${item.owner.firstName ?? ""} ${item.owner.lastName ?? ""}`.trim()
@@ -130,20 +84,11 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
             ? assignedCm
             : "Unassigned";
 
-          const cmId = assignedCm && typeof assignedCm === "object"
-            ? (assignedCm._id || assignedCm.id || "")
-            : typeof assignedCm === "string"
-            ? assignedCm
-            : "";
-
-          // Refunded wins over paymentCompleted, which a refund does not clear.
+          const facts = toStageFacts(item);
           const rawPayment = String(item.paymentStatus || "").toUpperCase();
-          const isPaid =
-            rawPayment !== "REFUNDED" &&
-            rawPayment !== "PARTIALLY_REFUNDED" &&
-            (item.paymentCompleted || rawPayment === "COMPLETED");
 
           return {
+            ...facts,
             id: item._id,
             caseNumber: item.caseNumber || item._id,
             p1: p1 || "Unknown",
@@ -151,22 +96,15 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
             p1Email: item.owner?.email || "",
             p2Email: item.invitedUser?.email || item.invitedEmail || "",
             agreementType: item.agreementType || "prenup-marriage",
-            paymentStatus: isPaid
+            paymentStatus: facts.isPaid
               ? "Completed"
               : rawPayment === "PARTIALLY_REFUNDED"
               ? "Partially Refunded"
               : rawPayment
               ? rawPayment.charAt(0) + rawPayment.slice(1).toLowerCase()
               : "Pending",
-            workflowStage: item.workflowStatus || "DRAFT",
             caseManager: cm || "Unassigned",
-            caseManagerId: cmId,
             priority: (item.priority || "MEDIUM").toUpperCase(),
-            partnerJoined: Boolean(item.invitedUser),
-            mutualApproved:
-              item.approval?.mutualApprovalAndSnapshot === "COMPLETED" ||
-              Boolean(item.approval?.user1Approved && item.approval?.user2Approved),
-            readyForArchive: Boolean(item.readyForArchive),
           };
         });
 
@@ -198,29 +136,8 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
   // Filter application
   const filteredCases = useMemo(() => {
     return rawCases.filter((c) => {
-      // 1. Stage filter
-      if (stageFilter !== "ALL") {
-        switch (stageFilter) {
-          case "NOT_PAID":
-            if (c.paymentStatus === "Completed") return false;
-            break;
-          case "PARTNER_NOT_JOINED":
-            if (c.partnerJoined) return false;
-            break;
-          case "PARTNER_REVIEW":
-            if (c.mutualApproved) return false;
-            break;
-          case "CM_NOT_ASSIGNED":
-            if (c.caseManagerId) return false;
-            break;
-          case "READY_FOR_ARCHIVE":
-            if (!c.readyForArchive) return false;
-            break;
-          default:
-            // Every other option is a workflowStatus value.
-            if (c.workflowStage !== stageFilter) return false;
-        }
-      }
+      // 1. Stage filter (same rules as the dashboard counts)
+      if (!matchesStageFilter(c, stageFilter, currentUserId)) return false;
 
       // 2. Plan filter
       if (planFilter !== "ALL" && c.agreementType !== planFilter) {
@@ -318,18 +235,34 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
             >
               <option value="ALL">All Stages</option>
               <option value="NOT_PAID">Not Paid</option>
-              <option value="PARTNER_NOT_JOINED">Partner Not Joined</option>
-              <option value="DRAFT">Applicant Drafting</option>
-              <option value="PARTNER_REVIEW">Partner Review</option>
-              <option value="CM_NOT_ASSIGNED">Case Manager Not Assigned</option>
-              <option value="COUPLE_SUBMITTED">Case Manager Review</option>
-              <option value="PRE_LAWYER_PENDING">Pre-Lawyer Questionnaire Pending</option>
-              <option value="LAWYERS_ASSIGNED">Lawyer Assignment Pending</option>
-              <option value="LAWYER_REVIEW">Legal Review</option>
-              <option value="LAWYER_ILA_PENDING">Independent Legal Advice (ILA)</option>
-              <option value="COMPLETED">Completion &amp; Execution</option>
-              <option value="READY_FOR_ARCHIVE">Ready for Archive</option>
-              <option value="ARCHIVED">Archived</option>
+              <optgroup label="1. Applicant Drafting">
+                <option value="DRAFT">All Applicant Drafting</option>
+                <option value="PARTNER_NOT_JOINED">Partner Not Joined</option>
+                <option value="APPLICANT_DRAFTING">Applicants Drafting</option>
+                <option value="PARTNER_REVIEW">Partner Review / Mutual Approval</option>
+                <option value="RETURNED_TO_DRAFT">Returned to Draft by CM</option>
+              </optgroup>
+              <optgroup label="2. Case Manager Review">
+                <option value="CM_REVIEW">All Case Manager Review</option>
+                <option value="CM_NOT_ASSIGNED">Case Manager Not Assigned</option>
+                <option value="MY_ACTIVE_REVIEWS">My Active Reviews</option>
+                <option value="PRE_LAWYER_PENDING">Pre-Lawyer Questionnaire Pending</option>
+                <option value="LAWYER_ASSIGNMENT_PENDING">Lawyer Assignment Pending</option>
+              </optgroup>
+              <optgroup label="3. Legal Review">
+                <option value="LEGAL_REVIEW">All Legal Review</option>
+                <option value="P1_CONFIRMATION_PENDING">P1 Confirmation Pending</option>
+                <option value="P2_CONFIRMATION_PENDING">P2 Confirmation Pending</option>
+                <option value="P1_LAWYER_APPROVAL_PENDING">P1 Lawyer Approval &amp; ILA Pending</option>
+                <option value="P2_LAWYER_APPROVAL_PENDING">P2 Lawyer Approval &amp; ILA Pending</option>
+                <option value="FINAL_CONFIRMATION_PENDING">Final Client Confirmation Pending</option>
+              </optgroup>
+              <optgroup label="4. Completed">
+                <option value="COMPLETED">Completion &amp; Execution</option>
+                <option value="EXECUTION_PACK_GENERATED">Execution Pack Generated</option>
+                <option value="READY_FOR_ARCHIVE">Ready for Archive</option>
+                <option value="ARCHIVED">Archived</option>
+              </optgroup>
             </select>
           </div>
 
