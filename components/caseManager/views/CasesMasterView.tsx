@@ -7,7 +7,7 @@ import type { RootState } from "@/store/store";
 import { Eye, RotateCcw, Filter, Search } from "lucide-react";
 import Axios from "@/lib/ApiConfig";
 import type { FilterState } from "@/types/case-manager";
-import { toStageFacts, matchesStageFilter, type CaseStageFacts } from "@/lib/caseStages";
+import { toStageFacts, matchesStageFilter, STAGE_FILTERS, type CaseStageFacts } from "@/lib/caseStages";
 
 interface CasesMasterViewProps {
   filters?: FilterState;
@@ -55,9 +55,7 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
   const urlStatus = searchParams.get("status");
 
   useEffect(() => {
-    if (urlStatus && urlStatus !== "ALL") {
-      setStageFilter(urlStatus);
-    }
+    if (urlStatus) setStageFilter(urlStatus);
   }, [urlStatus]);
 
   useEffect(() => {
@@ -234,35 +232,11 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
               className="w-full border border-slate-200 rounded-lg p-2 bg-white text-xs"
             >
               <option value="ALL">All Stages</option>
-              <option value="NOT_PAID">Not Paid</option>
-              <optgroup label="1. Applicant Drafting">
-                <option value="DRAFT">All Applicant Drafting</option>
-                <option value="PARTNER_NOT_JOINED">Partner Not Joined</option>
-                <option value="APPLICANT_DRAFTING">Applicants Drafting</option>
-                <option value="PARTNER_REVIEW">Partner Review / Mutual Approval</option>
-                <option value="RETURNED_TO_DRAFT">Returned to Draft by CM</option>
-              </optgroup>
-              <optgroup label="2. Case Manager Review">
-                <option value="CM_REVIEW">All Case Manager Review</option>
-                <option value="CM_NOT_ASSIGNED">Case Manager Not Assigned</option>
-                <option value="MY_ACTIVE_REVIEWS">My Active Reviews</option>
-                <option value="PRE_LAWYER_PENDING">Pre-Lawyer Questionnaire Pending</option>
-                <option value="LAWYER_ASSIGNMENT_PENDING">Lawyer Assignment Pending</option>
-              </optgroup>
-              <optgroup label="3. Legal Review">
-                <option value="LEGAL_REVIEW">All Legal Review</option>
-                <option value="P1_CONFIRMATION_PENDING">P1 Confirmation Pending</option>
-                <option value="P2_CONFIRMATION_PENDING">P2 Confirmation Pending</option>
-                <option value="P1_LAWYER_APPROVAL_PENDING">P1 Lawyer Approval &amp; ILA Pending</option>
-                <option value="P2_LAWYER_APPROVAL_PENDING">P2 Lawyer Approval &amp; ILA Pending</option>
-                <option value="FINAL_CONFIRMATION_PENDING">Final Client Confirmation Pending</option>
-              </optgroup>
-              <optgroup label="4. Completed">
-                <option value="COMPLETED">Completion &amp; Execution</option>
-                <option value="EXECUTION_PACK_GENERATED">Execution Pack Generated</option>
-                <option value="READY_FOR_ARCHIVE">Ready for Archive</option>
-                <option value="ARCHIVED">Archived</option>
-              </optgroup>
+              {STAGE_FILTERS.map((f) => (
+                <option key={f.value} value={f.value}>
+                  {f.label}
+                </option>
+              ))}
             </select>
           </div>
 
