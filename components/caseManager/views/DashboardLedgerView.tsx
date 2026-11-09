@@ -1,11 +1,15 @@
 ﻿"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { useSelector } from "react-redux";
-import type { RootState } from "@/store/store";
 import { useRouter } from "next/navigation";
 import Axios from "@/lib/ApiConfig";
-import { toStageFacts, countByStageFilter, type CaseStageFacts } from "@/lib/caseStages";
+import {
+  toStageFacts,
+  countByStageFilter,
+  matchesStageFilter,
+  STAGE_FILTERS,
+  type CaseStageFacts,
+} from "@/lib/caseStages";
 import {
   FileText,
   CreditCard,
@@ -16,33 +20,10 @@ import {
   ChevronRight,
 } from "lucide-react";
 
-const ALL_FILTERS = [
-  "NOT_PAID",
-  "DRAFT",
-  "CM_REVIEW",
-  "LEGAL_REVIEW",
-  "COMPLETED",
-  "PARTNER_NOT_JOINED",
-  "APPLICANT_DRAFTING",
-  "PARTNER_REVIEW",
-  "CM_NOT_ASSIGNED",
-  "MY_ACTIVE_REVIEWS",
-  "PRE_LAWYER_PENDING",
-  "LAWYER_ASSIGNMENT_PENDING",
-  "P1_CONFIRMATION_PENDING",
-  "P2_CONFIRMATION_PENDING",
-  "P1_LAWYER_APPROVAL_PENDING",
-  "P2_LAWYER_APPROVAL_PENDING",
-  "FINAL_CONFIRMATION_PENDING",
-  "EXECUTION_PACK_GENERATED",
-  "READY_FOR_ARCHIVE",
-];
+const ALL_FILTERS = STAGE_FILTERS.map((f) => f.value);
 
 export const DashboardLedgerView: React.FC = () => {
   const router = useRouter();
-
-  const currentUser = useSelector((state: RootState) => state.auth?.user);
-  const currentUserId = String(currentUser?._id || currentUser?.id || "");
 
   const [cases, setCases] = useState<CaseStageFacts[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,8 +48,8 @@ export const DashboardLedgerView: React.FC = () => {
   }, []);
 
   const counts = useMemo(
-    () => countByStageFilter(cases, ALL_FILTERS, currentUserId),
-    [cases, currentUserId]
+    () => countByStageFilter(cases, ALL_FILTERS),
+    [cases]
   );
 
   const handleNavigate = (filter: string) => {
@@ -85,48 +66,55 @@ export const DashboardLedgerView: React.FC = () => {
 
   const totalCases = cases.length;
   const notPaidCount = counts.NOT_PAID;
-  const applicantDraftingCount = counts.DRAFT;
-  const cmReviewCount = counts.CM_REVIEW;
+  const applicantDraftingCount = counts.APPLICANT_DRAFTING;
+  const cmReviewCount = counts.MY_ACTIVE_REVIEWS;
   const legalReviewCount = counts.LEGAL_REVIEW;
   const completedCount = counts.COMPLETED;
 
-  const item = (title: string, subtitle: string, filter: string, color: string) => ({
-    title,
+  const label = (value: string) =>
+    STAGE_FILTERS.find((f) => f.value === value)?.label ?? value;
+
+  const item = (filter: string, subtitle: string, color: string) => ({
+    title: label(filter),
     subtitle,
     filter,
     count: counts[filter] ?? 0,
     color: (counts[filter] ?? 0) > 0 ? color : "text-slate-400",
   });
 
-  // Group 1: Applicant Drafting (Column 1) - these three add up to the column total.
+  // Each tile is one Workflow Stage filter option; clicking it opens Cases
+  // with that stage selected.
   const col1Items = [
-    item("Partner Not Joined", "P2 invitation not accepted", "PARTNER_NOT_JOINED", "text-amber-500"),
-    item("Applicants Drafting", "P1/P2 forms incomplete", "APPLICANT_DRAFTING", "text-amber-500"),
-    item("Partner Review / Mutual Approval", "Awaiting partner review or approval", "PARTNER_REVIEW", "text-amber-500"),
+    item("NOT_PAID", "Payment not completed", "text-amber-500"),
+    item("PARTNER_NOT_JOINED", "P2 invitation not accepted", "text-amber-500"),
+    item("APPLICANT_DRAFTING", "P1/P2 forms incomplete", "text-amber-500"),
+    item("PARTNER_REVIEW", "Awaiting partner review or approval", "text-amber-500"),
   ];
 
-  // Group 2: Case Manager Review (Column 2)
   const col2Items = [
-    item("Case Manager Not Assigned", "Submitted by couple; no case manager yet", "CM_NOT_ASSIGNED", "text-blue-600"),
-    item("My Active Reviews", "Submitted and assigned to you", "MY_ACTIVE_REVIEWS", "text-blue-600"),
-    item("Pre-Lawyer Questionnaire Pending", "Lawyers assigned; waiting for applicant questionnaires", "PRE_LAWYER_PENDING", "text-blue-600"),
-    item("Lawyer Assignment Pending", "CM approved; waiting to assign lawyers", "LAWYER_ASSIGNMENT_PENDING", "text-blue-600"),
+    item("CM_NOT_ASSIGNED", "Open cases with no case manager", "text-blue-600"),
+    item("MY_ACTIVE_REVIEWS", "Submitted by couple; awaiting case manager review", "text-blue-600"),
+    item("PRE_LAWYER_PENDING", "CM approved; waiting for applicant questionnaires", "text-blue-600"),
+    item("LAWYER_ASSIGNMENT_PENDING", "Questionnaires done; waiting to assign lawyers", "text-blue-600"),
   ];
 
-  // Group 3: Legal Review (Column 3)
   const col3Items = [
-    item("P1 Confirmation Pending", "Awaiting P1 confirmation", "P1_CONFIRMATION_PENDING", "text-purple-600"),
-    item("P2 Confirmation Pending", "Awaiting P2 confirmation", "P2_CONFIRMATION_PENDING", "text-purple-600"),
-    item("P1 Lawyer Approval & ILA Pending", "Draft and ILA not yet completed", "P1_LAWYER_APPROVAL_PENDING", "text-purple-600"),
-    item("P2 Lawyer Approval & ILA Pending", "Draft and ILA not yet completed", "P2_LAWYER_APPROVAL_PENDING", "text-purple-600"),
-    item("Final Client Confirmation Pending", "Both lawyers signed off; awaiting final confirmations", "FINAL_CONFIRMATION_PENDING", "text-purple-600"),
+    item("LEGAL_REVIEW", "Lawyers assigned and reviewing", "text-purple-600"),
+    item("LAWYER_ILA_PENDING", "Waiting for P1/P2 ILA and lawyer sign-off", "text-purple-600"),
   ];
 
-  // Group 4: Completed (Column 4)
   const col4Items = [
-    item("Execution Pack Generated", "Agreement ready for dispatch", "EXECUTION_PACK_GENERATED", "text-emerald-600"),
-    item("Ready for Archive", "Done & dusted", "READY_FOR_ARCHIVE", "text-emerald-600"),
+    item("COMPLETED", "Signed off; final confirmations and completion", "text-emerald-600"),
+    item("READY_FOR_ARCHIVE", "Completed; ready to archive", "text-emerald-600"),
+    item("ARCHIVED", "Archived cases", "text-emerald-600"),
   ];
+
+  // Column total = distinct cases in any of its tiles (a case can match two
+  // tiles, e.g. Not Paid and Partner Not Joined, but is counted once here).
+  const colTotal = (items: { filter: string }[]) =>
+    cases.filter((c) =>
+      items.some((i) => matchesStageFilter(c, i.filter))
+    ).length;
 
   return (
     <div className="space-y-6 max-w-[1400px]">
@@ -199,7 +187,7 @@ export const DashboardLedgerView: React.FC = () => {
 
         {/* Applicant Drafting */}
         <div
-          onClick={() => handleNavigate("DRAFT")}
+          onClick={() => handleNavigate("APPLICANT_DRAFTING")}
           className="bg-white border border-slate-200/90 rounded-2xl p-4 flex items-center gap-3.5 shadow-2xs hover:shadow-xs transition-all cursor-pointer"
         >
           <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0">
@@ -217,7 +205,7 @@ export const DashboardLedgerView: React.FC = () => {
 
         {/* Case Manager Review */}
         <div
-          onClick={() => handleNavigate("CM_REVIEW")}
+          onClick={() => handleNavigate("MY_ACTIVE_REVIEWS")}
           className="bg-white border border-slate-200/90 rounded-2xl p-4 flex items-center gap-3.5 shadow-2xs hover:shadow-xs transition-all cursor-pointer"
         >
           <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">
@@ -284,7 +272,7 @@ export const DashboardLedgerView: React.FC = () => {
               </h3>
             </div>
             <span className="w-6 h-6 rounded-full bg-amber-50 text-amber-600 text-xs font-bold flex items-center justify-center">
-              {counts.DRAFT}
+              {colTotal(col1Items)}
             </span>
           </div>
           <p className="text-[11px] text-slate-500 leading-relaxed -mt-2">
@@ -329,7 +317,7 @@ export const DashboardLedgerView: React.FC = () => {
               </h3>
             </div>
             <span className="w-6 h-6 rounded-full bg-blue-50 text-blue-600 text-xs font-bold flex items-center justify-center">
-              {counts.CM_REVIEW}
+              {colTotal(col2Items)}
             </span>
           </div>
           <p className="text-[11px] text-slate-500 leading-relaxed -mt-2">
@@ -374,7 +362,7 @@ export const DashboardLedgerView: React.FC = () => {
               </h3>
             </div>
             <span className="w-6 h-6 rounded-full bg-purple-50 text-purple-600 text-xs font-bold flex items-center justify-center">
-              {counts.LEGAL_REVIEW}
+              {colTotal(col3Items)}
             </span>
           </div>
           <p className="text-[11px] text-slate-500 leading-relaxed -mt-2">
@@ -419,7 +407,7 @@ export const DashboardLedgerView: React.FC = () => {
               </h3>
             </div>
             <span className="w-6 h-6 rounded-full bg-emerald-50 text-emerald-600 text-xs font-bold flex items-center justify-center">
-              {counts.COMPLETED}
+              {colTotal(col4Items)}
             </span>
           </div>
           <p className="text-[11px] text-slate-500 leading-relaxed -mt-2">
