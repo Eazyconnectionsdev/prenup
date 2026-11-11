@@ -43,7 +43,7 @@ const LawyerPage = () => {
   };
 
   const isCompleted = (status: string) =>
-    status === "CLOSED" || status === "ARCHIVED";
+    status === "COMPLETED" || status === "CLOSED" || status === "ARCHIVED";
 
   const counts = useMemo(() => {
     return {

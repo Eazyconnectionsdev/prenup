@@ -8,7 +8,9 @@ import Axios from "@/lib/ApiConfig";
 import { getErrorMessage } from "@/lib/api/http-error";
 import { AppDispatch, RootState } from "@/store/store";
 import { getCasesDetails } from "@/store/asyncThunk/casesThunk";
-import { getStep } from "./steps";
+import { FIRST_STEP_SLUG, getStep } from "./steps";
+import { isCasePaid, paymentHref } from "@/lib/casePayment";
+import { SERVICE_SELECTOR_HREF } from "@/components/ServiceStatus";
 import { useEditingPartnerForm } from "./EditingPartnerContext";
 import { otherSectionName, ownSectionName } from "@/lib/caseSections";
 import type { QuestionnaireStepSlug } from "@/types/questionnaire/steps";
@@ -19,6 +21,17 @@ export function useQuestionnaire({ step, source = "own", onLoad }: Options) {
   const dispatch = useDispatch<AppDispatch>();
   const user = useSelector((state: RootState) => state.auth.user);
   const caseId = useSelector((state: RootState) => state.auth.caseId);
+  const cases = useSelector((state: RootState) => state.cases);
+
+  // Choosing a service and paying for it are the owner's to do -- both screens
+  // are read-only for the invited partner, so only the owner is sent to them.
+  const isCaseOwner =
+    user?.endUserType === "user1" ||
+    Boolean(
+      user?._id &&
+      cases.owner?._id &&
+      String(cases.owner._id) === String(user._id),
+    );
 
   const stepInfo = getStep(step);
   // The invited partner's own answers live in `partnerInformation`; the
@@ -82,7 +95,28 @@ export function useQuestionnaire({ step, source = "own", onLoad }: Options) {
       setIsSaving(true);
       await Axios.post(`/cases/${caseId}/questionnaire/${apiStep}`, payload);
       toast.success(`${stepInfo.title} saved.`);
-      dispatch(getCasesDetails(caseId));
+
+      // Awaited, so what happens next is decided on the case as the server has
+      // it -- a payment made in another tab is not missed, and a stale store
+      // cannot send someone to a screen they are already past.
+      const fresh = await dispatch(getCasesDetails(caseId))
+        .unwrap()
+        .catch(() => null);
+      const caseNow = fresh ?? cases;
+
+      // The first form is the only one open before the case is paid for, so
+      // finishing it leads to whatever is actually outstanding -- choose a
+      // service, or pay for the one already chosen -- rather than to a form
+      // that is still locked.
+      if (stepInfo.slug === FIRST_STEP_SLUG && isCaseOwner && !isCasePaid(caseNow)) {
+        router.push(
+          caseNow?.agreementType
+            ? paymentHref(caseNow.agreementType)
+            : SERVICE_SELECTOR_HREF,
+        );
+        return;
+      }
+
       // The last step has no next form, so stay on the page
       if (stepInfo.nextPath) {
         // Stay on the partner's pages while editing their answers

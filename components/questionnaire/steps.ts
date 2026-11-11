@@ -39,6 +39,9 @@ export const QUESTIONNAIRE_STEPS = [
   },
 ] as const;
 
+// The one form a client can fill in before paying for the case; the sidebar
+// and the dashboard journey both open it and nothing after it.
+export const FIRST_STEP_SLUG = QUESTIONNAIRE_STEPS[0].slug;
 
 export function getStep(slug: QuestionnaireStepSlug) {
   const index = QUESTIONNAIRE_STEPS.findIndex((s) => s.slug === slug);

@@ -14,6 +14,7 @@ import {
 import { getFreshProfile } from "@/store/asyncThunk/authThunk";
 import { setAgreementType } from "@/store/slices/casesSlice";
 import { getErrorMessage } from "@/lib/getErrorMessage";
+import { isCasePaid, paymentHref } from "@/lib/casePayment";
 import {
   agreementTypeLabel,
   fromAgreementType,
@@ -211,6 +212,8 @@ export default function ServiceSelector({
       String(cases.owner._id) === String(user._id),
     );
 
+  const isPaid = isCasePaid(cases) || Boolean(user?.paymentDone);
+
   const [choice, setChoice] = useState<ServiceSelection | null>(null);
   const [confirmed, setConfirmed] = useState<Record<string, boolean>>({});
   const [savedType, setSavedType] = useState<string | null>(null);
@@ -311,8 +314,10 @@ export default function ServiceSelector({
 
       if (onContinue) {
         onContinue({ service: serviceId, situation });
-      } else {
+      } else if (isPaid) {
         router.push("/dashboard");
+      } else {
+        router.push(paymentHref(agreementType));
       }
     } catch (error) {
       toast.error(
@@ -357,7 +362,9 @@ export default function ServiceSelector({
               is the service on this case.
               <div className="mt-0.5 text-xs text-slate-500">
                 {isCaseOwner
-                  ? "Your selection has been submitted, so it can no longer be changed here."
+                  ? isPaid
+                    ? "Your selection has been submitted, so it can no longer be changed here."
+                    : "Your selection has been saved. It can no longer be changed here, and there is still the fee to pay."
                   : "It was chosen by the partner who started the case."}
               </div>
             </div>
@@ -545,14 +552,25 @@ export default function ServiceSelector({
 
             {/* CTA */}
             {isReadOnly ? (
-              <button
-                type="button"
-                onClick={() => router.push("/dashboard")}
-                className="group mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50 focus:outline-none focus-visible:ring-4 focus-visible:ring-violet-300"
-              >
-                Back to dashboard
-                <ArrowRight />
-              </button>
+              isCaseOwner && !isPaid && existingType ? (
+                <button
+                  type="button"
+                  onClick={() => router.push(paymentHref(existingType))}
+                  className="group mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-md shadow-violet-300/50 transition-all hover:shadow-xl hover:shadow-violet-300/70 hover:brightness-110 focus:outline-none focus-visible:ring-4 focus-visible:ring-violet-300"
+                >
+                  Continue to payment
+                  <ArrowRight />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => router.push("/dashboard")}
+                  className="group mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50 focus:outline-none focus-visible:ring-4 focus-visible:ring-violet-300"
+                >
+                  Back to dashboard
+                  <ArrowRight />
+                </button>
+              )
             ) : (
               <>
                 <button

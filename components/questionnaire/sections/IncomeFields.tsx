@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { Briefcase, ChevronDown, Home, Info, Plus, Trash2, TrendingUp, X } from "lucide-react";
+import { FieldMessage, fieldClassesFor } from "../QuestionnaireUI";
 import type { Treatment, TreatmentFields, YesNo } from "@/types/forms/form-primitives";
 import type { IncomeData, IncomeRow, Props, RowsKey } from "@/types/questionnaire/income-fields";
 
@@ -197,6 +198,8 @@ function CustomTreatmentSelect({
   options = ALL_TREATMENT_OPTIONS,
   placeholder = "How should this be shared?",
   disabled,
+  errors,
+  path,
 }: {
   id: string;
   fields: TreatmentFields;
@@ -204,7 +207,13 @@ function CustomTreatmentSelect({
   options?: { value: Treatment; label: string }[];
   placeholder?: string;
   disabled?: boolean;
+  /** Messages for this block, keyed by its own field names. */
+  errors?: Record<string, string>;
+  /** Where this block sits in the payload, so messages can be scrolled to. */
+  path?: string;
 }) {
+  const errorFor = (field: keyof TreatmentFields) => errors?.[field];
+  const pathFor = (field: keyof TreatmentFields) => (path ? `${path}.${field}` : field);
   return (
     <div className="w-full">
       <div className="relative group flex items-center">
@@ -214,9 +223,12 @@ function CustomTreatmentSelect({
           onChange={(e) => onChange({ treatment: e.target.value as Treatment })}
           disabled={disabled}
           title="This records your current intentions. Your independent solicitor will discuss whether these arrangements are appropriate and legally workable."
-          className={`w-full appearance-none rounded-xl border border-slate-200 bg-[#FBFBFE] px-4 py-3 pr-16 text-[13.5px] font-medium leading-relaxed transition-all duration-200 outline-none hover:border-slate-300 hover:bg-white focus:border-[#6366F1] focus:bg-white focus:ring-4 focus:ring-[#6366F1]/10 disabled:cursor-not-allowed disabled:opacity-70 ${
-            !fields.treatment ? "text-slate-600" : "text-slate-900 font-semibold"
-          }`}
+          className={fieldClassesFor(
+            `w-full appearance-none rounded-xl border border-slate-200 bg-[#FBFBFE] px-4 py-3 pr-16 text-[13.5px] font-medium leading-relaxed transition-all duration-200 outline-none hover:border-slate-300 hover:bg-white focus:border-[#6366F1] focus:bg-white focus:ring-4 focus:ring-[#6366F1]/10 disabled:cursor-not-allowed disabled:opacity-70 ${
+              !fields.treatment ? "text-slate-600" : "text-slate-900 font-semibold"
+            }`,
+            errorFor("treatment"),
+          )}
         >
           <option value="" disabled className="text-slate-600 font-medium">
             {placeholder}
@@ -232,6 +244,7 @@ function CustomTreatmentSelect({
           <InfoTooltip text="This records your current intentions. Your independent solicitor will discuss whether these arrangements are appropriate and legally workable." />
         </div>
       </div>
+      <FieldMessage error={errorFor("treatment")} path={pathFor("treatment")} />
 
       {fields.treatment === "Contribution" && (
         <div className="mt-3.5 rounded-xl border-l-4 border-[#6366F1] bg-[#F8FAFC] p-4 shadow-xs">
@@ -245,7 +258,14 @@ function CustomTreatmentSelect({
             onChange={(e) => onChange({ contributionText: e.target.value })}
             disabled={disabled}
             placeholder="Explain your contribution logic"
-            className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[13.5px] text-slate-900 placeholder:text-slate-400 focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 outline-none transition-all"
+            className={fieldClassesFor(
+              "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[13.5px] text-slate-900 placeholder:text-slate-400 focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 outline-none transition-all",
+              errorFor("contributionText"),
+            )}
+          />
+          <FieldMessage
+            error={errorFor("contributionText")}
+            path={pathFor("contributionText")}
           />
         </div>
       )}
@@ -264,7 +284,14 @@ function CustomTreatmentSelect({
             onChange={(e) => onChange({ percentageValue: e.target.value })}
             disabled={disabled}
             placeholder="Percentage (%)"
-            className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[13.5px] text-slate-900 placeholder:text-slate-400 focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 outline-none transition-all"
+            className={fieldClassesFor(
+              "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[13.5px] text-slate-900 placeholder:text-slate-400 focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 outline-none transition-all",
+              errorFor("percentageValue"),
+            )}
+          />
+          <FieldMessage
+            error={errorFor("percentageValue")}
+            path={pathFor("percentageValue")}
           />
         </div>
       )}
@@ -281,8 +308,12 @@ function CustomTreatmentSelect({
             disabled={disabled}
             placeholder="Create your own arrangement..."
             rows={3}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[13.5px] text-slate-900 placeholder:text-slate-400 focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 outline-none resize-y transition-all"
+            className={fieldClassesFor(
+              "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[13.5px] text-slate-900 placeholder:text-slate-400 focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 outline-none resize-y transition-all",
+              errorFor("customText"),
+            )}
           />
+          <FieldMessage error={errorFor("customText")} path={pathFor("customText")} />
         </div>
       )}
     </div>
@@ -292,19 +323,49 @@ function CustomTreatmentSelect({
 /* ---------------------------------------------------------------------- */
 /* IncomeFields Main Component                                            */
 /* ---------------------------------------------------------------------- */
-export function IncomeFields({ data, onChange, readOnly }: Props) {
+export function IncomeFields({ data, onChange, readOnly, errors, onClearError }: Props) {
   const ask = (you: string, they: string) => (readOnly ? they : you);
   const set = (patch: Partial<IncomeData>) => onChange?.((prev) => ({ ...prev, ...patch }));
 
-  const toggle = (flag: "hasPrimaryBonus" | "hasAlternativeIncome", key: RowsKey) => (value: YesNo) =>
+  /* ---- Where a row's fields live in the payload ---- */
+
+  const rowPath = (key: RowsKey, id: string) =>
+    `${key}.${data[key].findIndex((r) => r.id === id)}`;
+  const fieldPath = (key: RowsKey, id: string, field: string) => `${rowPath(key, id)}.${field}`;
+  const errorAt = (key: RowsKey, id: string, field: string) =>
+    errors?.[fieldPath(key, id, field)];
+
+  // The messages inside one object, re-keyed relative to it.
+  const errorsUnder = (prefix: string) => {
+    if (!errors) return undefined;
+    const start = `${prefix}.`;
+    const scoped: Record<string, string> = {};
+    for (const [path, message] of Object.entries(errors)) {
+      if (path.startsWith(start)) scoped[path.slice(start.length)] = message;
+    }
+    return scoped;
+  };
+
+  const toggle = (flag: "hasPrimaryBonus" | "hasAlternativeIncome", key: RowsKey) => (value: YesNo) => {
+    onClearError?.(flag);
+    onClearError?.(key);
     onChange?.((prev) => ({
       ...prev,
       [flag]: value,
       [key]: value === "Yes" ? (prev[key].length ? prev[key] : [makeIncomeRow()]) : [],
     }));
+  };
 
-  const updateRow = (key: RowsKey, id: string, patch: Partial<IncomeRow>) =>
+  const updateRow = (key: RowsKey, id: string, patch: Partial<IncomeRow>) => {
+    for (const field of Object.keys(patch)) onClearError?.(fieldPath(key, id, field));
     set({ [key]: data[key].map((r) => (r.id === id ? { ...r, ...patch } : r)) });
+  };
+
+  // Rows after a removed one shift up, so the list's messages go with it.
+  const dropRow = (key: RowsKey, id: string) => {
+    onClearError?.(key);
+    set({ [key]: data[key].filter((r) => r.id !== id) });
+  };
 
   const renderRows = (
     key: RowsKey,
@@ -313,7 +374,11 @@ export function IncomeFields({ data, onChange, readOnly }: Props) {
     descriptionPlaceholder: string,
     amountPlaceholder: string,
   ) => (
-    <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50/70 p-5 sm:p-6">
+    <div
+      className={`mt-5 rounded-2xl border p-5 sm:p-6 ${
+        errors?.[key] ? "border-rose-300 bg-rose-50/40" : "border-slate-200 bg-slate-50/70"
+      }`}
+    >
       <div className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-500">
         {title}
       </div>
@@ -322,7 +387,11 @@ export function IncomeFields({ data, onChange, readOnly }: Props) {
         {data[key].map((row, idx) => (
           <div
             key={row.id}
-            className="relative rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs"
+            className={`relative rounded-xl border bg-white p-5 shadow-xs ${
+              Object.keys(errorsUnder(rowPath(key, row.id)) ?? {}).length > 0
+                ? "border-rose-300"
+                : "border-slate-200/90"
+            }`}
           >
             <div className="flex items-center justify-between mb-3">
               <div className="text-xs font-semibold text-slate-500">
@@ -331,7 +400,7 @@ export function IncomeFields({ data, onChange, readOnly }: Props) {
               {!readOnly && (
                 <button
                   type="button"
-                  onClick={() => set({ [key]: data[key].filter((r) => r.id !== row.id) })}
+                  onClick={() => dropRow(key, row.id)}
                   aria-label="Remove item"
                   className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-500 cursor-pointer"
                   title="Remove item"
@@ -355,7 +424,14 @@ export function IncomeFields({ data, onChange, readOnly }: Props) {
                   value={row.description}
                   onChange={(e) => updateRow(key, row.id, { description: e.target.value })}
                   disabled={readOnly}
-                  className="w-full rounded-xl border border-slate-200 bg-[#FBFBFE] px-3.5 py-2.5 text-[13px] text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 outline-none transition-all"
+                  className={fieldClassesFor(
+                    "w-full rounded-xl border border-slate-200 bg-[#FBFBFE] px-3.5 py-2.5 text-[13px] text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 outline-none transition-all",
+                    errorAt(key, row.id, "description"),
+                  )}
+                />
+                <FieldMessage
+                  error={errorAt(key, row.id, "description")}
+                  path={fieldPath(key, row.id, "description")}
                 />
               </div>
 
@@ -370,7 +446,14 @@ export function IncomeFields({ data, onChange, readOnly }: Props) {
                   value={row.amount}
                   onChange={(e) => updateRow(key, row.id, { amount: e.target.value })}
                   disabled={readOnly}
-                  className="w-full rounded-xl border border-slate-200 bg-[#FBFBFE] px-3.5 py-2.5 text-[13px] text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 outline-none transition-all"
+                  className={fieldClassesFor(
+                    "w-full rounded-xl border border-slate-200 bg-[#FBFBFE] px-3.5 py-2.5 text-[13px] text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 outline-none transition-all",
+                    errorAt(key, row.id, "amount"),
+                  )}
+                />
+                <FieldMessage
+                  error={errorAt(key, row.id, "amount")}
+                  path={fieldPath(key, row.id, "amount")}
                 />
               </div>
             </div>
@@ -384,6 +467,8 @@ export function IncomeFields({ data, onChange, readOnly }: Props) {
                 fields={row}
                 onChange={(f) => updateRow(key, row.id, f)}
                 disabled={readOnly}
+                errors={errorsUnder(rowPath(key, row.id))}
+                path={rowPath(key, row.id)}
               />
             </div>
           </div>
@@ -393,13 +478,17 @@ export function IncomeFields({ data, onChange, readOnly }: Props) {
       {!readOnly && (
         <button
           type="button"
-          onClick={() => set({ [key]: [...data[key], makeIncomeRow()] })}
+          onClick={() => {
+            onClearError?.(key);
+            set({ [key]: [...data[key], makeIncomeRow()] });
+          }}
           className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-indigo-300 bg-white/80 px-4 py-3 text-[13.5px] font-semibold text-[#5B4DF5] transition hover:border-[#6366F1] hover:bg-indigo-50/50"
         >
           <Plus className="h-4 w-4" />
           {addLabel}
         </button>
       )}
+      <FieldMessage error={errors?.[key]} path={key} className="mt-3" />
     </div>
   );
 
@@ -442,10 +531,17 @@ export function IncomeFields({ data, onChange, readOnly }: Props) {
             min={0}
             placeholder="£ Amount in GBP"
             value={data.grossAnnualIncome}
-            onChange={(e) => set({ grossAnnualIncome: e.target.value })}
+            onChange={(e) => {
+              onClearError?.("grossAnnualIncome");
+              set({ grossAnnualIncome: e.target.value });
+            }}
             disabled={readOnly}
-            className="w-full rounded-xl border border-slate-200 bg-[#FBFBFE] px-4 py-3 text-[13.5px] font-medium text-slate-900 placeholder:text-slate-400 transition-all duration-200 outline-none hover:border-slate-300 hover:bg-white focus:border-[#6366F1] focus:bg-white focus:ring-4 focus:ring-[#6366F1]/10 disabled:cursor-not-allowed disabled:opacity-70"
+            className={fieldClassesFor(
+              "w-full rounded-xl border border-slate-200 bg-[#FBFBFE] px-4 py-3 text-[13.5px] font-medium text-slate-900 placeholder:text-slate-400 transition-all duration-200 outline-none hover:border-slate-300 hover:bg-white focus:border-[#6366F1] focus:bg-white focus:ring-4 focus:ring-[#6366F1]/10 disabled:cursor-not-allowed disabled:opacity-70",
+              errors?.grossAnnualIncome,
+            )}
           />
+          <FieldMessage error={errors?.grossAnnualIncome} path="grossAnnualIncome" />
         </div>
 
         {/* Field 2: Salary Treatment */}
@@ -459,10 +555,17 @@ export function IncomeFields({ data, onChange, readOnly }: Props) {
           <CustomTreatmentSelect
             id="salary"
             fields={data.salaryTreatment}
-            onChange={(f) => set({ salaryTreatment: { ...data.salaryTreatment, ...f } })}
+            onChange={(f) => {
+              for (const field of Object.keys(f)) {
+                onClearError?.(`salaryTreatment.${field}`);
+              }
+              set({ salaryTreatment: { ...data.salaryTreatment, ...f } });
+            }}
             options={SALARY_TREATMENT_OPTIONS}
             placeholder="How should this be shared?"
             disabled={readOnly}
+            errors={errorsUnder("salaryTreatment")}
+            path="salaryTreatment"
           />
         </div>
       </div>
@@ -507,6 +610,7 @@ export function IncomeFields({ data, onChange, readOnly }: Props) {
             disabled={readOnly}
           />
         </div>
+        <FieldMessage error={errors?.hasPrimaryBonus} path="hasPrimaryBonus" className="mt-2" />
 
         {data.hasPrimaryBonus === "Yes" &&
           renderRows(
@@ -558,6 +662,11 @@ export function IncomeFields({ data, onChange, readOnly }: Props) {
             disabled={readOnly}
           />
         </div>
+        <FieldMessage
+          error={errors?.hasAlternativeIncome}
+          path="hasAlternativeIncome"
+          className="mt-2"
+        />
 
         {data.hasAlternativeIncome === "Yes" &&
           renderRows(

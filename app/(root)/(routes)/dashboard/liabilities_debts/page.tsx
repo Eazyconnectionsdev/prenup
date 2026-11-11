@@ -3,6 +3,8 @@
 import React, { useState } from "react";
 import { Wallet } from "lucide-react";
 import { useQuestionnaire } from "@/components/questionnaire/useQuestionnaire";
+import { useFormValidation } from "@/hooks/useFormValidation";
+import { liabilitiesSchema } from "@/lib/validations/questionnaire";
 import { FormShell, LoadingState, SubmitBar } from "@/components/questionnaire/QuestionnaireUI";
 import {
   LiabilitiesFields,
@@ -19,14 +21,20 @@ export default function LiabilitiesForm() {
     onLoad: (section) => setData(toLiabilities(section.liabilitiesAndDebts)),
   });
 
+  const { errors, validate, clearError, summary } = useFormValidation(liabilitiesSchema);
+
   const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    await save({
+    const payload = {
       hasDebts: data.hasDebts,
       debts: data.debts,
       hasMaintenance: data.hasMaintenance,
       maintenance: data.maintenance,
-    });
+    };
+
+    if (!validate(payload)) return;
+
+    await save(payload);
   };
 
   if (isLoading) return <LoadingState />;
@@ -39,12 +47,18 @@ export default function LiabilitiesForm() {
       description="Please tell us about any debts or financial obligations that you are personally responsible for, including debts jointly signed with another person that remain your responsibility."
     >
       <form onSubmit={handleSubmit} noValidate>
-        <LiabilitiesFields data={data} onChange={setData} />
+        <LiabilitiesFields
+          data={data}
+          onChange={setData}
+          errors={errors}
+          onClearError={clearError}
+        />
         <SubmitBar
           isSaving={isSaving}
           label="Save & continue"
           withArrow
           backHref={stepInfo.prevPath}
+          errorSummary={summary}
         />
       </form>
     </FormShell>

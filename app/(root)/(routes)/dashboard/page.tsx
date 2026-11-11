@@ -5,6 +5,7 @@ import {
   BookOpen,
   ChartNoAxesCombined,
   Check,
+  Lock,
   Send,
   UserRoundCheck,
   UserRoundPlus,
@@ -22,9 +23,11 @@ import { resolvePartyInformation } from "@/lib/caseSections";
 import type { StepConfig, StepId } from "@/types/dashboard/dashboard-home";
 import { useJointSectionStatus } from "@/hooks/useJointSectionStatus";
 import { isCaseManagerApproved } from "@/lib/caseStage";
+import { isCasePaid } from "@/lib/casePayment";
 import Axios from "@/lib/ApiConfig";
 import { ServiceStatus } from "@/components/ServiceStatus";
 import CaseManagerCard from "@/components/dashboard/CaseManagerCard";
+import DashboardSkeleton from "@/components/dashboard/DashboardSkeleton";
 import AgreementDocumentCard from "@/components/dashboard/AgreementDocumentCard";
 import LegalAdviceJourney from "@/components/dashboard/LegalAdviceJourney";
 import LegalTeamCard from "@/components/dashboard/LegalTeamCard";
@@ -116,6 +119,10 @@ const steps: StepConfig[] = [
   },
 ];
 
+// Step one is the only one open before the case is paid for: its CTA is the
+// personal questionnaire, the single route the sidebar also leaves unlocked.
+const FIRST_STEP_ID = steps[0].id;
+
 const STEP_TILES: Record<StepId, string> = {
   questionnaire: "from-[#FBBF24] to-[#F59E0B]",
   partner_questionnaire: "from-[#FB7185] to-[#E11D48]",
@@ -123,8 +130,6 @@ const STEP_TILES: Record<StepId, string> = {
   final_review: "from-[#60A5FA] to-[#2563EB]",
 };
 
-// The step count sits inside a ring that fills by the same percentage, so
-// the figure beside it never stands alone.
 function ProgressDial({
   percent,
   completed,
@@ -137,8 +142,6 @@ function ProgressDial({
   const size = 44;
   const stroke = 3;
   const center = size / 2;
-  // The stroke straddles the radius, so the ring has to sit half of it
-  // inside the box or it clips against its own viewBox.
   const radius = center - stroke / 2;
   const circumference = 2 * Math.PI * radius;
   const filled = (circumference * Math.min(Math.max(percent, 0), 100)) / 100;
@@ -175,8 +178,6 @@ function ProgressDial({
   );
 }
 
-// One dash per step, so the row is a count the eye can check as well as a
-// bar. The ring and the percentage already say it as a figure.
 function StepTrack({ completed, total }: { completed: number; total: number }) {
   if (total <= 0) {
     return <div className="h-1.5 w-full rounded-full bg-[#EDEDF5]" />;
@@ -196,41 +197,34 @@ function StepTrack({ completed, total }: { completed: number; total: number }) {
   );
 }
 
-// Object presence check — just needs to exist with at least one key
 const hasData = (obj: unknown): boolean => {
   if (!obj || typeof obj !== "object") return false;
   return Object.keys(obj).length > 0;
 };
 
-// Checks a set of keys all exist on a given section (myInformation / partnerInformation)
 const hasAllKeys = (
   section: Record<string, any> | undefined,
   keys: string[],
 ): boolean => keys.every((key) => hasData(section?.[key]));
 
-// A questionnaire only counts as complete once all six of its forms are filled
-// in — the three personal ones plus the three financial disclosures — which is
-// the same set the sidebar and the Final Review page count.
 const QUESTIONNAIRE_KEYS = MY_PARTNER_KEYS;
 
-// Step-card actions. Green once the step is done, primary while it is still
-// the user's to do, muted when the step belongs to the other party.
 const stepButtonBase =
   "ml-4 flex-shrink-0 rounded-lg px-4 py-2 text-xs font-semibold";
 const stepButtonDone = `${stepButtonBase} bg-[#DCFCE7] text-[#16A34A] hover:bg-[#BBF7D0]`;
 const stepButtonTodo = `${stepButtonBase} bg-primary text-white hover:bg-primary/90`;
 const stepButtonMuted = `${stepButtonBase} bg-[#F1F1F6] text-[#9494AA] hover:bg-[#E8E8F0]`;
+const stepButtonLocked = `${stepButtonBase} inline-flex items-center gap-1.5 cursor-not-allowed bg-[#F1F1F6] text-[#9494AA] opacity-80`;
 
-// What the dashboard needs from GET /cases/:id/invite. The invite page reads
-// the rest of it.
 type InviteSummary = {
   status?: string;
   invitee?: { email?: string | null };
 };
 
-// ─── Popup IDs ───────────────────────────────────────────────────────────────
 type PopupId =
-  "p2-joint-initial" | "p1-joint-completed" | "p2-wait-for-partner";
+  | "p2-joint-initial"
+  | "p1-joint-completed"
+  | "p2-wait-for-partner";
 
 export default function PrenupDashboard() {
   const router = useRouter();
@@ -238,44 +232,42 @@ export default function PrenupDashboard() {
   const { user } = useSelector((state: RootState) => state.auth);
   const cases = useSelector((state: RootState) => state.cases);
 
-  // ── Role flags ──────────────────────────────────────────────────────────────
   const isUser1 = user?.endUserType === "user1";
   const isUser2 = user?.endUserType === "user2";
 
-  // ── Invite / join state ─────────────────────────────────────────────────────
-  // The invite page goes by the invite record, so this card asks for the same
-  // one instead of trusting the case's `partnerInvited`: that flag is only
-  // ever switched on, and stays on once the invite behind it is gone, which
-  // left the card claiming "Invitation sent" with nothing to resend to.
-  // undefined means the answer is still on its way.
   const [invite, setInvite] = useState<InviteSummary | null | undefined>(
     undefined,
   );
   const inviteCaseId = user?.inviteCaseId;
 
+  // Only user 1 sends invites, so only user 1 has one to look up.
+  const expectsInvite = Boolean(inviteCaseId) && isUser1;
+  // Which case the lookup has answered for, either way -- it replied, or it
+  // failed and the fallback below stands. Held as the id rather than a flag so
+  // switching case never reads as settled on the strength of the last one.
+  const [inviteSettledFor, setInviteSettledFor] = useState<string | null>(null);
+  const inviteSettled = !expectsInvite || inviteSettledFor === inviteCaseId;
+
   useEffect(() => {
-    // Only the case owner may read it, and P2 has nobody to invite.
-    if (!inviteCaseId || !isUser1) return;
+    if (!expectsInvite) return;
 
     let cancelled = false;
     Axios.get(`cases/${inviteCaseId}/invite`)
       .then(({ data }) => {
         if (!cancelled) setInvite(data?.invite ?? null);
       })
-      .catch(() => {
-        // Leave the case's own fields to answer for it.
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setInviteSettledFor(inviteCaseId);
       });
 
     return () => {
       cancelled = true;
     };
-  }, [inviteCaseId, isUser1]);
+  }, [inviteCaseId, expectsInvite]);
 
-  // Until the record arrives, the address the case saved stands in for it:
-  // the same request writes both, so they only disagree once one is cleared.
   const isPartnerInvited =
     invite === undefined ? Boolean(cases?.invitedEmail) : invite !== null;
-  // P2 has actually joined when invitedUser has a real _id
   const hasP2Joined = Boolean((cases as any)?.invitedUser?._id);
 
   const partnerName =
@@ -289,9 +281,6 @@ export default function PrenupDashboard() {
     cases?.invitedEmail ??
     "";
 
-  // ── Questionnaire completion ─────────────────────────────────────────────────
-  // "Yours" is always the signed-in user's own section: myInformation for the
-  // owner, partnerInformation for the invited partner.
   const { mine: myQuestData, theirs: partnerQuestData } =
     resolvePartyInformation(
       user?.endUserType,
@@ -358,7 +347,6 @@ export default function PrenupDashboard() {
   const activeIndex = steps.findIndex((s) => !effectiveCompleted.has(s.id));
   const currentIndex = activeIndex === -1 ? steps.length : activeIndex;
 
-  // The case manager, once one has been assigned (populated by the backend)
   const caseManager =
     cases.assignedCaseManager && typeof cases.assignedCaseManager === "object"
       ? cases.assignedCaseManager
@@ -369,12 +357,6 @@ export default function PrenupDashboard() {
     .trim();
   const caseManagerEmail = caseManager?.email ?? "";
 
-  // ── Dashboard stages ───────────────────────────────────────────────────────
-  // 1. The journey: the four questionnaire steps, up to final review.
-  // 2. Mutually confirmed: the journey gives way to the generated agreement
-  //    and whoever is looking after the case.
-  // 3. Case manager approved: the independent legal advice steps open up,
-  //    here and in the sidebar.
   const isAgreementReady = isMutualApproved;
   const caseManagerApproved = isCaseManagerApproved(
     cases?.approval,
@@ -382,7 +364,6 @@ export default function PrenupDashboard() {
   );
   const isLegalAdviceStage = isAgreementReady && caseManagerApproved;
 
-  // Each partner's own pre-lawyer questionnaire, whichever side they are on
   const { mine: myPre, theirs: partnerPre } = resolvePartyInformation<
     Record<string, any>
   >(
@@ -391,12 +372,9 @@ export default function PrenupDashboard() {
     cases?.preQuestionnaireUser2 as Record<string, any>,
   );
 
-  // While a review request is out, the sender is locked out of every step and
-  // the reviewing partner has all of them open.
+  const isPaymentDone = isCasePaid(cases);
+
   const senderLocked = lockedOut && !isMutualApproved;
-  // Reviewing the request, or editing after sending it back: every step is
-  // "In progress" with a Review button for me, and the other partner's are
-  // locked as "Partner Reviewing".
   const reviewerOpen = (isMyTurnToApprove || iDisapproved) && !isMutualApproved;
 
   const REVIEW_TARGETS: Record<StepId, string> = {
@@ -408,6 +386,23 @@ export default function PrenupDashboard() {
 
   function renderStepButton(step: StepConfig) {
     const isDone = effectiveCompleted.has(step.id);
+
+    // Nothing past the first step is reachable until the case is paid for, so
+    // every later button is held shut rather than leading to a locked page.
+    // Same rule as the sidebar, which unlocks only personal-info before
+    // payment -- the first step's own CTA.
+    if (!isPaymentDone && step.id !== FIRST_STEP_ID) {
+      return (
+        <button
+          disabled
+          title="Complete your payment to unlock this step"
+          className={stepButtonLocked}
+        >
+          <Lock className="h-3 w-3" aria-hidden="true" />
+          Locked
+        </button>
+      );
+    }
 
     if (senderLocked) {
       return (
@@ -461,8 +456,6 @@ export default function PrenupDashboard() {
       return (
         <button
           onClick={() => router.push("/dashboard/partner-personal-info")}
-          // Stays muted until done: these are the partner's forms to fill in,
-          // not an action this user can take.
           className={isDone ? stepButtonDone : stepButtonMuted}
         >
           {isDone ? "Completed" : "Select Terms"}
@@ -562,6 +555,14 @@ export default function PrenupDashboard() {
 
     return null;
   }
+
+
+  const isBootstrapping =
+    (Boolean(inviteCaseId) && !cases?.hasLoaded) || !inviteSettled;
+
+    console.log("cases?.hasLoaded",cases?.hasLoaded)
+
+  if (isBootstrapping) return <DashboardSkeleton />;
 
   return (
     <div className=" h-full bg-[#F6F6FB]">

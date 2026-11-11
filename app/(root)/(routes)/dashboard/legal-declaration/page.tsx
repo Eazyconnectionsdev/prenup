@@ -3,8 +3,11 @@
 import React, { useState } from "react";
 import { FileText, ShieldCheck } from "lucide-react";
 import { useQuestionnaire } from "@/components/questionnaire/useQuestionnaire";
+import { useFormValidation } from "@/hooks/useFormValidation";
+import { legalDeclarationSchema } from "@/lib/validations/questionnaire";
 import {
   cardTextareaClasses,
+  fieldClassesFor,
   CheckCard,
   FormShell,
   LoadingState,
@@ -36,20 +39,25 @@ export default function LegalDeclarationsForm() {
     onLoad: (section) => setFormData((prev) => ({ ...prev, ...section.legalDeclaration })),
   });
 
+  const { errors, validate, clearError, summary } =
+    useFormValidation(legalDeclarationSchema);
+
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+    clearError(name);
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, checked } = e.target;
+    clearError(name);
     setFormData((prev) => ({ ...prev, [name]: checked }));
   };
 
   const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    await save({
+    const payload = {
       agreementObjectives: formData.agreementObjectives,
       livingSituationFuture: formData.livingSituationFuture,
       confirmPersonalEffects: formData.confirmPersonalEffects,
@@ -60,7 +68,13 @@ export default function LegalDeclarationsForm() {
       confirmIla: formData.confirmIla,
       confirmPlatformDisclaimer: formData.confirmPlatformDisclaimer,
       confirmAccuracy: formData.confirmAccuracy,
-    });
+    };
+
+    // Each declaration is a statement being confirmed, so an unticked box is
+    // an unanswered question: nothing is sent until all of them are in.
+    if (!validate(payload)) return;
+
+    await save(payload);
   };
 
   if (isLoading) return <LoadingState />;
@@ -78,6 +92,7 @@ export default function LegalDeclarationsForm() {
           htmlFor="agreementObjectives"
           question="Please provide a brief overview of what you are both aiming to achieve with this agreement and your primary reasons for putting it in place."
           tooltip="Please describe the purpose of this agreement objectively. For example: &quot;James and Sarah wish to clarify their financial arrangements before marriage.&quot;"
+          error={errors.agreementObjectives}
         >
           <textarea
             id="agreementObjectives"
@@ -87,7 +102,7 @@ export default function LegalDeclarationsForm() {
             placeholder="Describe what you both aim to achieve with this agreement..."
             value={formData.agreementObjectives}
             onChange={handleTextChange}
-            className={cardTextareaClasses}
+            className={fieldClassesFor(cardTextareaClasses, errors.agreementObjectives)}
           />
           {firstPersonRegex.test(formData.agreementObjectives) && <ThirdPersonTip />}
         </NumberedQuestion>
@@ -97,6 +112,7 @@ export default function LegalDeclarationsForm() {
           htmlFor="livingSituationFuture"
           question="Please provide a summary of your current living arrangements and any significant future plans (e.g., upcoming property purchases, relocating abroad, or major career changes)."
           tooltip="Include significant future plans such as purchasing property, relocating overseas, major career changes, or plans to have children."
+          error={errors.livingSituationFuture}
         >
           <textarea
             id="livingSituationFuture"
@@ -106,7 +122,7 @@ export default function LegalDeclarationsForm() {
             placeholder="Summarise your current living arrangements and any future plans..."
             value={formData.livingSituationFuture}
             onChange={handleTextChange}
-            className={cardTextareaClasses}
+            className={fieldClassesFor(cardTextareaClasses, errors.livingSituationFuture)}
           />
           {firstPersonRegex.test(formData.livingSituationFuture) && <ThirdPersonTip />}
         </NumberedQuestion>
@@ -125,6 +141,7 @@ export default function LegalDeclarationsForm() {
             tooltip={d.tooltip}
             checked={formData[d.name] as boolean}
             onChange={handleCheckboxChange}
+            error={errors[d.name]}
           />
         ))}
 
@@ -133,6 +150,7 @@ export default function LegalDeclarationsForm() {
           label="Save & continue"
           withArrow
           backHref={stepInfo.prevPath || "/dashboard/personal-info"}
+          errorSummary={summary}
         />
       </form>
     </FormShell>

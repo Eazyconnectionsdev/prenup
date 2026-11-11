@@ -8,7 +8,9 @@ import {
   emptyTreatment,
   makeId,
   inputClasses,
+  fieldClassesFor,
   FieldLabel,
+  FieldMessage,
   FormShell,
   SectionCard,
   SubmitBar,
@@ -28,6 +30,9 @@ import Axios from "@/lib/ApiConfig";
 import { getErrorMessage } from "@/lib/api/http-error";
 import { getCasesDetails } from "@/store/asyncThunk/casesThunk";
 import { useJointSectionStatus } from "@/hooks/useJointSectionStatus";
+import { useFormValidation } from "@/hooks/useFormValidation";
+import { jointIncomeSchema } from "@/lib/validations/joint";
+import { errorsUnder } from "@/lib/validations/formErrors";
 import { JointStatusBanner } from "@/components/joint/JointStatusBanner";
 import type { Treatment, TreatmentFields, YesNo } from "@/types/forms/form-primitives";
 import type { SharedIncomeFormProps, SharedIncomeRow } from "@/types/dashboard/joint-income-revenue";
@@ -63,7 +68,32 @@ export default function SharedIncomeForm({ onContinue }: SharedIncomeFormProps =
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  const handleToggle = makeToggleHandler(setHasSharedIncome, setSharedIncomeRows, makeSharedIncomeRow);
+  const { errors, validate, clearError, summary } = useFormValidation(jointIncomeSchema);
+
+  const baseToggle = makeToggleHandler(setHasSharedIncome, setSharedIncomeRows, makeSharedIncomeRow);
+  const handleToggle = (value: YesNo) => {
+    clearError("hasSharedIncome");
+    clearError("sharedIncomeRows");
+    baseToggle(value);
+  };
+
+  /* ---- Where a row's fields live in the payload ---- */
+
+  const rowPath = (id: string) =>
+    `sharedIncomeRows.${sharedIncomeRows.findIndex((r) => r.id === id)}`;
+  const fieldPath = (id: string, field: string) => `${rowPath(id)}.${field}`;
+  const errorAt = (id: string, field: string) => errors[fieldPath(id, field)];
+
+  // Edits clear their own message; a removal renumbers the rows after it, so
+  // the whole list's messages go and the next submit re-states them.
+  const editRow = (id: string, patch: Partial<SharedIncomeRow>) => {
+    for (const field of Object.keys(patch)) clearError(fieldPath(id, field));
+    updateRow(setSharedIncomeRows, id, patch);
+  };
+  const dropRow = (id: string) => {
+    clearError("sharedIncomeRows");
+    removeRow(setSharedIncomeRows, id);
+  };
 
   const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -72,6 +102,8 @@ export default function SharedIncomeForm({ onContinue }: SharedIncomeFormProps =
       hasSharedIncome,
       sharedIncomeRows,
     };
+
+    if (!validate(payload)) return;
 
     try {
       setIsSaving(true);
@@ -150,60 +182,96 @@ export default function SharedIncomeForm({ onContinue }: SharedIncomeFormProps =
               income, dividends, trust distributions, royalties or investment income?
             </FieldLabel>
             <YesNoToggle name="has_shared_income" value={hasSharedIncome} onChange={handleToggle} />
+            <FieldMessage
+              error={errors.hasSharedIncome}
+              path="hasSharedIncome"
+              className="mt-2"
+            />
 
             {hasSharedIncome === "Yes" && (
               <MatrixBox
                 title="Shared Income Sources"
-                onAdd={() => setSharedIncomeRows((prev) => [...prev, makeSharedIncomeRow()])}
+                onAdd={() => {
+                  clearError("sharedIncomeRows");
+                  setSharedIncomeRows((prev) => [...prev, makeSharedIncomeRow()]);
+                }}
                 addLabel="Add Shared Income Source"
+                error={errors.sharedIncomeRows}
+                path="sharedIncomeRows"
               >
                 {sharedIncomeRows.map((row) => (
-                  <RowItem key={row.id} onDelete={() => removeRow(setSharedIncomeRows, row.id)}>
+                  <RowItem key={row.id} onDelete={() => dropRow(row.id)}>
                     <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-3 items-start">
-                      <div className="relative">
+                      <div>
+                        <div className="relative">
                         <input
                           type="text"
                           placeholder="Income Description (e.g. Rental Income, Dividends, Business Income)"
                           title="Examples include rental income, business profits, dividends, royalties, trust distributions, and investment income."
                           value={row.description}
-                          onChange={(e) => updateRow(setSharedIncomeRows, row.id, { description: e.target.value })}
+                          onChange={(e) => editRow(row.id, { description: e.target.value })}
                           required
-                          className={`${inputClasses} pr-9`}
+                          className={fieldClassesFor(
+                            `${inputClasses} pr-9`,
+                            errorAt(row.id, "description"),
+                          )}
                         />
                         <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
                           <Tooltip text="Examples include rental income, business profits, dividends, royalties, trust distributions, and investment income." />
                         </div>
+                        </div>
+                        <FieldMessage
+                          error={errorAt(row.id, "description")}
+                          path={fieldPath(row.id, "description")}
+                        />
                       </div>
+                      <div>
                       <input
                         type="text"
                         placeholder="Income Source (e.g. Company X, ABC Property Management, XYZ Trust)"
                         value={row.source}
-                        onChange={(e) => updateRow(setSharedIncomeRows, row.id, { source: e.target.value })}
+                        onChange={(e) => editRow(row.id, { source: e.target.value })}
                         required
-                        className={inputClasses}
+                        className={fieldClassesFor(inputClasses, errorAt(row.id, "source"))}
                       />
+                      <FieldMessage
+                        error={errorAt(row.id, "source")}
+                        path={fieldPath(row.id, "source")}
+                      />
+                      </div>
+                      <div>
                       <div className="relative">
                         <input
                           type="number"
                           placeholder="Annual Income (£)"
                           title="Please provide the approximate annual amount received before any deductions. An estimate is acceptable."
                           value={row.annualIncome}
-                          onChange={(e) => updateRow(setSharedIncomeRows, row.id, { annualIncome: e.target.value })}
+                          onChange={(e) => editRow(row.id, { annualIncome: e.target.value })}
                           required
-                          className={`${inputClasses} pr-9 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+                          className={fieldClassesFor(
+                            `${inputClasses} pr-9 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`,
+                            errorAt(row.id, "annualIncome"),
+                          )}
                         />
                         <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
                           <Tooltip text="Please provide the approximate annual amount received before any deductions. An estimate is acceptable." />
                         </div>
                       </div>
+                      <FieldMessage
+                        error={errorAt(row.id, "annualIncome")}
+                        path={fieldPath(row.id, "annualIncome")}
+                      />
+                      </div>
                     </div>
                     <TreatmentSelect
                       id={row.id}
                       fields={row}
-                      onChange={(f) => updateRow(setSharedIncomeRows, row.id, f)}
+                      onChange={(f) => editRow(row.id, f)}
                       label="How would you like this income to be treated under the agreement?"
                       options={sharedTreatmentOptions}
                       tooltips={jointIncomeTreatmentTooltips}
+                      errors={errorsUnder(errors, rowPath(row.id))}
+                      path={rowPath(row.id)}
                     />
                   </RowItem>
                 ))}
@@ -218,6 +286,7 @@ export default function SharedIncomeForm({ onContinue }: SharedIncomeFormProps =
             label="Save & continue"
             withArrow
             backHref="/dashboard/joint-assets"
+            errorSummary={summary}
           />
         ) : (
           <div className="mt-8 flex flex-col gap-4 pt-6 sm:flex-row sm:items-center sm:justify-between border-t border-slate-200/80">

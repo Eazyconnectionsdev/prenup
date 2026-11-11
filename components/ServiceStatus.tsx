@@ -25,10 +25,6 @@ export function ServiceStatus({
 }: {
   agreementType?: string | null;
   upgradeHref?: string;
-  /**
-   * The case manager has approved the case, so the service is settled: the
-   * card stops inviting a change of plan and reports where the case stands.
-   */
   approved?: boolean;
 }) {
   const service = agreementTypeServiceLabel(agreementType);

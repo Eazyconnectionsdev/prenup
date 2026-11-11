@@ -8,7 +8,9 @@ import {
   emptyTreatment,
   makeId,
   inputClasses,
+  fieldClassesFor,
   FieldLabel,
+  FieldMessage,
   FormShell,
   SectionCard,
   SubmitBar,
@@ -29,6 +31,9 @@ import { getErrorMessage } from "@/lib/api/http-error";
 import { getCasesDetails } from "@/store/asyncThunk/casesThunk";
 import { updateApproval, updateJointInformationStatus } from "@/store/slices/casesSlice";
 import { useJointSectionStatus } from "@/hooks/useJointSectionStatus";
+import { useFormValidation } from "@/hooks/useFormValidation";
+import { jointLiabilitiesSchema } from "@/lib/validations/joint";
+import { errorsUnder } from "@/lib/validations/formErrors";
 import { JointStatusBanner } from "@/components/joint/JointStatusBanner";
 import type { Treatment, YesNo } from "@/types/forms/form-primitives";
 import type { SharedDebtRow, SharedLiabilitiesFormProps } from "@/types/dashboard/joint-liabilities-debts";
@@ -82,11 +87,35 @@ export default function SharedLiabilitiesForm({
   const [disapproveReason, setDisapproveReason] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const handleToggle = makeToggleHandler(
+  const { errors, validate, clearError, summary } = useFormValidation(jointLiabilitiesSchema);
+
+  const baseToggle = makeToggleHandler(
     setHasSharedDebts,
     setSharedDebts,
     makeSharedDebtRow,
   );
+  const handleToggle = (value: YesNo) => {
+    clearError("hasSharedDebts");
+    clearError("sharedDebts");
+    baseToggle(value);
+  };
+
+  /* ---- Where a row's fields live in the payload ---- */
+
+  const rowPath = (id: string) => `sharedDebts.${sharedDebts.findIndex((r) => r.id === id)}`;
+  const fieldPath = (id: string, field: string) => `${rowPath(id)}.${field}`;
+  const errorAt = (id: string, field: string) => errors[fieldPath(id, field)];
+
+  // Edits clear their own message; a removal renumbers the rows after it, so
+  // the whole list's messages go and the next submit re-states them.
+  const editRow = (id: string, patch: Partial<SharedDebtRow>) => {
+    for (const field of Object.keys(patch)) clearError(fieldPath(id, field));
+    updateRow(setSharedDebts, id, patch);
+  };
+  const dropRow = (id: string) => {
+    clearError("sharedDebts");
+    removeRow(setSharedDebts, id);
+  };
 
   useEffect(() => {
     const jointLiabilities = (currentCase?.jointInformation as any)?.jointLiabilitiesAndDebts;
@@ -106,6 +135,9 @@ export default function SharedLiabilitiesForm({
 
   const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    if (!validate({ hasSharedDebts, sharedDebts })) return;
+
     setIsSubmitting(true);
     setActionError(null);
     try {
@@ -206,29 +238,42 @@ export default function SharedLiabilitiesForm({
         cards, finance agreements or other financial obligations?
       </FieldLabel>
       <YesNoToggle name="has_shared_debts" value={hasSharedDebts} onChange={handleToggle} />
+      <FieldMessage error={errors.hasSharedDebts} path="hasSharedDebts" className="mt-2" />
 
       {hasSharedDebts === "Yes" && (
         <MatrixBox
           title="Shared Liabilities Register"
-          onAdd={() => setSharedDebts((prev) => [...prev, makeSharedDebtRow()])}
+          onAdd={() => {
+            clearError("sharedDebts");
+            setSharedDebts((prev) => [...prev, makeSharedDebtRow()]);
+          }}
           addLabel="Add Shared Liability"
+          error={errors.sharedDebts}
+          path="sharedDebts"
         >
           {sharedDebts.map((row) => (
-            <RowItem key={row.id} onDelete={() => removeRow(setSharedDebts, row.id)}>
+            <RowItem key={row.id} onDelete={() => dropRow(row.id)}>
               <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-[1.5fr_1fr_1fr] items-start">
+                <div>
                 <input
                   type="text"
                   placeholder="Lender / Creditor Name"
                   value={row.lenderName}
-                  onChange={(e) => updateRow(setSharedDebts, row.id, { lenderName: e.target.value })}
+                  onChange={(e) => editRow(row.id, { lenderName: e.target.value })}
                   required
-                  className={inputClasses}
+                  className={fieldClassesFor(inputClasses, errorAt(row.id, "lenderName"))}
                 />
+                <FieldMessage
+                  error={errorAt(row.id, "lenderName")}
+                  path={fieldPath(row.id, "lenderName")}
+                />
+                </div>
+                <div>
                 <select
                   value={row.liabilityType}
-                  onChange={(e) => updateRow(setSharedDebts, row.id, { liabilityType: e.target.value })}
+                  onChange={(e) => editRow(row.id, { liabilityType: e.target.value })}
                   required
-                  className={inputClasses}
+                  className={fieldClassesFor(inputClasses, errorAt(row.id, "liabilityType"))}
                 >
                   <option value="">Type of Liability</option>
                   <option value="Mortgage">Mortgage</option>
@@ -241,6 +286,12 @@ export default function SharedLiabilitiesForm({
                   <option value="Tax Liability">Tax Liability</option>
                   <option value="Other">Other</option>
                 </select>
+                <FieldMessage
+                  error={errorAt(row.id, "liabilityType")}
+                  path={fieldPath(row.id, "liabilityType")}
+                />
+                </div>
+                <div>
                 <div className="relative">
                   <input
                     type="number"
@@ -248,22 +299,32 @@ export default function SharedLiabilitiesForm({
                     placeholder="Outstanding Balance (£)"
                     title="Please provide the approximate amount currently outstanding. An estimate is acceptable if the balance changes regularly."
                     value={row.outstandingBalance}
-                    onChange={(e) => updateRow(setSharedDebts, row.id, { outstandingBalance: e.target.value })}
+                    onChange={(e) => editRow(row.id, { outstandingBalance: e.target.value })}
                     required
-                    className={`${inputClasses} pr-9 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+                    className={fieldClassesFor(
+                      `${inputClasses} pr-9 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`,
+                      errorAt(row.id, "outstandingBalance"),
+                    )}
                   />
                   <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
                     <Tooltip text="Please provide the approximate amount currently outstanding. An estimate is acceptable if the balance changes regularly." />
                   </div>
                 </div>
+                <FieldMessage
+                  error={errorAt(row.id, "outstandingBalance")}
+                  path={fieldPath(row.id, "outstandingBalance")}
+                />
+                </div>
               </div>
               <TreatmentSelect
                 id={row.id}
                 fields={row}
-                onChange={(f) => updateRow(setSharedDebts, row.id, f)}
+                onChange={(f) => editRow(row.id, f)}
                 label="How should this liability be treated?"
                 options={sharedTreatmentOptions}
                 tooltips={jointLiabilitiesTreatmentTooltips}
+                errors={errorsUnder(errors, rowPath(row.id))}
+                path={rowPath(row.id)}
               />
             </RowItem>
           ))}
@@ -290,6 +351,7 @@ export default function SharedLiabilitiesForm({
             label="Save & continue"
             withArrow
             backHref="/dashboard/joint-income-revenue"
+            errorSummary={summary}
           />
         </form>
       ) : (

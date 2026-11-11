@@ -3,8 +3,12 @@
 import React, { useState } from "react";
 import { Baby, History, PawPrint, Trash2, UsersRound } from "lucide-react";
 import { useQuestionnaire } from "@/components/questionnaire/useQuestionnaire";
+import { useFormValidation } from "@/hooks/useFormValidation";
+import { familySchema } from "@/lib/validations/questionnaire";
+import { errorsUnder } from "@/lib/validations/formErrors";
 import {
   FieldLabel,
+  FieldMessage,
   FormShell,
   LoadingState,
   Notice,
@@ -12,6 +16,7 @@ import {
   SectionCard,
   SubmitBar,
   Tooltip,
+  fieldClassesFor,
   inputClasses,
   makeId,
 } from "@/components/questionnaire/QuestionnaireUI";
@@ -42,9 +47,12 @@ export default function FamilyDependentsForm() {
     },
   });
 
+  const { errors, validate, clearError, summary } = useFormValidation(familySchema);
+
   const isDivorced = formData.priorMarriageStatus === "Yes, previously divorced";
 
   const handlePriorMarriageChange = (value: PriorMarriageStatus) => {
+    clearError("priorMarriageStatus");
     setFormData((prev) => ({
       ...prev,
       priorMarriageStatus: value,
@@ -53,6 +61,8 @@ export default function FamilyDependentsForm() {
   };
 
   const handleHasChildrenChange = (value: YesNoBlank) => {
+    clearError("hasLivingChildren");
+    clearError("children");
     setFormData((prev) => ({ ...prev, hasLivingChildren: value }));
     if (value === "Yes") {
       setChildren((prev) => (prev.length === 0 ? [makeChildRow()] : prev));
@@ -60,20 +70,26 @@ export default function FamilyDependentsForm() {
   };
 
   const updateChildRow = <K extends keyof ChildRow>(id: string, key: K, value: ChildRow[K]) => {
+    const index = children.findIndex((c) => c.id === id);
+    if (index !== -1) clearError(`children.${index}.${key}`);
     setChildren((prev) => prev.map((c) => (c.id === id ? { ...c, [key]: value } : c)));
   };
 
   const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    await save({
+    const payload = {
       priorMarriageStatus: formData.priorMarriageStatus,
       isLegallySeparated: formData.isLegallySeparated,
       hasLivingChildren: formData.hasLivingChildren,
       children,
       futureParentalIntentions: formData.futureParentalIntentions,
       hasFamilyPets: formData.hasFamilyPets,
-    });
+    };
+
+    if (!validate(payload)) return;
+
+    await save(payload);
   };
 
   if (isLoading) return <LoadingState />;
@@ -112,6 +128,11 @@ export default function FamilyDependentsForm() {
               />
             ))}
           </div>
+          <FieldMessage
+            error={errors.priorMarriageStatus}
+            path="priorMarriageStatus"
+            className="mt-2"
+          />
 
           {isDivorced && (
             <div className="mt-4 flex items-center justify-between gap-3 rounded-[10px] border border-dashed border-slate-300 bg-slate-50 p-4">
@@ -164,6 +185,11 @@ export default function FamilyDependentsForm() {
               />
             ))}
           </div>
+          <FieldMessage
+            error={errors.hasLivingChildren ?? errors.children}
+            path={errors.hasLivingChildren ? "hasLivingChildren" : "children"}
+            className="mt-2"
+          />
 
           {formData.hasLivingChildren === "Yes" && (
             <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-6">
@@ -172,26 +198,46 @@ export default function FamilyDependentsForm() {
                 <Tooltip text="Provide the child's full legal name, date of birth, and their relationship to you. This information helps your solicitor understand any existing or future family considerations." />
               </div>
 
-              {children.map((child) => (
+              {children.map((child, childIndex) => (
                 <div
                   key={child.id}
-                  className="mb-3 grid grid-cols-1 items-center gap-3.5 rounded-[10px] border border-slate-200 bg-white p-4 sm:grid-cols-[2fr_1.5fr_2fr_auto]"
+                  className={`mb-3 grid grid-cols-1 items-start gap-3.5 rounded-[10px] border bg-white p-4 sm:grid-cols-[2fr_1.5fr_2fr_auto] ${
+                    Object.keys(errorsUnder(errors, `children.${childIndex}`)).length > 0
+                      ? "border-rose-300"
+                      : "border-slate-200"
+                  }`}
                 >
+                  <div>
                   <input
                     type="text"
                     placeholder="Child's full name"
                     title="Enter the legal first and last name of the child."
                     value={child.fullName}
                     onChange={(e) => updateChildRow(child.id, "fullName", e.target.value)}
-                    className={inputClasses}
+                    className={fieldClassesFor(
+                      inputClasses,
+                      errors[`children.${childIndex}.fullName`],
+                    )}
                   />
+                  <FieldMessage
+                    error={errors[`children.${childIndex}.fullName`]}
+                    path={`children.${childIndex}.fullName`}
+                  />
+                  </div>
+                  <div>
                   <input
                     type="date"
                     title="Date of birth determines dependency status. Under UK family law, children under 18 (or older with special care needs) carry statutory priority rights."
                     value={child.dob}
                     onChange={(e) => updateChildRow(child.id, "dob", e.target.value)}
-                    className={inputClasses}
+                    className={fieldClassesFor(inputClasses, errors[`children.${childIndex}.dob`])}
                   />
+                  <FieldMessage
+                    error={errors[`children.${childIndex}.dob`]}
+                    path={`children.${childIndex}.dob`}
+                  />
+                  </div>
+                  <div>
                   <select
                     title="Specify the child's relational background."
                     value={child.parentalRelationship}
@@ -202,7 +248,10 @@ export default function FamilyDependentsForm() {
                         e.target.value as ParentalRelationship,
                       )
                     }
-                    className={inputClasses}
+                    className={fieldClassesFor(
+                      inputClasses,
+                      errors[`children.${childIndex}.parentalRelationship`],
+                    )}
                   >
                     <option value="">Select parental relationship</option>
                     {PARENTAL_RELATIONSHIP_OPTIONS.map((o) => (
@@ -211,6 +260,11 @@ export default function FamilyDependentsForm() {
                       </option>
                     ))}
                   </select>
+                  <FieldMessage
+                    error={errors[`children.${childIndex}.parentalRelationship`]}
+                    path={`children.${childIndex}.parentalRelationship`}
+                  />
+                  </div>
                   <button
                     type="button"
                     onClick={() => setChildren((prev) => prev.filter((c) => c.id !== child.id))}
@@ -249,13 +303,14 @@ export default function FamilyDependentsForm() {
             <select
               id="futureParentalIntentions"
               value={formData.futureParentalIntentions}
-              onChange={(e) =>
+              onChange={(e) => {
+                clearError("futureParentalIntentions");
                 setFormData((prev) => ({
                   ...prev,
                   futureParentalIntentions: e.target.value as ParentalIntention,
-                }))
-              }
-              className={inputClasses}
+                }));
+              }}
+              className={fieldClassesFor(inputClasses, errors.futureParentalIntentions)}
             >
               <option value="" disabled>
                 Select an option...
@@ -266,6 +321,10 @@ export default function FamilyDependentsForm() {
                 </option>
               ))}
             </select>
+            <FieldMessage
+              error={errors.futureParentalIntentions}
+              path="futureParentalIntentions"
+            />
           </div>
 
           <div>
@@ -284,10 +343,14 @@ export default function FamilyDependentsForm() {
                   name="has_family_pets"
                   label={opt}
                   checked={formData.hasFamilyPets === opt}
-                  onChange={() => setFormData((prev) => ({ ...prev, hasFamilyPets: opt }))}
+                  onChange={() => {
+                    clearError("hasFamilyPets");
+                    setFormData((prev) => ({ ...prev, hasFamilyPets: opt }));
+                  }}
                 />
               ))}
             </div>
+            <FieldMessage error={errors.hasFamilyPets} path="hasFamilyPets" className="mt-2" />
           </div>
         </SectionCard>
 
@@ -296,6 +359,7 @@ export default function FamilyDependentsForm() {
           label="Save & continue"
           withArrow
           backHref={stepInfo.prevPath || "/dashboard/legal-declaration"}
+          errorSummary={summary}
         />
       </form>
     </FormShell>

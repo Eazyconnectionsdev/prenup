@@ -22,4 +22,8 @@ export interface Props {
   data: IncomeData;
   onChange?: React.Dispatch<React.SetStateAction<IncomeData>>;
   readOnly?: boolean;
+  /** Validation messages keyed by their dotted path, e.g. `altIncomeRows.0.amount`. */
+  errors?: Record<string, string>;
+  /** Called with a field's path as it is edited, to clear that message. */
+  onClearError?: (path: string) => void;
 }

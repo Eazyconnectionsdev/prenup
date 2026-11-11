@@ -105,6 +105,21 @@ export interface CaseDetails {
   invitedUser: userType;
   invitedEmail: string | null;
   partnerInvited: boolean;
+  paymentCompleted: boolean;
+  // PENDING | INITIATED | FAILED | COMPLETED | REFUNDED
+  paymentStatus?: string;
+  // What was paid and for which service. Card details are never sent back
+  // beyond the brand and the last four digits.
+  payment?: {
+    reference: string | null;
+    status: string | null;
+    agreementType: string | null;
+    amount: number;
+    currency: string;
+    cardBrand: string | null;
+    cardLast4: string | null;
+    paidAt: string | null;
+  } | null;
   inviteToken: string | null;
   inviteTokenExpires: string | null;
   preQuestionnaireUser1: PreQuestionnaire;
@@ -129,6 +144,10 @@ export interface CaseDetails {
 
 export interface CasesState {
   isLoading: boolean;
+  // True once a fetch has settled, successfully or not. isLoading alone cannot
+  // tell "not asked yet" from "asked and answered", and a screen waiting on the
+  // case needs that difference to avoid rendering an empty case as a real one.
+  hasLoaded: boolean;
   caseId: string | null;
   caseNumber: string | null;
   title: string;
@@ -144,6 +163,8 @@ export interface CasesState {
   approval: CaseApproval | null;
   fullyLocked: boolean;
   paymentCompleted?: boolean;
+  paymentStatus?: string;
+  payment?: CaseDetails["payment"];
   workflowStatus: string;
   agreementType: string | null;
   assignedCaseManager: CaseDetails["assignedCaseManager"];

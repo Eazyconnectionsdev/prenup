@@ -19,9 +19,19 @@ import {
   Landmark,
   PackagePlus,
   Scale,
+  TriangleAlert,
   Users,
 } from "lucide-react";
-import { FormShellIllustration, getBadgeGradient, Tooltip } from "@/components/questionnaire/QuestionnaireUI";
+import {
+  FieldMessage,
+  fieldClassesFor,
+  FormShellIllustration,
+  getBadgeGradient,
+  Tooltip,
+} from "@/components/questionnaire/QuestionnaireUI";
+import { useFormValidation } from "@/hooks/useFormValidation";
+import { matrimonialAgreementSchema } from "@/lib/validations/joint";
+import { errorsUnder } from "@/lib/validations/formErrors";
 import Axios from "@/lib/ApiConfig";
 import { AppDispatch, RootState } from "@/store/store";
 import { getCasesDetails } from "@/store/asyncThunk/casesThunk";
@@ -508,10 +518,23 @@ export default function MatrimonialAgreementPage() {
     };
   }, [caseId, cases.jointInformation]);
 
+  const { errors, validate, clearError, summary } =
+    useFormValidation(matrimonialAgreementSchema);
+
   const setField = <K extends keyof MatrimonialAgreementFormValues>(
     key: K,
     value: MatrimonialAgreementFormValues[K],
-  ) => setFormData((prev) => ({ ...prev, [key]: value }));
+  ) => {
+    clearError(key as string);
+    setFormData((prev) => ({ ...prev, [key]: value }));
+  };
+
+  /** One inheritance row's own messages, keyed by its field names. */
+  const entryIssues = (id: string) =>
+    errorsUnder(
+      errors,
+      `inheritanceEntries.${formData.inheritanceEntries.findIndex((r) => r.id === id)}`,
+    );
 
   const setEntries: React.Dispatch<React.SetStateAction<InheritanceEntry[]>> = (update) =>
     setFormData((prev) => ({
@@ -534,6 +557,7 @@ export default function MatrimonialAgreementPage() {
   };
 
   const handleMilestone = (milestone: StandardMilestone, checked: boolean) => {
+    clearError("standardMilestones");
     setFormData((prev) => ({
       ...prev,
       standardMilestones: checked
@@ -560,30 +584,36 @@ export default function MatrimonialAgreementPage() {
       return;
     }
 
+    const payload = {
+      ...formData,
+      // Answers to the questions that are no longer on screen are dropped so
+      // they can't contradict the saved choice
+      customFutureAssets:
+        formData.futureAssetsTreatment === "Custom" ? formData.customFutureAssets : "",
+      customFutureGifts:
+        formData.futureGiftsTreatment === "Custom" ? formData.customFutureGifts : "",
+      customSpousalMaintenance:
+        formData.spousalMaintenanceIntention === "Custom"
+          ? formData.customSpousalMaintenance
+          : "",
+      customHealthSafeguards:
+        formData.criticalIllnessSafeguard === "Custom" ? formData.customHealthSafeguards : "",
+      standardMilestones:
+        formData.reviewTriggerType === "Standard" ? formData.standardMilestones : [],
+      customReviewTriggers:
+        formData.reviewTriggerType === "Custom" ? formData.customReviewTriggers : "",
+      specialCircumstancesOverview: hasSpecialCircumstances
+        ? formData.specialCircumstancesOverview
+        : "",
+    };
+
+    // Checked on what will actually be sent, so a "Custom" box that was filled
+    // in and then switched away from is not asked for again.
+    if (!validate(payload)) return;
+
     setIsSubmitting(true);
     try {
-      await Axios.post(`/cases/${caseId}/questionnaire/matrimonial-agreement`, {
-        ...formData,
-        // Answers to the questions that are no longer on screen are dropped so
-        // they can't contradict the saved choice
-        customFutureAssets:
-          formData.futureAssetsTreatment === "Custom" ? formData.customFutureAssets : "",
-        customFutureGifts:
-          formData.futureGiftsTreatment === "Custom" ? formData.customFutureGifts : "",
-        customSpousalMaintenance:
-          formData.spousalMaintenanceIntention === "Custom"
-            ? formData.customSpousalMaintenance
-            : "",
-        customHealthSafeguards:
-          formData.criticalIllnessSafeguard === "Custom" ? formData.customHealthSafeguards : "",
-        standardMilestones:
-          formData.reviewTriggerType === "Standard" ? formData.standardMilestones : [],
-        customReviewTriggers:
-          formData.reviewTriggerType === "Custom" ? formData.customReviewTriggers : "",
-        specialCircumstancesOverview: hasSpecialCircumstances
-          ? formData.specialCircumstancesOverview
-          : "",
-      });
+      await Axios.post(`/cases/${caseId}/questionnaire/matrimonial-agreement`, payload);
       await dispatch(getCasesDetails(caseId));
       toast.success("Saved. Review everything, then send the approval request to your partner.");
       router.push("/dashboard/final-review-confirmation");
@@ -649,8 +679,9 @@ export default function MatrimonialAgreementPage() {
                   value={formData.customFutureAssets}
                   onChange={(e) => setField("customFutureAssets", e.target.value)}
                   placeholder="Describe alternative asset routing configurations..."
-                  className={fieldClasses}
+                  className={fieldClassesFor(fieldClasses, errors.customFutureAssets)}
                 />
+                <FieldMessage error={errors.customFutureAssets} path="customFutureAssets" />
                 <div className={captionClasses}>
                   Describe how future assets should be managed (e.g., keeping individual investments
                   separate but sharing any assets bought for family use).
@@ -695,8 +726,9 @@ export default function MatrimonialAgreementPage() {
                   value={formData.customFutureGifts}
                   onChange={(e) => setField("customFutureGifts", e.target.value)}
                   placeholder="Define exactly how third-party gifts should be treated if you separate..."
-                  className={fieldClasses}
+                  className={fieldClassesFor(fieldClasses, errors.customFutureGifts)}
                 />
+                <FieldMessage error={errors.customFutureGifts} path="customFutureGifts" />
               </NestedBlock>
             )}
           </div>
@@ -735,15 +767,30 @@ export default function MatrimonialAgreementPage() {
                   Expected &amp; Pending Inheritance Register
                 </div>
 
+                <FieldMessage
+                  error={errors.inheritanceEntries}
+                  path="inheritanceEntries"
+                  className="mb-3"
+                />
+
                 {formData.inheritanceEntries.map((row) => (
                   <div
                     key={row.id}
-                    className="relative mb-3 rounded-lg border border-[#E7E7F2] bg-white p-4"
+                    className={`relative mb-3 rounded-lg border bg-white p-4 ${
+                      Object.keys(entryIssues(row.id)).length > 0
+                        ? "border-rose-300 ring-1 ring-rose-200"
+                        : "border-[#E7E7F2]"
+                    }`}
                   >
                     <button
                       type="button"
                       aria-label="Remove inheritance entry"
-                      onClick={() => removeRow(setEntries, row.id)}
+                      onClick={() => {
+                        // Removing a row renumbers the ones after it, so this
+                        // list's messages go and the next submit re-states them.
+                        clearError("inheritanceEntries");
+                        removeRow(setEntries, row.id);
+                      }}
                       className="absolute right-3 top-3 text-sm text-slate-400 transition hover:text-red-500"
                     >
                       ✕
@@ -952,12 +999,33 @@ export default function MatrimonialAgreementPage() {
                         </NestedBlock>
                       )}
                     </div>
+
+                    {/* The row's fields are written out one by one here, so
+                        what it is still missing is listed once, at its foot. */}
+                    {Object.keys(entryIssues(row.id)).length > 0 && (
+                      <div
+                        role="alert"
+                        data-error-path={`inheritanceEntries.${formData.inheritanceEntries.findIndex(
+                          (r) => r.id === row.id,
+                        )}`}
+                        className="mt-3 rounded-lg border border-rose-200 bg-rose-50/70 px-3.5 py-2.5"
+                      >
+                        <ul className="space-y-1 text-[11.5px] font-medium leading-snug text-rose-700">
+                          {Object.entries(entryIssues(row.id)).map(([field, message]) => (
+                            <li key={field}>{message}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 ))}
 
                 <button
                   type="button"
-                  onClick={() => setEntries((prev) => [...prev, makeInheritanceEntry()])}
+                  onClick={() => {
+                    clearError("inheritanceEntries");
+                    setEntries((prev) => [...prev, makeInheritanceEntry()]);
+                  }}
                   className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-[#6D28D9] bg-white px-4 py-2.5 text-sm font-semibold text-[#6D28D9] transition hover:border-solid hover:bg-[#EDE9FE]/40"
                 >
                   + Add Inheritance Entry
@@ -1004,8 +1072,9 @@ export default function MatrimonialAgreementPage() {
                   value={formData.customSpousalMaintenance}
                   onChange={(e) => setField("customSpousalMaintenance", e.target.value)}
                   placeholder="Describe how potential ongoing structural maintenance should be calculated..."
-                  className={fieldClasses}
+                  className={fieldClassesFor(fieldClasses, errors.customSpousalMaintenance)}
                 />
+                <FieldMessage error={errors.customSpousalMaintenance} path="customSpousalMaintenance" />
               </NestedBlock>
             )}
           </div>
@@ -1048,8 +1117,9 @@ export default function MatrimonialAgreementPage() {
                   value={formData.customHealthSafeguards}
                   onChange={(e) => setField("customHealthSafeguards", e.target.value)}
                   placeholder="Outline structural exceptions or asset readjustments if severe medical conditions arise..."
-                  className={fieldClasses}
+                  className={fieldClassesFor(fieldClasses, errors.customHealthSafeguards)}
                 />
+                <FieldMessage error={errors.customHealthSafeguards} path="customHealthSafeguards" />
               </NestedBlock>
             )}
           </div>
@@ -1139,6 +1209,11 @@ export default function MatrimonialAgreementPage() {
                     </label>
                   ))}
                 </div>
+                <FieldMessage
+                  error={errors.standardMilestones}
+                  path="standardMilestones"
+                  className="mt-2"
+                />
               </NestedBlock>
             )}
 
@@ -1151,8 +1226,9 @@ export default function MatrimonialAgreementPage() {
                   value={formData.customReviewTriggers}
                   onChange={(e) => setField("customReviewTriggers", e.target.value)}
                   placeholder="e.g., Every 3 years, or if we relocate outside the UK permanently..."
-                  className={fieldClasses}
+                  className={fieldClassesFor(fieldClasses, errors.customReviewTriggers)}
                 />
+                <FieldMessage error={errors.customReviewTriggers} path="customReviewTriggers" />
               </NestedBlock>
             )}
           </div>
@@ -1217,7 +1293,14 @@ export default function MatrimonialAgreementPage() {
               value={formData.specialCircumstancesOverview}
               onChange={(e) => setField("specialCircumstancesOverview", e.target.value)}
               placeholder="You have indicated one or more special circumstances above. Please provide a brief overview or summary of these items so your dedicated case manager and independent lawyers can prepare your file correctly..."
-              className={`mt-3 ${fieldClasses}`}
+              className={fieldClassesFor(
+                `mt-3 ${fieldClasses}`,
+                errors.specialCircumstancesOverview,
+              )}
+            />
+            <FieldMessage
+              error={errors.specialCircumstancesOverview}
+              path="specialCircumstancesOverview"
             />
           </div>
         )}
@@ -1281,7 +1364,16 @@ export default function MatrimonialAgreementPage() {
                 Save and exit
               </button>
 
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+                {summary && (
+                  <p
+                    role="alert"
+                    className="flex items-center gap-2 text-[12.5px] font-semibold text-rose-600 sm:mr-1"
+                  >
+                    <TriangleAlert className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    {summary}
+                  </p>
+                )}
                 {backButton}
                 <button
                   type="submit"

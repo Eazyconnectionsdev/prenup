@@ -2,15 +2,24 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { UserRound, Globe, Home, ArrowRight, ArrowLeft, Loader2 } from "lucide-react";
-import { toast } from "react-toastify";
+import {
+  UserRound,
+  Globe,
+  Home,
+  ArrowLeft,
+  Loader2,
+  TriangleAlert,
+} from "lucide-react";
 import { useQuestionnaire } from "@/components/questionnaire/useQuestionnaire";
 import { useJointSectionStatus } from "@/hooks/useJointSectionStatus";
-import { LoadingState, Tooltip } from "@/components/questionnaire/QuestionnaireUI";
+import { useFormValidation } from "@/hooks/useFormValidation";
+import { personalInfoSchema } from "@/lib/validations/questionnaire";
 import {
-  calculateAge,
-  initialPersonalInfo,
-} from "@/components/questionnaire/sections/PersonalInfoFields";
+  fieldClassesFor,
+  LoadingState,
+  Tooltip,
+} from "@/components/questionnaire/QuestionnaireUI";
+import { initialPersonalInfo } from "@/components/questionnaire/sections/PersonalInfoFields";
 import type { personalInfoFormData } from "@/types/questionnaire/personal-info";
 
 const fieldClasses =
@@ -85,23 +94,27 @@ export default function PersonalInfoForm() {
     if (typeof window !== "undefined") window.scrollTo(0, 0);
   }, []);
 
+  const { errors, validate, clearError, summary } =
+    useFormValidation(personalInfoSchema);
+
+  // The field's own classes, tinted when it is the one that failed.
+  const fieldCls = (name: keyof personalInfoFormData) =>
+    fieldClassesFor(fieldClasses, errors[name]);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
+    // The message goes as soon as the field it pointed at is touched, rather
+    // than staying red until the next submit.
+    clearError(name);
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const age = calculateAge(formData.dateOfBirth);
-    if (age !== null && age < 18) {
-      toast.error("Parties must be at least 18 years of age.");
-      return;
-    }
-
-    await save({
+    const payload = {
       firstName: formData.firstName,
       middleName: formData.middleName,
       lastName: formData.lastName,
@@ -115,7 +128,13 @@ export default function PersonalInfoForm() {
       county: formData.county,
       postcode: formData.postcode,
       marriageDate: formData.marriageDate,
-    });
+    };
+
+    // Nothing is sent until every required answer is in. validate() also takes
+    // the person to the first field still outstanding.
+    if (!validate(payload)) return;
+
+    await save(payload);
   };
 
   if (isLoading) return <LoadingState />;
@@ -212,7 +231,7 @@ export default function PersonalInfoForm() {
             <div className="space-y-5">
               {/* Row 1: Legal first name *, Middle name(s) (optional), Legal last name * */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <Field label="Legal first name" htmlFor="firstName" required>
+                <Field label="Legal first name" htmlFor="firstName" error={errors.firstName} required>
                   <input
                     id="firstName"
                     name="firstName"
@@ -221,11 +240,11 @@ export default function PersonalInfoForm() {
                     autoComplete="given-name"
                     value={formData.firstName}
                     onChange={handleChange}
-                    className={fieldClasses}
+                    className={fieldCls("firstName")}
                     placeholder="First name"
                   />
                 </Field>
-                <Field label="Middle name(s) (optional)" htmlFor="middleName">
+                <Field label="Middle name(s) (optional)" htmlFor="middleName" error={errors.middleName}>
                   <input
                     id="middleName"
                     name="middleName"
@@ -233,11 +252,11 @@ export default function PersonalInfoForm() {
                     autoComplete="additional-name"
                     value={formData.middleName}
                     onChange={handleChange}
-                    className={fieldClasses}
+                    className={fieldCls("middleName")}
                     placeholder="Middle name(s)"
                   />
                 </Field>
-                <Field label="Legal last name" htmlFor="lastName" required>
+                <Field label="Legal last name" htmlFor="lastName" error={errors.lastName} required>
                   <input
                     id="lastName"
                     name="lastName"
@@ -246,7 +265,7 @@ export default function PersonalInfoForm() {
                     autoComplete="family-name"
                     value={formData.lastName}
                     onChange={handleChange}
-                    className={fieldClasses}
+                    className={fieldCls("lastName")}
                     placeholder="Last name"
                   />
                 </Field>
@@ -254,7 +273,7 @@ export default function PersonalInfoForm() {
 
               {/* Row 2: Date of birth *, Nationality * */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field label="Date of birth" htmlFor="dateOfBirth" required>
+                <Field label="Date of birth" htmlFor="dateOfBirth" error={errors.dateOfBirth} required>
                   <input
                     id="dateOfBirth"
                     name="dateOfBirth"
@@ -262,18 +281,18 @@ export default function PersonalInfoForm() {
                     required
                     value={formData.dateOfBirth}
                     onChange={handleChange}
-                    className={fieldClasses}
+                    className={fieldCls("dateOfBirth")}
                   />
                 </Field>
 
-                <Field label="Nationality" htmlFor="nationality" required>
+                <Field label="Nationality" htmlFor="nationality" error={errors.nationality} required>
                   <select
                     id="nationality"
                     name="nationality"
                     required
                     value={formData.nationality}
                     onChange={handleChange}
-                    className={fieldClasses}
+                    className={fieldCls("nationality")}
                   >
                     <option value="">Select country</option>
                     {NATIONALITIES.map((n) => (
@@ -289,7 +308,7 @@ export default function PersonalInfoForm() {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Field
                   label="Planned wedding date"
-                  htmlFor="marriageDate"
+                  htmlFor="marriageDate" error={errors.marriageDate}
                   tooltip="Prenuptial agreements are generally strongest when completed well in advance of the ceremony. If your wedding or registration is within 28 days, additional legal considerations may apply."
                 >
                   <input
@@ -298,7 +317,7 @@ export default function PersonalInfoForm() {
                     type="date"
                     value={formData.marriageDate}
                     onChange={handleChange}
-                    className={fieldClasses}
+                    className={fieldCls("marriageDate")}
                   />
                   {showTimelineWarning && (
                     <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50/80 p-3 text-xs text-amber-800 leading-relaxed">
@@ -312,7 +331,7 @@ export default function PersonalInfoForm() {
 
                 <Field
                   label="Current profession / occupation"
-                  htmlFor="currentProfession"
+                  htmlFor="currentProfession" error={errors.currentProfession}
                   tooltip="Please provide your current occupation, business role, or primary source of income."
                 >
                   <input
@@ -321,7 +340,7 @@ export default function PersonalInfoForm() {
                     type="text"
                     value={formData.currentProfession}
                     onChange={handleChange}
-                    className={fieldClasses}
+                    className={fieldCls("currentProfession")}
                     placeholder="Primary job title"
                     autoComplete="organization-title"
                   />
@@ -351,7 +370,7 @@ export default function PersonalInfoForm() {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Field
                   label="English language proficiency"
-                  htmlFor="languageFluency"
+                  htmlFor="languageFluency" error={errors.languageFluency}
                   required
                   tooltip="If English is not your first language, your solicitor may recommend independent translation assistance before signing any legal documents."
                 >
@@ -361,7 +380,7 @@ export default function PersonalInfoForm() {
                     required
                     value={formData.languageFluency}
                     onChange={handleChange}
-                    className={fieldClasses}
+                    className={fieldCls("languageFluency")}
                   >
                     <option value="">Select option</option>
                     <option value="Yes">Yes, fully fluent in English</option>
@@ -371,7 +390,7 @@ export default function PersonalInfoForm() {
 
                 <Field
                   label="Domicile & residency"
-                  htmlFor="domicileStatus"
+                  htmlFor="domicileStatus" error={errors.domicileStatus}
                   required
                   tooltip="Your domicile and country of residence may affect which courts have jurisdiction over your agreement. For example, you may live abroad while remaining domiciled in England or Wales."
                 >
@@ -382,7 +401,7 @@ export default function PersonalInfoForm() {
                     required
                     value={formData.domicileStatus}
                     onChange={handleChange}
-                    className={fieldClasses}
+                    className={fieldCls("domicileStatus")}
                     placeholder="Country of domicile and current residence"
                     maxLength={100}
                   />
@@ -412,7 +431,7 @@ export default function PersonalInfoForm() {
 
             <div className="space-y-4">
               {/* Row 1: Address line 1 */}
-              <Field label="Address line 1" htmlFor="street1">
+              <Field label="Address line 1" htmlFor="street1" error={errors.street1}>
                 <input
                   id="street1"
                   name="street1"
@@ -420,13 +439,13 @@ export default function PersonalInfoForm() {
                   autoComplete="address-line1"
                   value={formData.street1}
                   onChange={handleChange}
-                  className={fieldClasses}
+                  className={fieldCls("street1")}
                   placeholder="Street address line 1"
                 />
               </Field>
 
               {/* Row 2: Address line 2 (optional) */}
-              <Field label="Address line 2 (optional)" htmlFor="county">
+              <Field label="Address line 2 (optional)" htmlFor="county" error={errors.county}>
                 <input
                   id="county"
                   name="county"
@@ -434,14 +453,14 @@ export default function PersonalInfoForm() {
                   autoComplete="address-line2"
                   value={formData.county}
                   onChange={handleChange}
-                  className={fieldClasses}
+                  className={fieldCls("county")}
                   placeholder="Apartment, suite, unit, etc."
                 />
               </Field>
 
               {/* Row 3: Town or city, Postcode, Country * */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <Field label="Town or city" htmlFor="city">
+                <Field label="Town or city" htmlFor="city" error={errors.city}>
                   <input
                     id="city"
                     name="city"
@@ -449,11 +468,11 @@ export default function PersonalInfoForm() {
                     autoComplete="address-level2"
                     value={formData.city}
                     onChange={handleChange}
-                    className={fieldClasses}
+                    className={fieldCls("city")}
                     placeholder="Town or city"
                   />
                 </Field>
-                <Field label="Postcode" htmlFor="postcode">
+                <Field label="Postcode" htmlFor="postcode" error={errors.postcode}>
                   <input
                     id="postcode"
                     name="postcode"
@@ -461,17 +480,17 @@ export default function PersonalInfoForm() {
                     autoComplete="postal-code"
                     value={formData.postcode}
                     onChange={handleChange}
-                    className={fieldClasses}
+                    className={fieldCls("postcode")}
                     placeholder="Postcode"
                   />
                 </Field>
-                <Field label="Country" htmlFor="country" required>
+                <Field label="Country" htmlFor="country" error={errors.nationality} required>
                   <select
                     id="country"
                     name="nationality"
                     value={formData.nationality || "GB"}
                     onChange={handleChange}
-                    className={fieldClasses}
+                    className={fieldCls("nationality")}
                   >
                     {NATIONALITIES.map((n) => (
                       <option key={n.value} value={n.value}>
@@ -493,7 +512,16 @@ export default function PersonalInfoForm() {
               Save and exit
             </Link>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+              {summary && (
+                <p
+                  role="alert"
+                  className="flex items-center gap-2 text-[12.5px] font-semibold text-rose-600 sm:mr-1"
+                >
+                  <TriangleAlert className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  {summary}
+                </p>
+              )}
               <Link
                 href="/dashboard"
                 className="inline-flex h-[42px] items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-5 text-[13.5px] font-semibold text-slate-700 shadow-xs transition hover:bg-slate-50 hover:border-slate-300"

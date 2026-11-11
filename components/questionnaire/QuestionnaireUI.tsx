@@ -3,7 +3,16 @@
 import React, { useEffect, ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowLeft, ArrowRight, ChevronDown, Info, Loader2, Trash2, X } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  ChevronDown,
+  Info,
+  Loader2,
+  Trash2,
+  TriangleAlert,
+  X,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useJointSectionStatus } from "@/hooks/useJointSectionStatus";
 import type { Treatment, TreatmentFields, YesNo } from "@/types/forms/form-primitives";
@@ -38,6 +47,47 @@ export const textareaClasses =
 
 // Same textarea, sitting inside a tinted card so it needs to stay white
 export const cardTextareaClasses = cn(textareaClasses, "bg-white");
+
+/* ---------------------------------------------------------------------- */
+/* Validation messages                                                     */
+/* ---------------------------------------------------------------------- */
+
+// Added to an input that failed validation, so the field itself reads as
+// wrong and not only the line of text under it.
+export const invalidFieldClasses =
+  "border-rose-300 bg-rose-50/40 focus:border-rose-400 focus:ring-rose-500/10";
+
+/** `inputClasses` (or any field classes) plus the invalid styling when set. */
+export const fieldClassesFor = (base: string, invalid?: unknown) =>
+  cn(base, invalid ? invalidFieldClasses : undefined);
+
+/**
+ * One field's validation message.
+ *
+ * `path` is the field's dotted path in the payload (`postcode`,
+ * `realEstate.0.value`). It is written out as `data-error-path` so the submit
+ * handler can scroll to a generated row field that has no id of its own.
+ */
+export function FieldMessage({
+  error,
+  path,
+  className,
+}: {
+  error?: string;
+  path?: string;
+  className?: string;
+}) {
+  if (!error) return null;
+  return (
+    <p
+      role="alert"
+      data-error-path={path}
+      className={cn("mt-1.5 text-[11.5px] font-medium leading-snug text-rose-600", className)}
+    >
+      {error}
+    </p>
+  );
+}
 
 /* ---------------------------------------------------------------------- */
 /* Decorative 3D-styled Illustration                                      */
@@ -234,12 +284,20 @@ export function SubmitBar({
   withArrow = false,
   backHref,
   backLabel = "Back",
+  errorSummary,
 }: {
   isSaving: boolean;
   label?: string;
   withArrow?: boolean;
   backHref?: string;
   backLabel?: string;
+  /**
+   * Shown beside the button after a submit was refused. The button itself
+   * stays enabled: pressing it again re-checks the form and moves to the next
+   * field still outstanding, which is more use than a button that cannot be
+   * pressed and does not say why.
+   */
+  errorSummary?: string | null;
 }) {
   const pathname = usePathname();
   // Nothing can be saved while the partner is reviewing or editing.
@@ -276,7 +334,17 @@ export function SubmitBar({
       </button>
 
       {/* Right: Back & Continue buttons */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+        {errorSummary && (
+          <p
+            role="alert"
+            className="flex items-center gap-2 text-[12.5px] font-semibold text-rose-600 sm:mr-1"
+          >
+            <TriangleAlert className="h-4 w-4 shrink-0" aria-hidden="true" />
+            {errorSummary}
+          </p>
+        )}
+        <div className="flex items-center gap-3">
         {effectiveBackHref && (
           <Link
             href={effectiveBackHref}
@@ -295,6 +363,7 @@ export function SubmitBar({
           {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
           {isSaving ? "Saving..." : displayLabel}
         </button>
+        </div>
       </div>
     </div>
   );
@@ -496,6 +565,8 @@ export function NumberedQuestion({
   colorIndex,
   tooltip,
   children,
+  error,
+  path,
 }: {
   number: number;
   question: ReactNode;
@@ -503,6 +574,9 @@ export function NumberedQuestion({
   colorIndex?: number;
   tooltip?: string;
   children: ReactNode;
+  /** The validation message for the answer this question holds. */
+  error?: string;
+  path?: string;
 }) {
   const badgeGrad = getBadgeGradient(colorIndex !== undefined ? colorIndex : number - 1);
   return (
@@ -522,6 +596,7 @@ export function NumberedQuestion({
         </label>
       </div>
       {children}
+      <FieldMessage error={error} path={path ?? htmlFor} />
     </div>
   );
 }
@@ -610,7 +685,18 @@ export function YesNoToggle({ name, value, onChange, readOnly }: YesNoToggleProp
   );
 }
 
-export function CheckCard({ id, name, title, description, tooltip, checked, onChange, readOnly }: CheckCardProps) {
+export function CheckCard({
+  id,
+  name,
+  title,
+  description,
+  tooltip,
+  checked,
+  onChange,
+  readOnly,
+  error,
+  path,
+}: CheckCardProps & { error?: string; path?: string }) {
   return (
     <label
       htmlFor={id}
@@ -619,7 +705,9 @@ export function CheckCard({ id, name, title, description, tooltip, checked, onCh
           ? "border-[#6366F1] bg-[#6366F1]/5 ring-2 ring-[#6366F1]/20 shadow-xs"
           : readOnly
             ? "border-slate-200 bg-slate-50 cursor-not-allowed opacity-75"
-            : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50"
+            : error
+              ? "border-rose-300 bg-rose-50/40 hover:border-rose-400"
+              : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50"
       }`}
     >
       <input
@@ -658,6 +746,7 @@ export function CheckCard({ id, name, title, description, tooltip, checked, onCh
         {description && (
           <div className="mt-1 text-[12.5px] font-normal leading-relaxed text-slate-500">{description}</div>
         )}
+        <FieldMessage error={error} path={path ?? name} />
       </div>
     </label>
   );
@@ -667,11 +756,24 @@ export function CheckCard({ id, name, title, description, tooltip, checked, onCh
 /* Repeating rows                                                          */
 /* ---------------------------------------------------------------------- */
 
-export function MatrixBox({ title, children, onAdd, addLabel }: MatrixBoxProps) {
+export function MatrixBox({
+  title,
+  children,
+  onAdd,
+  addLabel,
+  error,
+  path,
+}: MatrixBoxProps & { error?: string; path?: string }) {
   return (
-    <div className="mt-5 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-5 sm:p-6 mb-5">
+    <div
+      className={cn(
+        "mt-5 rounded-2xl border p-5 sm:p-6 mb-5",
+        error ? "border-rose-300 bg-rose-50/40" : "border-slate-200/80 bg-slate-50/70",
+      )}
+    >
       <div className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-500">{title}</div>
       <div className="space-y-4">{children}</div>
+      <FieldMessage error={error} path={path} className="mt-3" />
       {onAdd && (
         <button
           type="button"
@@ -689,13 +791,30 @@ export function RowItem({
   children,
   onDelete,
   title,
+  issues,
+  path,
 }: {
   children: ReactNode;
   onDelete?: () => void;
   title?: ReactNode;
+  /**
+   * What is still missing in this row, as `field label -> message`. Used by the
+   * forms whose row inputs are written out one by one and so have nowhere of
+   * their own to put a message: the row is outlined and the list sits at the
+   * foot of it, next to the fields it is about.
+   */
+  issues?: Record<string, string>;
+  /** The row's dotted path, so the first bad row can be scrolled to. */
+  path?: string;
 }) {
+  const issueList = issues ? Object.entries(issues) : [];
   return (
-    <div className="relative rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs transition-all">
+    <div
+      className={cn(
+        "relative rounded-xl border bg-white p-5 shadow-xs transition-all",
+        issueList.length > 0 ? "border-rose-300 ring-1 ring-rose-200" : "border-slate-200/90",
+      )}
+    >
       {onDelete && (
         <div className={`flex items-center ${title ? "justify-between" : "justify-end"} mb-3.5`}>
           {title && (
@@ -715,6 +834,19 @@ export function RowItem({
         </div>
       )}
       {children}
+      {issueList.length > 0 && (
+        <div
+          role="alert"
+          data-error-path={path}
+          className="mt-3 rounded-lg border border-rose-200 bg-rose-50/70 px-3.5 py-2.5"
+        >
+          <ul className="space-y-1 text-[11.5px] font-medium leading-snug text-rose-700">
+            {issueList.map(([field, message]) => (
+              <li key={field}>{message}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
@@ -733,7 +865,9 @@ export function ValueWithUnsure({
   readOnly,
   label = "I am unsure of the current value.",
   tooltip = "An estimate is sufficient at this stage. Your solicitor may request supporting documentation or updated valuations later in the process.",
-}: ValueWithUnsureProps) {
+  error,
+  path,
+}: ValueWithUnsureProps & { error?: string; path?: string }) {
   return (
     <div>
       <input
@@ -744,8 +878,9 @@ export function ValueWithUnsure({
         disabled={readOnly || unknown}
         required={!unknown}
         placeholder={unknown ? "Value unknown" : placeholder}
-        className={inputClasses}
+        className={fieldClassesFor(inputClasses, error)}
       />
+      <FieldMessage error={error} path={path} />
       <div className="mt-2 flex items-center justify-between gap-2">
         <label className="flex cursor-pointer items-center gap-2 text-[12.5px] font-medium text-slate-600">
           <input
@@ -784,8 +919,21 @@ export function TreatmentSelect({
   options = allTreatmentOptions,
   readOnly,
   tooltips,
-}: TreatmentSelectProps) {
+  errors,
+  path,
+}: TreatmentSelectProps & {
+  /**
+   * Messages for this one treatment block, keyed by its own field names
+   * (`treatment`, `contributionText`, `percentageValue`, `customText`) --
+   * usually `errorsUnder(errors, rowPath)`.
+   */
+  errors?: Record<string, string>;
+  /** The row's dotted path, so the messages can be scrolled to. */
+  path?: string;
+}) {
   const update = (patch: Partial<TreatmentFields>) => onChange?.({ ...fields, ...patch });
+  const errorFor = (field: keyof TreatmentFields) => errors?.[field];
+  const pathFor = (field: keyof TreatmentFields) => (path ? `${path}.${field}` : field);
   const isSettled = label.toLowerCase().includes("settled");
   const isJointOrProperty = label.toLowerCase().includes("property") || label.toLowerCase().includes("shared");
 
@@ -831,7 +979,10 @@ export function TreatmentSelect({
           disabled={readOnly}
           required
           title={selectTooltip}
-          className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 py-3 text-[13.5px] font-medium text-slate-900 shadow-2xs transition-all hover:border-slate-300 focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 outline-none cursor-pointer pr-16"
+          className={fieldClassesFor(
+            "w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 py-3 text-[13.5px] font-medium text-slate-900 shadow-2xs transition-all hover:border-slate-300 focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 outline-none cursor-pointer pr-16",
+            errorFor("treatment"),
+          )}
         >
           <option value="">{label}</option>
           {options.map((o) => (
@@ -847,6 +998,7 @@ export function TreatmentSelect({
           <Tooltip text={selectTooltip} />
         </div>
       </div>
+      <FieldMessage error={errorFor("treatment")} path={pathFor("treatment")} />
 
       {fields.treatment === "Contribution" && (
         <div className="mt-3.5 rounded-xl border-l-4 border-[#6366F1] bg-[#F8FAFC] p-4 shadow-xs">
@@ -860,7 +1012,11 @@ export function TreatmentSelect({
             onChange={(e) => update({ contributionText: e.target.value })}
             disabled={readOnly}
             placeholder="Explain your contribution logic"
-            className={inputClasses}
+            className={fieldClassesFor(inputClasses, errorFor("contributionText"))}
+          />
+          <FieldMessage
+            error={errorFor("contributionText")}
+            path={pathFor("contributionText")}
           />
         </div>
       )}
@@ -878,7 +1034,11 @@ export function TreatmentSelect({
             onChange={(e) => update({ percentageValue: e.target.value })}
             disabled={readOnly}
             placeholder="Percentage (%)"
-            className={inputClasses}
+            className={fieldClassesFor(inputClasses, errorFor("percentageValue"))}
+          />
+          <FieldMessage
+            error={errorFor("percentageValue")}
+            path={pathFor("percentageValue")}
           />
         </div>
       )}
@@ -893,8 +1053,9 @@ export function TreatmentSelect({
             onChange={(e) => update({ customText: e.target.value })}
             disabled={readOnly}
             placeholder="Create your own arrangement..."
-            className={textareaClasses}
+            className={fieldClassesFor(textareaClasses, errorFor("customText"))}
           />
+          <FieldMessage error={errorFor("customText")} path={pathFor("customText")} />
         </div>
       )}
     </div>

@@ -3,9 +3,11 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Banknote, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Banknote, Loader2, TriangleAlert } from "lucide-react";
 import { useQuestionnaire } from "@/components/questionnaire/useQuestionnaire";
 import { useJointSectionStatus } from "@/hooks/useJointSectionStatus";
+import { useFormValidation } from "@/hooks/useFormValidation";
+import { incomeSchema } from "@/lib/validations/questionnaire";
 import { LoadingState } from "@/components/questionnaire/QuestionnaireUI";
 import {
   IncomeFields,
@@ -155,16 +157,22 @@ export default function IncomeRevenueForm() {
     if (typeof window !== "undefined") window.scrollTo(0, 0);
   }, []);
 
+  const { errors, validate, clearError, summary } = useFormValidation(incomeSchema);
+
   const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    await save({
+    const payload = {
       grossAnnualIncome: data.grossAnnualIncome,
       salaryTreatment: data.salaryTreatment,
       hasPrimaryBonus: data.hasPrimaryBonus,
       primaryIncomeRows: data.primaryIncomeRows,
       hasAlternativeIncome: data.hasAlternativeIncome,
       altIncomeRows: data.altIncomeRows,
-    });
+    };
+
+    if (!validate(payload)) return;
+
+    await save(payload);
   };
 
   const handleSaveAndExit = async () => {
@@ -224,7 +232,12 @@ export default function IncomeRevenueForm() {
         {/* Form Body                                                      */}
         {/* ============================================================== */}
         <form onSubmit={handleSubmit} noValidate>
-          <IncomeFields data={data} onChange={setData} />
+          <IncomeFields
+            data={data}
+            onChange={setData}
+            errors={errors}
+            onClearError={clearError}
+          />
 
           {/* ============================================================ */}
           {/* Bottom Navigation                                           */}
@@ -240,7 +253,16 @@ export default function IncomeRevenueForm() {
             </button>
 
             {/* Right: Back & Continue Buttons */}
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+              {summary && (
+                <p
+                  role="alert"
+                  className="flex items-center gap-2 text-[12.5px] font-semibold text-rose-600 sm:mr-1"
+                >
+                  <TriangleAlert className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  {summary}
+                </p>
+              )}
               {stepInfo.prevPath && (
                 <Link
                   href={stepInfo.prevPath}

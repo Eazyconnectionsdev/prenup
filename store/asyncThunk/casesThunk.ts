@@ -85,3 +85,93 @@ export const completeOnboarding = createAsyncThunk(
     }
   }
 );
+
+// ---------------------------------------------------------------- payment
+//
+// The price is the server's to decide, so neither of these sends an amount:
+// getCasePayment asks what the chosen service costs, and payCase sends only
+// the details typed on the payment screen.
+
+export type CasePaymentInfo = {
+  caseId: string;
+  caseNumber: string | null;
+  agreementType: string | null;
+  serviceName: string | null;
+  serviceDescription: string | null;
+  amount: number;
+  currency: string;
+  display: string;
+  // False until a service that can be paid for has been chosen
+  payable: boolean;
+  paid: boolean;
+  paymentStatus: string;
+  payment: {
+    reference: string | null;
+    status: string | null;
+    display: string;
+    cardBrand: string | null;
+    cardLast4: string | null;
+    paidAt: string | null;
+  } | null;
+};
+
+export const getCasePayment = createAsyncThunk(
+  "cases/getCasePayment",
+  async (
+    { caseId, service }: { caseId: string; service?: string | null },
+    { rejectWithValue }
+  ) => {
+    try {
+      const { data } = await Axios.get(`/cases/${caseId}/payment`, {
+        params: service ? { service } : undefined,
+      });
+      return data as CasePaymentInfo;
+    } catch (error: any) {
+      if (error.response && error.response.data) {
+        return rejectWithValue(error.response.data);
+      }
+      return rejectWithValue("Can't reach the server. Check your connection and try again.");
+    }
+  }
+);
+
+export type PayCaseArgs = {
+  caseId: string;
+  // Omitted, the service already on the case is the one paid for
+  agreementType?: string | null;
+  email: string;
+  cardNumber: string;
+  expiry: string;
+  cvc: string;
+  nameOnCard: string;
+  country: string;
+  postalCode: string;
+};
+
+export const payCase = createAsyncThunk(
+  "cases/payCase",
+  async ({ caseId, agreementType, ...card }: PayCaseArgs, { rejectWithValue }) => {
+    try {
+      const { data } = await Axios.post(`/cases/${caseId}/pay`, {
+        ...card,
+        // Spaces are only there to make the number readable while typing
+        cardNumber: card.cardNumber.replace(/\D/g, ""),
+        ...(agreementType ? { agreementType } : {}),
+      });
+      return data as {
+        paid: boolean;
+        agreementType: string;
+        serviceName: string;
+        display: string;
+        paymentStatus: string;
+        workflowStatus: string;
+        payment: CasePaymentInfo["payment"];
+      };
+    } catch (error: any) {
+      if (error.response && error.response.data) {
+        return rejectWithValue(error.response.data);
+      }
+      return rejectWithValue("Can't reach the server. Check your connection and try again.");
+    }
+  }
+);
