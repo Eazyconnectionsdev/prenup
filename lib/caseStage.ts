@@ -1,10 +1,5 @@
 import type { CaseApproval } from "@/types/store/cases-slice";
 
-/**
- * The case workflow, in the order the backend moves through it
- * (CaseWorkflowStatus in case.schema.ts). CANCELLED and ARCHIVED are
- * end states rather than steps, so they are left out of the ordering.
- */
 const WORKFLOW_ORDER = [
   "NOT_PAID",
   "DRAFT",
@@ -23,14 +18,7 @@ const WORKFLOW_ORDER = [
 
 const CM_APPROVED_INDEX = WORKFLOW_ORDER.indexOf("CM_APPROVED");
 
-/**
- * Has the case manager signed the case off?
- *
- * Two things record this and they can disagree: `approval.caseManagerApproved`
- * (what the couple's own screens go by) and the case reaching CM_APPROVED or
- * beyond. Cases approved before both were written together only carry the
- * workflow status, so either one counts.
- */
+
 export function isCaseManagerApproved(
   approval: CaseApproval | null | undefined,
   workflowStatus?: string | null,

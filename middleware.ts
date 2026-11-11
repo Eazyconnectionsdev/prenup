@@ -26,8 +26,7 @@ const ROLE_HOME: Record<string, string> = {
 };
 
 const ROLE_EXTRA_PATHS: Record<string, string[]> = {
-  // Signed-in invitees accept a partner invitation here.
-  end_user: ["/accept-invite"],
+  end_user: ["/accept-invite", "/payment"],
 };
 
 async function getRoleFromToken(token: string | undefined): Promise<string | null> {
@@ -69,14 +68,10 @@ export default async function middleware(req: NextRequest) {
 
   if (!isLoggedIn && !isPublicRoute) {
     const loginUrl = new URL(DEFAULT_LOGIN_REDIRECT, nextUrl);
-    // Keep the query: an invitation link carries its case and token there.
     loginUrl.searchParams.set("callbackUrl", nextUrl.pathname + nextUrl.search);
     return NextResponse.redirect(loginUrl);
   }
 
-  // A signed-in client who opens an emailed invitation link (which points at
-  // the registration page) already has an account: take them to accept it
-  // instead of bouncing them to the dashboard and losing the invitation.
   if (
     isLoggedIn &&
     role === "end_user" &&

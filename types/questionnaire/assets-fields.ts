@@ -115,4 +115,8 @@ export interface Props {
   data: AssetsData;
   onChange?: React.Dispatch<React.SetStateAction<AssetsData>>;
   readOnly?: boolean;
+  /** Validation messages keyed by their dotted path, e.g. `savings.0.balance`. */
+  errors?: Record<string, string>;
+  /** Called with a field's path as it is edited, to clear that message. */
+  onClearError?: (path: string) => void;
 }

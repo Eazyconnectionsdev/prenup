@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import {
   FieldLabel,
+  FieldMessage,
   MatrixBox,
   RowItem,
   SectionCard,
@@ -21,6 +22,7 @@ import {
   ValueWithUnsure,
   YesNoToggle,
   emptyTreatment,
+  fieldClassesFor,
   inputClasses,
   makeId,
   textareaClasses,
@@ -198,27 +200,64 @@ const BUSINESS_TREATMENT_OPTIONS: { value: Treatment; label: string }[] = [
 /* Component                                                               */
 /* ---------------------------------------------------------------------- */
 
-export function AssetsFields({ data, onChange, readOnly }: Props) {
+export function AssetsFields({ data, onChange, readOnly, errors, onClearError }: Props) {
   const ask = (you: string, they: string) => (readOnly ? they : you);
 
-  const toggle = (key: ListKey) => (value: YesNo) =>
+  /* ---- Where a row's fields live in the payload ---- */
+
+  // Rows are keyed by a client-side id but validated by position, so the path
+  // is looked up from the list rather than passed through every call site.
+  const indexOf = (key: ListKey, id: string) =>
+    (data[key] as { id: string }[]).findIndex((r) => r.id === id);
+
+  const rowPath = (key: ListKey, id: string) => `${key}.${indexOf(key, id)}`;
+
+  const fieldPath = (key: ListKey, id: string, field: string) =>
+    `${rowPath(key, id)}.${field}`;
+
+  const errorAt = (key: ListKey, id: string, field: string) =>
+    errors?.[fieldPath(key, id, field)];
+
+  // A row's own messages, re-keyed to its field names for TreatmentSelect.
+  const rowErrors = (key: ListKey, id: string) => {
+    if (!errors) return undefined;
+    const prefix = `${rowPath(key, id)}.`;
+    const scoped: Record<string, string> = {};
+    for (const [path, message] of Object.entries(errors)) {
+      if (path.startsWith(prefix)) scoped[path.slice(prefix.length)] = message;
+    }
+    return scoped;
+  };
+
+  const toggle = (key: ListKey) => (value: YesNo) => {
+    onClearError?.(key);
+    onClearError?.(CATEGORIES[key].flag);
     onChange?.((prev) => ({
       ...prev,
       [CATEGORIES[key].flag]: value,
       [key]: value === "Yes" ? (prev[key].length ? prev[key] : [CATEGORIES[key].makeRow()]) : [],
     }));
+  };
 
-  const addRow = (key: ListKey) =>
+  const addRow = (key: ListKey) => {
+    onClearError?.(key);
     onChange?.((prev) => ({ ...prev, [key]: [...prev[key], CATEGORIES[key].makeRow()] }));
+  };
 
-  const removeRow = (key: ListKey, id: string) =>
+  const removeRow = (key: ListKey, id: string) => {
+    // Removing a row renumbers the ones after it, so their paths no longer
+    // match: the whole list's messages go and the next submit re-states them.
+    onClearError?.(key);
     onChange?.((prev) => ({ ...prev, [key]: prev[key].filter((r) => r.id !== id) }));
+  };
 
-  const update = <K extends ListKey>(key: K, id: string, patch: Partial<RowOf<K>>) =>
+  const update = <K extends ListKey>(key: K, id: string, patch: Partial<RowOf<K>>) => {
+    for (const field of Object.keys(patch)) onClearError?.(fieldPath(key, id, field));
     onChange?.((prev) => ({
       ...prev,
       [key]: (prev[key] as RowOf<K>[]).map((r) => (r.id === id ? { ...r, ...patch } : r)),
     }));
+  };
 
   // Text/number input bound to one row field
   const text = <K extends ListKey>(
@@ -228,25 +267,31 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
     placeholder: string,
     extra: React.InputHTMLAttributes<HTMLInputElement> = {},
     tooltip?: string,
-  ) => (
-    <div className="relative w-full">
-      <input
-        type="text"
-        placeholder={placeholder}
-        title={tooltip}
-        value={String(row[field] ?? "")}
-        onChange={(e) => update(key, row.id, { [field]: e.target.value } as Partial<RowOf<K>>)}
-        disabled={readOnly}
-        className={`${inputClasses} ${tooltip ? "pr-9" : ""}`}
-        {...extra}
-      />
-      {tooltip && (
-        <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
-          <Tooltip text={tooltip} />
+  ) => {
+    const error = errorAt(key, row.id, field);
+    return (
+      <div className="w-full">
+        <div className="relative w-full">
+          <input
+            type="text"
+            placeholder={placeholder}
+            title={tooltip}
+            value={String(row[field] ?? "")}
+            onChange={(e) => update(key, row.id, { [field]: e.target.value } as Partial<RowOf<K>>)}
+            disabled={readOnly}
+            className={fieldClassesFor(`${inputClasses} ${tooltip ? "pr-9" : ""}`, error)}
+            {...extra}
+          />
+          {tooltip && (
+            <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+              <Tooltip text={tooltip} />
+            </div>
+          )}
         </div>
-      )}
-    </div>
-  );
+        <FieldMessage error={error} path={fieldPath(key, row.id, field)} />
+      </div>
+    );
+  };
 
   const select = <K extends ListKey>(
     key: K,
@@ -257,16 +302,21 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
     tooltip?: string,
   ) => {
     const val = String(row[field] ?? "");
+    const error = errorAt(key, row.id, field);
     return (
+      <div className="w-full">
       <div className="relative w-full">
         <select
           value={val}
           onChange={(e) => update(key, row.id, { [field]: e.target.value } as Partial<RowOf<K>>)}
           disabled={readOnly}
           title={tooltip}
-          className={`${inputClasses} appearance-none ${tooltip ? "pr-16" : "pr-10"} cursor-pointer ${
-            !val ? "text-slate-400" : "text-slate-900 font-medium"
-          }`}
+          className={fieldClassesFor(
+            `${inputClasses} appearance-none ${tooltip ? "pr-16" : "pr-10"} cursor-pointer ${
+              !val ? "text-slate-400" : "text-slate-900 font-medium"
+            }`,
+            error,
+          )}
         >
           <option value="" disabled className="text-slate-400">
             {placeholder}
@@ -285,6 +335,8 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
             <Tooltip text={tooltip} />
           </div>
         )}
+      </div>
+      <FieldMessage error={error} path={fieldPath(key, row.id, field)} />
       </div>
     );
   };
@@ -308,6 +360,8 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
         }
         placeholder={placeholder}
         readOnly={readOnly}
+        error={errorAt(key, row.id, field)}
+        path={fieldPath(key, row.id, field)}
       />
     );
   };
@@ -322,6 +376,8 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
       fields={row}
       onChange={(f) => update(key, row.id, f as Partial<RowOf<K>>)}
       readOnly={readOnly}
+      errors={rowErrors(key, row.id)}
+      path={rowPath(key, row.id)}
       {...props}
     />
   );
@@ -355,6 +411,8 @@ export function AssetsFields({ data, onChange, readOnly }: Props) {
             title={cfg.matrixTitle}
             onAdd={readOnly ? undefined : () => addRow(key)}
             addLabel={cfg.addLabel}
+            error={errors?.[key]}
+            path={key}
           >
             {(data[key] as RowOf<K>[]).map((row) => (
               <RowItem key={row.id} onDelete={readOnly ? undefined : () => removeRow(key, row.id)}>

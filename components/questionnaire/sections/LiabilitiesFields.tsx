@@ -4,6 +4,7 @@ import React from "react";
 import { ChevronDown, CreditCard, HandCoins } from "lucide-react";
 import {
   FieldLabel,
+  FieldMessage,
   MatrixBox,
   Notice,
   RowItem,
@@ -12,6 +13,7 @@ import {
   TreatmentSelect,
   YesNoToggle,
   emptyTreatment,
+  fieldClassesFor,
   inputClasses,
   makeId,
 } from "../QuestionnaireUI";
@@ -68,26 +70,69 @@ const DEPENDENT_LINKS = [
   { value: "Other Dependent", label: "Other Dependent Liability" },
 ];
 
-export function LiabilitiesFields({ data, onChange, readOnly }: Props) {
+export function LiabilitiesFields({
+  data,
+  onChange,
+  readOnly,
+  errors,
+  onClearError,
+}: Props) {
   const ask = (you: string, they: string) => (readOnly ? they : you);
   const set = (patch: Partial<LiabilitiesData>) => onChange?.((prev) => ({ ...prev, ...patch }));
 
+  /* ---- Where a row's fields live in the payload ---- */
+
+  type ListKey = "debts" | "maintenance";
+
+  const rowPath = (key: ListKey, id: string) =>
+    `${key}.${data[key].findIndex((r) => r.id === id)}`;
+  const fieldPath = (key: ListKey, id: string, field: string) =>
+    `${rowPath(key, id)}.${field}`;
+  const errorAt = (key: ListKey, id: string, field: string) =>
+    errors?.[fieldPath(key, id, field)];
+
+  // A row's own messages, re-keyed to its field names for TreatmentSelect.
+  const rowErrors = (key: ListKey, id: string) => {
+    if (!errors) return undefined;
+    const prefix = `${rowPath(key, id)}.`;
+    const scoped: Record<string, string> = {};
+    for (const [path, message] of Object.entries(errors)) {
+      if (path.startsWith(prefix)) scoped[path.slice(prefix.length)] = message;
+    }
+    return scoped;
+  };
+
   // "Yes" adds a first row, "No" clears the list
-  const toggle = <K extends "debts" | "maintenance">(
+  const toggle = <K extends ListKey>(
     flag: "hasDebts" | "hasMaintenance",
     key: K,
     makeRow: () => LiabilitiesData[K][number],
-  ) => (value: YesNo) =>
+  ) => (value: YesNo) => {
+    onClearError?.(flag);
+    onClearError?.(key);
     onChange?.((prev) => ({
       ...prev,
       [flag]: value,
       [key]: value === "Yes" ? (prev[key].length ? prev[key] : [makeRow()]) : [],
     }));
+  };
 
-  const updateDebt = (id: string, patch: Partial<DebtRow>) =>
+  const updateDebt = (id: string, patch: Partial<DebtRow>) => {
+    for (const field of Object.keys(patch)) onClearError?.(fieldPath("debts", id, field));
     set({ debts: data.debts.map((r) => (r.id === id ? { ...r, ...patch } : r)) });
-  const updateMaintenance = (id: string, patch: Partial<MaintenanceRow>) =>
+  };
+  const updateMaintenance = (id: string, patch: Partial<MaintenanceRow>) => {
+    for (const field of Object.keys(patch)) onClearError?.(fieldPath("maintenance", id, field));
     set({ maintenance: data.maintenance.map((r) => (r.id === id ? { ...r, ...patch } : r)) });
+  };
+
+  // Rows after a removed one shift up, so their paths no longer match: the
+  // list's messages go and the next submit re-states them.
+  const dropRow = (key: ListKey, id: string) => {
+    onClearError?.(key);
+    if (key === "debts") set({ debts: data.debts.filter((r) => r.id !== id) });
+    else set({ maintenance: data.maintenance.filter((r) => r.id !== id) });
+  };
 
   return (
     <>
@@ -114,13 +159,16 @@ export function LiabilitiesFields({ data, onChange, readOnly }: Props) {
             title="Debts & financial obligations"
             onAdd={readOnly ? undefined : () => set({ debts: [...data.debts, makeDebtRow()] })}
             addLabel="Add debt"
+            error={errors?.debts}
+            path="debts"
           >
             {data.debts.map((row) => (
               <RowItem
                 key={row.id}
-                onDelete={readOnly ? undefined : () => set({ debts: data.debts.filter((r) => r.id !== row.id) })}
+                onDelete={readOnly ? undefined : () => dropRow("debts", row.id)}
               >
                 <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-[1.5fr_1fr_1fr] items-start">
+                  <div className="w-full">
                   <div className="relative w-full">
                     <input
                       type="text"
@@ -129,21 +177,33 @@ export function LiabilitiesFields({ data, onChange, readOnly }: Props) {
                       value={row.lenderName}
                       onChange={(e) => updateDebt(row.id, { lenderName: e.target.value })}
                       disabled={readOnly}
-                      className={`${inputClasses} pr-9`}
+                      className={fieldClassesFor(
+                        `${inputClasses} pr-9`,
+                        errorAt("debts", row.id, "lenderName"),
+                      )}
                     />
                     <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
                       <Tooltip text="Examples include Barclays, HSBC, HMRC, Student Loans Company, or other lenders and creditors." />
                     </div>
                   </div>
+                  <FieldMessage
+                    error={errorAt("debts", row.id, "lenderName")}
+                    path={fieldPath("debts", row.id, "lenderName")}
+                  />
+                  </div>
+                  <div className="w-full">
                   <div className="relative w-full">
                     <select
                       value={row.debtType}
                       onChange={(e) => updateDebt(row.id, { debtType: e.target.value })}
                       disabled={readOnly}
                       title="Select the category that most closely matches the liability. If unsure, select &quot;Other Liability.&quot;"
-                      className={`${inputClasses} appearance-none pr-16 cursor-pointer ${
-                        !row.debtType ? "text-slate-400" : "text-slate-900 font-medium"
-                      }`}
+                      className={fieldClassesFor(
+                        `${inputClasses} appearance-none pr-16 cursor-pointer ${
+                          !row.debtType ? "text-slate-400" : "text-slate-900 font-medium"
+                        }`,
+                        errorAt("debts", row.id, "debtType"),
+                      )}
                     >
                       <option value="" disabled className="text-slate-400">
                         Type of debt
@@ -159,6 +219,12 @@ export function LiabilitiesFields({ data, onChange, readOnly }: Props) {
                       <Tooltip text="Select the category that most closely matches the liability. If unsure, select &quot;Other Liability.&quot;" />
                     </div>
                   </div>
+                  <FieldMessage
+                    error={errorAt("debts", row.id, "debtType")}
+                    path={fieldPath("debts", row.id, "debtType")}
+                  />
+                  </div>
+                  <div className="w-full">
                   <div className="relative w-full">
                     <input
                       type="number"
@@ -168,11 +234,19 @@ export function LiabilitiesFields({ data, onChange, readOnly }: Props) {
                       value={row.outstandingBalance}
                       onChange={(e) => updateDebt(row.id, { outstandingBalance: e.target.value })}
                       disabled={readOnly}
-                      className={`${inputClasses} pr-9`}
+                      className={fieldClassesFor(
+                        `${inputClasses} pr-9`,
+                        errorAt("debts", row.id, "outstandingBalance"),
+                      )}
                     />
                     <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
                       <Tooltip text="Please provide the approximate amount currently outstanding. An estimate is acceptable if the balance changes regularly." />
                     </div>
+                  </div>
+                  <FieldMessage
+                    error={errorAt("debts", row.id, "outstandingBalance")}
+                    path={fieldPath("debts", row.id, "outstandingBalance")}
+                  />
                   </div>
                 </div>
                 <TreatmentSelect
@@ -181,6 +255,8 @@ export function LiabilitiesFields({ data, onChange, readOnly }: Props) {
                   onChange={(f) => updateDebt(row.id, f)}
                   label="How should this be settled?"
                   readOnly={readOnly}
+                  errors={rowErrors("debts", row.id)}
+                  path={rowPath("debts", row.id)}
                 />
               </RowItem>
             ))}
@@ -219,25 +295,27 @@ export function LiabilitiesFields({ data, onChange, readOnly }: Props) {
               readOnly ? undefined : () => set({ maintenance: [...data.maintenance, makeMaintenanceRow()] })
             }
             addLabel="Add maintenance payment"
+            error={errors?.maintenance}
+            path="maintenance"
           >
             {data.maintenance.map((row) => (
               <RowItem
                 key={row.id}
-                onDelete={
-                  readOnly
-                    ? undefined
-                    : () => set({ maintenance: data.maintenance.filter((r) => r.id !== row.id) })
-                }
+                onDelete={readOnly ? undefined : () => dropRow("maintenance", row.id)}
               >
                 <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-[1.5fr_1fr_1fr] items-start">
+                  <div className="w-full">
                   <div className="relative w-full">
                     <select
                       value={row.dependentLink}
                       onChange={(e) => updateMaintenance(row.id, { dependentLink: e.target.value })}
                       disabled={readOnly}
-                      className={`${inputClasses} appearance-none pr-10 cursor-pointer ${
-                        !row.dependentLink ? "text-slate-400" : "text-slate-900 font-medium"
-                      }`}
+                      className={fieldClassesFor(
+                        `${inputClasses} appearance-none pr-10 cursor-pointer ${
+                          !row.dependentLink ? "text-slate-400" : "text-slate-900 font-medium"
+                        }`,
+                        errorAt("maintenance", row.id, "dependentLink"),
+                      )}
                     >
                       <option value="" disabled className="text-slate-400">
                         Link to dependent
@@ -250,6 +328,12 @@ export function LiabilitiesFields({ data, onChange, readOnly }: Props) {
                     </select>
                     <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   </div>
+                  <FieldMessage
+                    error={errorAt("maintenance", row.id, "dependentLink")}
+                    path={fieldPath("maintenance", row.id, "dependentLink")}
+                  />
+                  </div>
+                  <div className="w-full">
                   <input
                     type="number"
                     min={1}
@@ -257,8 +341,16 @@ export function LiabilitiesFields({ data, onChange, readOnly }: Props) {
                     value={row.monthlyPayment}
                     onChange={(e) => updateMaintenance(row.id, { monthlyPayment: e.target.value })}
                     disabled={readOnly}
-                    className={inputClasses}
+                    className={fieldClassesFor(
+                      inputClasses,
+                      errorAt("maintenance", row.id, "monthlyPayment"),
+                    )}
                   />
+                  <FieldMessage
+                    error={errorAt("maintenance", row.id, "monthlyPayment")}
+                    path={fieldPath("maintenance", row.id, "monthlyPayment")}
+                  />
+                  </div>
                   <div className="relative w-full">
                     <input
                       type="text"
@@ -280,6 +372,8 @@ export function LiabilitiesFields({ data, onChange, readOnly }: Props) {
                   onChange={(f) => updateMaintenance(row.id, f)}
                   label="How should this be settled?"
                   readOnly={readOnly}
+                  errors={rowErrors("maintenance", row.id)}
+                  path={rowPath("maintenance", row.id)}
                 />
               </RowItem>
             ))}

@@ -19,7 +19,9 @@ import {
 } from "lucide-react";
 import {
   FieldLabel,
+  FieldMessage,
   emptyTreatment,
+  fieldClassesFor,
   makeId,
   inputClasses,
   textareaClasses,
@@ -43,6 +45,9 @@ import Axios from "@/lib/ApiConfig";
 import { getErrorMessage } from "@/lib/api/http-error";
 import { getCasesDetails } from "@/store/asyncThunk/casesThunk";
 import { useJointSectionStatus } from "@/hooks/useJointSectionStatus";
+import { useFormValidation } from "@/hooks/useFormValidation";
+import { jointAssetsSchema } from "@/lib/validations/joint";
+import { errorsUnder } from "@/lib/validations/formErrors";
 import { JointStatusBanner } from "@/components/joint/JointStatusBanner";
 import type { Treatment, TreatmentFields } from "@/types/forms/form-primitives";
 import type { LivingArrangement, SharedBusinessRow, SharedChattelRow, SharedIPRow, SharedOtherAssetRow, SharedRealEstateRow, SharedSavingsRow, YesNo } from "@/types/dashboard/joint-assets";
@@ -300,6 +305,34 @@ export default function SharedAssetsForm() {
     makeSharedOtherAssetRow,
   );
 
+  const { errors, validate, clearError, summary } = useFormValidation(jointAssetsSchema);
+
+  /**
+   * This form writes its rows out field by field rather than through a shared
+   * helper, so each row shows what it is missing as one list at its foot
+   * (`RowItem issues`) instead of a message under every input.
+   */
+  const rowIssues = (list: { id: string }[], key: string, id: string) =>
+    errorsUnder(errors, `${key}.${list.findIndex((r) => r.id === id)}`);
+
+  /**
+   * updateRow, plus clearing the messages for the fields being written, so a
+   * row stops reading as wrong the moment it is being put right.
+   */
+  const editRow = <Row extends { id: string }>(
+    list: Row[],
+    key: string,
+    setter: React.Dispatch<React.SetStateAction<Row[]>>,
+    id: string,
+    patch: Partial<Row>,
+  ) => {
+    const index = list.findIndex((r) => r.id === id);
+    if (index !== -1) {
+      for (const field of Object.keys(patch)) clearError(`${key}.${index}.${field}`);
+    }
+    updateRow(setter, id, patch);
+  };
+
   const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     const payload = {
@@ -327,6 +360,8 @@ export default function SharedAssetsForm() {
       hasSharedOtherAssets,
       sharedOtherAssets,
     };
+
+    if (!validate(payload)) return;
 
     try {
       setIsSaving(true);
@@ -421,7 +456,15 @@ useEffect(() => {
               </FieldLabel>
               <LivingArrangementRadio
                 value={livingArrangement}
-                onChange={setLivingArrangement}
+                onChange={(value) => {
+                  clearError("livingArrangement");
+                  setLivingArrangement(value);
+                }}
+              />
+              <FieldMessage
+                error={errors.livingArrangement}
+                path="livingArrangement"
+                className="mt-2"
               />
 
               {livingArrangement === "Separate" && (
@@ -441,10 +484,14 @@ useEffect(() => {
                       type="text"
                       placeholder="e.g. 2 years"
                       value={rentDuration}
-                      onChange={(e) => setRentDuration(e.target.value)}
+                      onChange={(e) => {
+                        clearError("rentDuration");
+                        setRentDuration(e.target.value);
+                      }}
                       required
-                      className={inputClasses}
+                      className={fieldClassesFor(inputClasses, errors.rentDuration)}
                     />
+                    <FieldMessage error={errors.rentDuration} path="rentDuration" />
                   </div>
                   <div>
                     <label className="mb-1 block text-[13px] font-bold text-slate-900">
@@ -455,10 +502,14 @@ useEffect(() => {
                       min={0}
                       placeholder="e.g. 1,200"
                       value={monthlyRent}
-                      onChange={(e) => setMonthlyRent(e.target.value)}
+                      onChange={(e) => {
+                        clearError("monthlyRent");
+                        setMonthlyRent(e.target.value);
+                      }}
                       required
-                      className={inputClasses}
+                      className={fieldClassesFor(inputClasses, errors.monthlyRent)}
                     />
+                    <FieldMessage error={errors.monthlyRent} path="monthlyRent" />
                   </div>
                 </div>
               )}
@@ -476,22 +527,43 @@ useEffect(() => {
                 </InfoBanner>
               )}
               {livingArrangement === "ThirdParty" && (
-                <textarea
-                  placeholder="Please briefly describe your current third-party living arrangements (e.g., living with parents, employer-provided accommodation)..."
-                  value={thirdPartyDescription}
-                  onChange={(e) => setThirdPartyDescription(e.target.value)}
-                  required
-                  className={textareaClasses + " mt-3"}
-                />
+                <>
+                  <textarea
+                    placeholder="Please briefly describe your current third-party living arrangements (e.g., living with parents, employer-provided accommodation)..."
+                    value={thirdPartyDescription}
+                    onChange={(e) => {
+                      clearError("thirdPartyDescription");
+                      setThirdPartyDescription(e.target.value);
+                    }}
+                    required
+                    className={fieldClassesFor(
+                      textareaClasses + " mt-3",
+                      errors.thirdPartyDescription,
+                    )}
+                  />
+                  <FieldMessage
+                    error={errors.thirdPartyDescription}
+                    path="thirdPartyDescription"
+                  />
+                </>
               )}
               {livingArrangement === "Other" && (
-                <textarea
-                  placeholder="Please describe your current living arrangements..."
-                  value={otherDescription}
-                  onChange={(e) => setOtherDescription(e.target.value)}
-                  required
-                  className={textareaClasses + " mt-3"}
-                />
+                <>
+                  <textarea
+                    placeholder="Please describe your current living arrangements..."
+                    value={otherDescription}
+                    onChange={(e) => {
+                      clearError("otherDescription");
+                      setOtherDescription(e.target.value);
+                    }}
+                    required
+                    className={fieldClassesFor(
+                      textareaClasses + " mt-3",
+                      errors.otherDescription,
+                    )}
+                  />
+                  <FieldMessage error={errors.otherDescription} path="otherDescription" />
+                </>
               )}
             </div>
 
@@ -513,6 +585,7 @@ useEffect(() => {
                 value={hasSharedRealEstate}
                 onChange={handleSharedRealEstateToggle}
               />
+              <FieldMessage error={errors.hasSharedRealEstate} path="hasSharedRealEstate" className="mt-2" />
             </div>
             {hasSharedRealEstate === "Yes" && (
               <MatrixBox
@@ -524,11 +597,18 @@ useEffect(() => {
                   ])
                 }
                 addLabel="Add Shared Property"
+                error={errors.sharedRealEstate}
+                path="sharedRealEstate"
               >
                 {sharedRealEstate.map((row) => (
                   <RowItem
                     key={row.id}
-                    onDelete={() => removeRow(setSharedRealEstate, row.id)}
+                    onDelete={() => {
+                      clearError("sharedRealEstate");
+                      removeRow(setSharedRealEstate, row.id);
+                    }}
+                    issues={rowIssues(sharedRealEstate, "sharedRealEstate", row.id)}
+                    path={`sharedRealEstate.${sharedRealEstate.findIndex((r) => r.id === row.id)}`}
                   >
                     <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-2">
                       <input
@@ -536,7 +616,7 @@ useEffect(() => {
                         placeholder="Address Line 1"
                         value={row.addressLine1}
                         onChange={(e) =>
-                          updateRow(setSharedRealEstate, row.id, {
+                          editRow(sharedRealEstate, "sharedRealEstate", setSharedRealEstate, row.id, {
                             addressLine1: e.target.value,
                           })
                         }
@@ -548,7 +628,7 @@ useEffect(() => {
                         placeholder="Address Line 2 (Optional)"
                         value={row.addressLine2}
                         onChange={(e) =>
-                          updateRow(setSharedRealEstate, row.id, {
+                          editRow(sharedRealEstate, "sharedRealEstate", setSharedRealEstate, row.id, {
                             addressLine2: e.target.value,
                           })
                         }
@@ -561,7 +641,7 @@ useEffect(() => {
                         placeholder="Postcode"
                         value={row.postcode}
                         onChange={(e) =>
-                          updateRow(setSharedRealEstate, row.id, {
+                          editRow(sharedRealEstate, "sharedRealEstate", setSharedRealEstate, row.id, {
                             postcode: e.target.value,
                           })
                         }
@@ -571,7 +651,7 @@ useEffect(() => {
                       <select
                         value={row.propertyType}
                         onChange={(e) =>
-                          updateRow(setSharedRealEstate, row.id, {
+                          editRow(sharedRealEstate, "sharedRealEstate", setSharedRealEstate, row.id, {
                             propertyType: e.target.value,
                           })
                         }
@@ -588,10 +668,10 @@ useEffect(() => {
                         value={row.value}
                         unknown={row.valueUnknown}
                         onValueChange={(v) =>
-                          updateRow(setSharedRealEstate, row.id, { value: v })
+                          editRow(sharedRealEstate, "sharedRealEstate", setSharedRealEstate, row.id, { value: v })
                         }
                         onUnknownChange={(v) =>
-                          updateRow(setSharedRealEstate, row.id, {
+                          editRow(sharedRealEstate, "sharedRealEstate", setSharedRealEstate, row.id, {
                             valueUnknown: v,
                           })
                         }
@@ -606,7 +686,7 @@ useEffect(() => {
                         placeholder="Mortgage Balance"
                         value={row.mortgageBalance}
                         onChange={(e) =>
-                          updateRow(setSharedRealEstate, row.id, {
+                          editRow(sharedRealEstate, "sharedRealEstate", setSharedRealEstate, row.id, {
                             mortgageBalance: e.target.value,
                           })
                         }
@@ -618,7 +698,7 @@ useEffect(() => {
                         placeholder="Early Penalty Charges (£)"
                         value={row.earlyPenalty}
                         onChange={(e) =>
-                          updateRow(setSharedRealEstate, row.id, {
+                          editRow(sharedRealEstate, "sharedRealEstate", setSharedRealEstate, row.id, {
                             earlyPenalty: e.target.value,
                           })
                         }
@@ -634,7 +714,7 @@ useEffect(() => {
                           title="Please provide the current ownership split as recorded in any legal or beneficial ownership arrangements."
                           value={row.ownershipPercentage}
                           onChange={(e) =>
-                            updateRow(setSharedRealEstate, row.id, {
+                            editRow(sharedRealEstate, "sharedRealEstate", setSharedRealEstate, row.id, {
                               ownershipPercentage: e.target.value,
                             })
                           }
@@ -651,7 +731,7 @@ useEffect(() => {
                         <select
                           value={row.thirdPartyInterest}
                           onChange={(e) =>
-                            updateRow(setSharedRealEstate, row.id, {
+                            editRow(sharedRealEstate, "sharedRealEstate", setSharedRealEstate, row.id, {
                               thirdPartyInterest: e.target.value,
                             })
                           }
@@ -678,7 +758,7 @@ useEffect(() => {
                         placeholder="Specify who holds the interest (e.g. parent loan) and if a written agreement exists."
                         value={row.thirdPartyDetail}
                         onChange={(e) =>
-                          updateRow(setSharedRealEstate, row.id, {
+                          editRow(sharedRealEstate, "sharedRealEstate", setSharedRealEstate, row.id, {
                             thirdPartyDetail: e.target.value,
                           })
                         }
@@ -689,7 +769,7 @@ useEffect(() => {
                       id={row.id}
                       fields={row}
                       onChange={(f) =>
-                        updateRow(setSharedRealEstate, row.id, f)
+                        editRow(sharedRealEstate, "sharedRealEstate", setSharedRealEstate, row.id, f)
                       }
                       label="How should this property be treated?"
                       options={sharedTreatmentOptions}
@@ -718,6 +798,7 @@ useEffect(() => {
                 value={hasSharedSavings}
                 onChange={handleSharedSavingsToggle}
               />
+              <FieldMessage error={errors.hasSharedSavings} path="hasSharedSavings" className="mt-2" />
             </div>
             {hasSharedSavings === "Yes" && (
               <MatrixBox
@@ -726,17 +807,24 @@ useEffect(() => {
                   setSharedSavings((prev) => [...prev, makeSharedSavingsRow()])
                 }
                 addLabel="Add Savings / Investments"
+                error={errors.sharedSavings}
+                path="sharedSavings"
               >
                 {sharedSavings.map((row) => (
                   <RowItem
                     key={row.id}
-                    onDelete={() => removeRow(setSharedSavings, row.id)}
+                    onDelete={() => {
+                      clearError("sharedSavings");
+                      removeRow(setSharedSavings, row.id);
+                    }}
+                    issues={rowIssues(sharedSavings, "sharedSavings", row.id)}
+                    path={`sharedSavings.${sharedSavings.findIndex((r) => r.id === row.id)}`}
                   >
                     <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-[1fr_1.5fr]">
                       <select
                         value={row.accountHolder}
                         onChange={(e) =>
-                          updateRow(setSharedSavings, row.id, {
+                          editRow(sharedSavings, "sharedSavings", setSharedSavings, row.id, {
                             accountHolder: e.target.value,
                           })
                         }
@@ -753,7 +841,7 @@ useEffect(() => {
                         placeholder="Institution / Bank Name"
                         value={row.institution}
                         onChange={(e) =>
-                          updateRow(setSharedSavings, row.id, {
+                          editRow(sharedSavings, "sharedSavings", setSharedSavings, row.id, {
                             institution: e.target.value,
                           })
                         }
@@ -765,7 +853,7 @@ useEffect(() => {
                       <select
                         value={row.accountType}
                         onChange={(e) =>
-                          updateRow(setSharedSavings, row.id, {
+                          editRow(sharedSavings, "sharedSavings", setSharedSavings, row.id, {
                             accountType: e.target.value,
                           })
                         }
@@ -784,7 +872,7 @@ useEffect(() => {
                         placeholder="Valuation Balance (GBP)"
                         value={row.balance}
                         onChange={(e) =>
-                          updateRow(setSharedSavings, row.id, {
+                          editRow(sharedSavings, "sharedSavings", setSharedSavings, row.id, {
                             balance: e.target.value,
                           })
                         }
@@ -795,7 +883,7 @@ useEffect(() => {
                     <TreatmentSelect
                       id={row.id}
                       fields={row}
-                      onChange={(f) => updateRow(setSharedSavings, row.id, f)}
+                      onChange={(f) => editRow(sharedSavings, "sharedSavings", setSharedSavings, row.id, f)}
                       options={sharedTreatmentOptions}
                       tooltips={jointTreatmentTooltips}
                     />
@@ -821,6 +909,7 @@ useEffect(() => {
                 value={hasSharedBusinesses}
                 onChange={handleSharedBusinessesToggle}
               />
+              <FieldMessage error={errors.hasSharedBusinesses} path="hasSharedBusinesses" className="mt-2" />
             </div>
             {hasSharedBusinesses === "Yes" && (
               <MatrixBox
@@ -832,11 +921,18 @@ useEffect(() => {
                   ])
                 }
                 addLabel="Add Business"
+                error={errors.sharedBusinesses}
+                path="sharedBusinesses"
               >
                 {sharedBusinesses.map((row) => (
                   <RowItem
                     key={row.id}
-                    onDelete={() => removeRow(setSharedBusinesses, row.id)}
+                    onDelete={() => {
+                      clearError("sharedBusinesses");
+                      removeRow(setSharedBusinesses, row.id);
+                    }}
+                    issues={rowIssues(sharedBusinesses, "sharedBusinesses", row.id)}
+                    path={`sharedBusinesses.${sharedBusinesses.findIndex((r) => r.id === row.id)}`}
                   >
                     <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-[2fr_1fr] items-start">
                       <input
@@ -844,7 +940,7 @@ useEffect(() => {
                         placeholder="Registered Business Name"
                         value={row.name}
                         onChange={(e) =>
-                          updateRow(setSharedBusinesses, row.id, {
+                          editRow(sharedBusinesses, "sharedBusinesses", setSharedBusinesses, row.id, {
                             name: e.target.value,
                           })
                         }
@@ -854,7 +950,7 @@ useEffect(() => {
                       <select
                         value={row.entityType}
                         onChange={(e) =>
-                          updateRow(setSharedBusinesses, row.id, {
+                          editRow(sharedBusinesses, "sharedBusinesses", setSharedBusinesses, row.id, {
                             entityType: e.target.value,
                           })
                         }
@@ -874,7 +970,7 @@ useEffect(() => {
                         placeholder="Last Year Turnover (£)"
                         value={row.turnover}
                         onChange={(e) =>
-                          updateRow(setSharedBusinesses, row.id, {
+                          editRow(sharedBusinesses, "sharedBusinesses", setSharedBusinesses, row.id, {
                             turnover: e.target.value,
                           })
                         }
@@ -886,7 +982,7 @@ useEffect(() => {
                         placeholder="Last Year Net Profit (£)"
                         value={row.netProfit}
                         onChange={(e) =>
-                          updateRow(setSharedBusinesses, row.id, {
+                          editRow(sharedBusinesses, "sharedBusinesses", setSharedBusinesses, row.id, {
                             netProfit: e.target.value,
                           })
                         }
@@ -902,7 +998,7 @@ useEffect(() => {
                           title="Please provide the current ownership split as recorded in any legal or beneficial ownership arrangements."
                           value={row.ownershipPercent}
                           onChange={(e) =>
-                            updateRow(setSharedBusinesses, row.id, {
+                            editRow(sharedBusinesses, "sharedBusinesses", setSharedBusinesses, row.id, {
                               ownershipPercent: e.target.value,
                             })
                           }
@@ -920,12 +1016,12 @@ useEffect(() => {
                         value={row.valueOfStake}
                         unknown={row.valueUnknown}
                         onValueChange={(v) =>
-                          updateRow(setSharedBusinesses, row.id, {
+                          editRow(sharedBusinesses, "sharedBusinesses", setSharedBusinesses, row.id, {
                             valueOfStake: v,
                           })
                         }
                         onUnknownChange={(v) =>
-                          updateRow(setSharedBusinesses, row.id, {
+                          editRow(sharedBusinesses, "sharedBusinesses", setSharedBusinesses, row.id, {
                             valueUnknown: v,
                           })
                         }
@@ -945,7 +1041,7 @@ useEffect(() => {
                           value={row.valueUnknown ? "" : row.justification}
                           disabled={row.valueUnknown}
                           onChange={(e) =>
-                            updateRow(setSharedBusinesses, row.id, {
+                            editRow(sharedBusinesses, "sharedBusinesses", setSharedBusinesses, row.id, {
                               justification: e.target.value,
                             })
                           }
@@ -965,7 +1061,7 @@ useEffect(() => {
                         placeholder="Director Loan A/C Balance (£)"
                         value={row.directorLoanBalance}
                         onChange={(e) =>
-                          updateRow(setSharedBusinesses, row.id, {
+                          editRow(sharedBusinesses, "sharedBusinesses", setSharedBusinesses, row.id, {
                             directorLoanBalance: e.target.value,
                           })
                         }
@@ -976,7 +1072,7 @@ useEffect(() => {
                       id={row.id}
                       fields={row}
                       onChange={(f) =>
-                        updateRow(setSharedBusinesses, row.id, f)
+                        editRow(sharedBusinesses, "sharedBusinesses", setSharedBusinesses, row.id, f)
                       }
                       options={sharedTreatmentOptions}
                       tooltips={jointTreatmentTooltips}
@@ -1004,6 +1100,7 @@ useEffect(() => {
                 value={hasSharedIP}
                 onChange={handleSharedIPToggle}
               />
+              <FieldMessage error={errors.hasSharedIP} path="hasSharedIP" className="mt-2" />
             </div>
             {hasSharedIP === "Yes" && (
               <MatrixBox
@@ -1012,11 +1109,18 @@ useEffect(() => {
                   setSharedIP((prev) => [...prev, makeSharedIPRow()])
                 }
                 addLabel="Add Intellectual Property Asset"
+                error={errors.sharedIP}
+                path="sharedIP"
               >
                 {sharedIP.map((row) => (
                   <RowItem
                     key={row.id}
-                    onDelete={() => removeRow(setSharedIP, row.id)}
+                    onDelete={() => {
+                      clearError("sharedIP");
+                      removeRow(setSharedIP, row.id);
+                    }}
+                    issues={rowIssues(sharedIP, "sharedIP", row.id)}
+                    path={`sharedIP.${sharedIP.findIndex((r) => r.id === row.id)}`}
                   >
                     <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-[1.5fr_1fr]">
                       <input
@@ -1024,7 +1128,7 @@ useEffect(() => {
                         placeholder="Intellectual Property Name"
                         value={row.name}
                         onChange={(e) =>
-                          updateRow(setSharedIP, row.id, {
+                          editRow(sharedIP, "sharedIP", setSharedIP, row.id, {
                             name: e.target.value,
                           })
                         }
@@ -1034,7 +1138,7 @@ useEffect(() => {
                       <select
                         value={row.ipType}
                         onChange={(e) =>
-                          updateRow(setSharedIP, row.id, {
+                          editRow(sharedIP, "sharedIP", setSharedIP, row.id, {
                             ipType: e.target.value,
                           })
                         }
@@ -1063,10 +1167,10 @@ useEffect(() => {
                         value={row.value}
                         unknown={row.valueUnknown}
                         onValueChange={(v) =>
-                          updateRow(setSharedIP, row.id, { value: v })
+                          editRow(sharedIP, "sharedIP", setSharedIP, row.id, { value: v })
                         }
                         onUnknownChange={(v) =>
-                          updateRow(setSharedIP, row.id, { valueUnknown: v })
+                          editRow(sharedIP, "sharedIP", setSharedIP, row.id, { valueUnknown: v })
                         }
                         placeholder="Estimated Valuation (£)"
                         label={jointUnsureLabel}
@@ -1077,7 +1181,7 @@ useEffect(() => {
                         placeholder="Registration Number (Optional)"
                         value={row.registrationNumber}
                         onChange={(e) =>
-                          updateRow(setSharedIP, row.id, {
+                          editRow(sharedIP, "sharedIP", setSharedIP, row.id, {
                             registrationNumber: e.target.value,
                           })
                         }
@@ -1088,7 +1192,7 @@ useEffect(() => {
                       placeholder="Brief description (optional)"
                       value={row.description}
                       onChange={(e) =>
-                        updateRow(setSharedIP, row.id, {
+                        editRow(sharedIP, "sharedIP", setSharedIP, row.id, {
                           description: e.target.value,
                         })
                       }
@@ -1097,7 +1201,7 @@ useEffect(() => {
                     <TreatmentSelect
                       id={row.id}
                       fields={row}
-                      onChange={(f) => updateRow(setSharedIP, row.id, f)}
+                      onChange={(f) => editRow(sharedIP, "sharedIP", setSharedIP, row.id, f)}
                       options={sharedTreatmentOptions}
                       tooltips={jointTreatmentTooltips}
                     />
@@ -1125,6 +1229,7 @@ useEffect(() => {
                 value={hasSharedChattels}
                 onChange={handleSharedChattelsToggle}
               />
+              <FieldMessage error={errors.hasSharedChattels} path="hasSharedChattels" className="mt-2" />
             </div>
             {hasSharedChattels === "Yes" && (
               <MatrixBox
@@ -1133,11 +1238,18 @@ useEffect(() => {
                   setSharedChattels((prev) => [...prev, makeSharedChattelRow()])
                 }
                 addLabel="Add Asset Entry"
+                error={errors.sharedChattels}
+                path="sharedChattels"
               >
                 {sharedChattels.map((row) => (
                   <RowItem
                     key={row.id}
-                    onDelete={() => removeRow(setSharedChattels, row.id)}
+                    onDelete={() => {
+                      clearError("sharedChattels");
+                      removeRow(setSharedChattels, row.id);
+                    }}
+                    issues={rowIssues(sharedChattels, "sharedChattels", row.id)}
+                    path={`sharedChattels.${sharedChattels.findIndex((r) => r.id === row.id)}`}
                   >
                     <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-[2fr_1.5fr_1fr] items-start">
                       <input
@@ -1145,7 +1257,7 @@ useEffect(() => {
                         placeholder="Asset Description / Name"
                         value={row.description}
                         onChange={(e) =>
-                          updateRow(setSharedChattels, row.id, {
+                          editRow(sharedChattels, "sharedChattels", setSharedChattels, row.id, {
                             description: e.target.value,
                           })
                         }
@@ -1155,7 +1267,7 @@ useEffect(() => {
                       <select
                         value={row.category}
                         onChange={(e) =>
-                          updateRow(setSharedChattels, row.id, {
+                          editRow(sharedChattels, "sharedChattels", setSharedChattels, row.id, {
                             category: e.target.value,
                           })
                         }
@@ -1174,10 +1286,10 @@ useEffect(() => {
                         value={row.value}
                         unknown={row.valueUnknown}
                         onValueChange={(v) =>
-                          updateRow(setSharedChattels, row.id, { value: v })
+                          editRow(sharedChattels, "sharedChattels", setSharedChattels, row.id, { value: v })
                         }
                         onUnknownChange={(v) =>
-                          updateRow(setSharedChattels, row.id, {
+                          editRow(sharedChattels, "sharedChattels", setSharedChattels, row.id, {
                             valueUnknown: v,
                           })
                         }
@@ -1189,7 +1301,7 @@ useEffect(() => {
                     <TreatmentSelect
                       id={row.id}
                       fields={row}
-                      onChange={(f) => updateRow(setSharedChattels, row.id, f)}
+                      onChange={(f) => editRow(sharedChattels, "sharedChattels", setSharedChattels, row.id, f)}
                       options={sharedTreatmentOptions}
                       tooltips={jointTreatmentTooltips}
                     />
@@ -1217,6 +1329,7 @@ useEffect(() => {
                 value={hasSharedOtherAssets}
                 onChange={handleSharedOtherAssetsToggle}
               />
+              <FieldMessage error={errors.hasSharedOtherAssets} path="hasSharedOtherAssets" className="mt-2" />
             </div>
             {hasSharedOtherAssets === "Yes" && (
               <MatrixBox
@@ -1228,11 +1341,18 @@ useEffect(() => {
                   ])
                 }
                 addLabel="Add Other Shared Asset"
+                error={errors.sharedOtherAssets}
+                path="sharedOtherAssets"
               >
                 {sharedOtherAssets.map((row) => (
                   <RowItem
                     key={row.id}
-                    onDelete={() => removeRow(setSharedOtherAssets, row.id)}
+                    onDelete={() => {
+                      clearError("sharedOtherAssets");
+                      removeRow(setSharedOtherAssets, row.id);
+                    }}
+                    issues={rowIssues(sharedOtherAssets, "sharedOtherAssets", row.id)}
+                    path={`sharedOtherAssets.${sharedOtherAssets.findIndex((r) => r.id === row.id)}`}
                   >
                     <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-[2fr_1fr] items-start">
                       <input
@@ -1240,7 +1360,7 @@ useEffect(() => {
                         placeholder="Shared Asset Description (e.g. Joint Art Collection, Joint Foreign Asset)"
                         value={row.description}
                         onChange={(e) =>
-                          updateRow(setSharedOtherAssets, row.id, {
+                          editRow(sharedOtherAssets, "sharedOtherAssets", setSharedOtherAssets, row.id, {
                             description: e.target.value,
                           })
                         }
@@ -1252,10 +1372,10 @@ useEffect(() => {
                         value={row.value}
                         unknown={row.valueUnknown}
                         onValueChange={(v) =>
-                          updateRow(setSharedOtherAssets, row.id, { value: v })
+                          editRow(sharedOtherAssets, "sharedOtherAssets", setSharedOtherAssets, row.id, { value: v })
                         }
                         onUnknownChange={(v) =>
-                          updateRow(setSharedOtherAssets, row.id, {
+                          editRow(sharedOtherAssets, "sharedOtherAssets", setSharedOtherAssets, row.id, {
                             valueUnknown: v,
                           })
                         }
@@ -1268,7 +1388,7 @@ useEffect(() => {
                       id={row.id}
                       fields={row}
                       onChange={(f) =>
-                        updateRow(setSharedOtherAssets, row.id, f)
+                        editRow(sharedOtherAssets, "sharedOtherAssets", setSharedOtherAssets, row.id, f)
                       }
                       label="How should this shared asset be treated?"
                       options={sharedTreatmentOptions}
@@ -1288,6 +1408,7 @@ useEffect(() => {
                 label="Save & continue"
                 withArrow
                 backHref="/dashboard/liabilities_debts"
+                errorSummary={summary}
               />
             ) : (
               <div className="mt-8 flex flex-col gap-4 pt-6 sm:flex-row sm:items-center sm:justify-between border-t border-slate-200/80">

@@ -14,6 +14,8 @@
 // PRE_LAWYER_PENDING and LAWYER_REVIEW exist in the enum but nothing sets them;
 // they are still accepted below so older cases are not lost.
 
+import { isCasePaid } from "@/lib/casePayment";
+
 export interface CaseStageFacts {
   workflowStage: string;
   isPaid: boolean;
@@ -43,17 +45,12 @@ const idOf = (ref: any): string =>
 
 /** Pull the stage-related facts out of a raw case from the API. */
 export function toStageFacts(item: any): CaseStageFacts {
-  const rawPayment = String(item.paymentStatus || "").toUpperCase();
   const approval = item.approval || {};
   const user1Approved = Boolean(approval.user1Approved);
   const user2Approved = Boolean(approval.user2Approved);
   return {
     workflowStage: item.workflowStatus || "DRAFT",
-    // A refund does not clear paymentCompleted, so refunded wins.
-    isPaid:
-      rawPayment !== "REFUNDED" &&
-      rawPayment !== "PARTIALLY_REFUNDED" &&
-      Boolean(item.paymentCompleted || rawPayment === "COMPLETED"),
+    isPaid: isCasePaid(item),
     partnerJoined: Boolean(item.invitedUser),
     user1Approved,
     user2Approved,

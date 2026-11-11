@@ -5,17 +5,17 @@ import { getCasesDetails } from "../asyncThunk/casesThunk";
 import { getFreshProfile } from "../asyncThunk/authThunk";
 import type { CaseApproval, CaseDetails, CasesState, SectionStatus } from "@/types/store/cases-slice";
 
-/* ---------- Shared sub-shapes ---------- */
-// Keyed by section name. Only "myInformation" is guaranteed present early
-// on — the rest appear once that section has actually been touched.
-/* ---------- Slice state ---------- */
 const initialState: CasesState = {
   isLoading: false,
+  hasLoaded: false,
   caseId: null,
   caseNumber: null,
   title: "",
   owner: null,
   invitedUser : null,
+  paymentCompleted : false,
+  paymentStatus: "PENDING",
+  payment: null,
   partnerInvited: false,
   invitedEmail: null,
   status: {},
@@ -40,8 +40,6 @@ const CasesSlice = createSlice({
         state.approval = { ...state.approval, ...action.payload };
       }
     },
-    // Set right after the service selector saves, so the dashboard status
-    // updates without waiting for the case to be refetched.
     setAgreementType(state, action: PayloadAction<string | null>) {
       state.agreementType = action.payload;
     },
@@ -57,9 +55,6 @@ const CasesSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // The user was unlinked from, or moved to, another case (partner removed
-      // by staff, or an invitation accepted): never keep showing the old one.
-      // Clients only: staff open arbitrary cases and have no case of their own.
       .addCase(getFreshProfile.fulfilled, (state, { payload }) => {
         if (payload?.user?.role !== "end_user") return;
         const current = payload.user.inviteCaseId;
@@ -74,10 +69,14 @@ const CasesSlice = createSlice({
         getCasesDetails.fulfilled,
         (state, { payload }: PayloadAction<CaseDetails>) => {
           state.isLoading = false;
+          state.hasLoaded = true;
           state.caseId = payload._id;
           state.caseNumber = payload.caseNumber ?? null;
           state.title = payload.title;
           state.owner = payload.owner;
+          state.paymentCompleted = payload.paymentCompleted;
+          state.paymentStatus = payload.paymentStatus ?? "PENDING";
+          state.payment = payload.payment ?? null;
           state.invitedUser = payload.invitedUser;
           state.partnerInvited = Boolean(payload.partnerInvited);
           state.invitedEmail = payload.invitedEmail ?? null;
@@ -97,6 +96,9 @@ const CasesSlice = createSlice({
       )
       .addCase(getCasesDetails.rejected, (state) => {
         state.isLoading = false;
+        // Settled, just not with a case. Anything waiting on the fetch has to
+        // stop waiting -- leaving this false would keep it loading for good.
+        state.hasLoaded = true;
         state.status = {};
         state.owner = null;
       });

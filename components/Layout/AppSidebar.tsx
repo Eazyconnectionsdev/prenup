@@ -18,6 +18,7 @@ import { getCasesDetails } from "@/store/asyncThunk/casesThunk";
 import { resolvePartyInformation } from "@/lib/caseSections";
 import { useJointSectionStatus } from "@/hooks/useJointSectionStatus";
 import { isCaseManagerApproved } from "@/lib/caseStage";
+import { isCasePaid } from "@/lib/casePayment";
 import {
   activeLeafFromPath,
   FINANCIAL_LEAFS,
@@ -39,11 +40,7 @@ import {
   type StepGroup,
 } from "./sidebar-routes";
 
-/* ------------------------------------------------------------------ */
-/* Pieces the sidebar is drawn with                                    */
-/* ------------------------------------------------------------------ */
 
-// The violet bar that marks the active item, flush against the sidebar edge
 function ActiveRail() {
   return (
     <span className="absolute -left-3 top-1/2 h-7 w-[3px] -translate-y-1/2 rounded-r-full bg-[#8B87FF] shadow-[0_0_10px_rgba(139,135,255,0.75)]" />
@@ -53,8 +50,6 @@ function ActiveRail() {
 function Collapse({
   open,
   children,
-  // Widens the clipping box. The rail and its dots hang to the left of the
-  // content, and `overflow-hidden` would otherwise cut them off.
   bleed,
 }: {
   open: boolean;
@@ -104,7 +99,6 @@ function StepHeader({
   number: number;
   title: string;
   subtitle?: string;
-  // Drives the thin completion bar under the subtitle
   progress?: { done: number; total: number };
   open?: boolean;
   active?: boolean;
@@ -443,7 +437,10 @@ export default function AppSidebar() {
     approval,
     fullyLocked,
     workflowStatus,
+    paymentCompleted,
+    paymentStatus,
   } = useSelector((state: RootState) => state.cases);
+
   const user = useSelector((state: RootState) => state.auth.user);
   const { lockedOut } = useJointSectionStatus();
 
@@ -513,7 +510,8 @@ export default function AppSidebar() {
 
   /* ---- What is locked, and why ---- */
 
-  const isPaymentDone = true;
+  const isPaymentDone = isCasePaid({ paymentCompleted, paymentStatus });
+
   const bothApproved = Boolean(
     approval?.user1Approved && approval?.user2Approved,
   );
@@ -534,6 +532,7 @@ export default function AppSidebar() {
   const lockedSubtitle = "Confirmed and locked";
 
   const agreementStepLocked = caseLocked || senderLocked;
+
   const isLeafLocked = (leafId: string) =>
     caseLocked || (!isPaymentDone && leafId !== "personal-info");
   const leafLockReason = caseLocked ? LOCK_REASON : undefined;
@@ -715,14 +714,12 @@ export default function AppSidebar() {
   return (
     <aside className="flex h-screen w-[315px] flex-shrink-0 flex-col bg-gradient-to-b from-[#1B1E52] via-[#15183F] to-[#101233] font-sans text-white shadow-[8px_0_30px_rgba(10,10,40,0.35)]">
       <div className="flex items-center px-5 pb-5 pt-6">
-        {/* The artwork carries the wordmark, so no text beside it. */}
         <Link href="/dashboard" aria-label="Lets Prenup dashboard">
           <BrandLogo surface="dark" height={30} priority />
         </Link>
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 pb-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {/* Dashboard */}
         <Link
           href="/dashboard"
           aria-current={isDashboardHome ? "page" : undefined}

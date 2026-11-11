@@ -31,7 +31,8 @@ const DEFAULT_FILTERS: LawyerFilterState = {
   search: "",
 };
 
-const isCompleted = (status: string) => status === "CLOSED" || status === "ARCHIVED";
+const isCompleted = (status: string) =>
+  status === "COMPLETED" || status === "CLOSED" || status === "ARCHIVED";
 
 const getStatusBadgeStyle = (status: string) => {
   switch (status) {

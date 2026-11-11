@@ -16,7 +16,8 @@ const MENU_ITEMS = [
   { path: "/lawyer/settings", label: "Settings" },
 ];
 
-const isCompleted = (status: string) => status === "CLOSED" || status === "ARCHIVED";
+const isCompleted = (status: string) =>
+  status === "COMPLETED" || status === "CLOSED" || status === "ARCHIVED";
 
 export const LawyerSidebar: React.FC = () => {
   const router = useRouter();
