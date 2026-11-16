@@ -1,4 +1,4 @@
-﻿export interface SectionStatus {
+export interface SectionStatus {
   submitted: boolean;
   submittedBy: string | null;
   submittedAt: string | null;
@@ -105,6 +105,12 @@ export interface CaseDetails {
   invitedUser: userType;
   invitedEmail: string | null;
   partnerInvited: boolean;
+  partnerInviteDetails?: {
+    firstName?: string;
+    middleName?: string;
+    lastName?: string;
+    email?: string;
+  } | null;
   paymentCompleted: boolean;
   // PENDING | INITIATED | FAILED | COMPLETED | REFUNDED
   paymentStatus?: string;
@@ -157,6 +163,12 @@ export interface CasesState {
   // appears once the partner has accepted and registered.
   partnerInvited: boolean;
   invitedEmail: string | null;
+  partnerInviteDetails?: {
+    firstName?: string;
+    middleName?: string;
+    lastName?: string;
+    email?: string;
+  } | null;
   status: CaseStatus;
   preQuestionnaireUser1: PreQuestionnaire | Record<string, never>;
   preQuestionnaireUser2: PreQuestionnaire | Record<string, never>;

@@ -58,36 +58,55 @@ export const PartnerDetailsForm: React.FC<PartnerDetailsFormProps> = ({
 
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
         <fieldset disabled={locked} className="space-y-5 min-w-0">
-          {/* First Name */}
-          <div className="space-y-2">
-            <label htmlFor="partner-firstname" className={labelClass}>
-              Legal First Name *
-            </label>
-            <input
-              id="partner-firstname"
-              type="text"
-              autoComplete="off"
-              value={partnerData.firstName}
-              onChange={(e) => onChange({ firstName: e.target.value })}
-              placeholder="First name"
-              className={inputClass}
-            />
-          </div>
+          {/* Legal Names (First, Middle, Last) in one line */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* First Name */}
+            <div className="space-y-2">
+              <label htmlFor="partner-firstname" className={labelClass}>
+                Legal First Name *
+              </label>
+              <input
+                id="partner-firstname"
+                type="text"
+                autoComplete="off"
+                value={partnerData.firstName}
+                onChange={(e) => onChange({ firstName: e.target.value })}
+                placeholder="First Name"
+                className={inputClass}
+              />
+            </div>
 
-          {/* Last Name */}
-          <div className="space-y-2">
-            <label htmlFor="partner-lastname" className={labelClass}>
-              Last Name *
-            </label>
-            <input
-              id="partner-lastname"
-              type="text"
-              autoComplete="off"
-              value={partnerData.lastName}
-              onChange={(e) => onChange({ lastName: e.target.value })}
-              placeholder="Enter your Partner's last name"
-              className={inputClass}
-            />
+            {/* Middle Name */}
+            <div className="space-y-2">
+              <label htmlFor="partner-middlename" className={labelClass}>
+                Legal Middle Name
+              </label>
+              <input
+                id="partner-middlename"
+                type="text"
+                autoComplete="off"
+                value={partnerData.middleName || ""}
+                onChange={(e) => onChange({ middleName: e.target.value })}
+                placeholder="Middle Name"
+                className={inputClass}
+              />
+            </div>
+
+            {/* Last Name */}
+            <div className="space-y-2">
+              <label htmlFor="partner-lastname" className={labelClass}>
+                Legal Last Name *
+              </label>
+              <input
+                id="partner-lastname"
+                type="text"
+                autoComplete="off"
+                value={partnerData.lastName}
+                onChange={(e) => onChange({ lastName: e.target.value })}
+                placeholder="Last Name"
+                className={inputClass}
+              />
+            </div>
           </div>
 
           {/* Email */}
