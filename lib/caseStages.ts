@@ -151,6 +151,27 @@ export function countByStageFilter(
   return out;
 }
 
+/**
+ * The case manager portal's stage filter: one list behind the dashboard tiles
+ * and the Cases page "Workflow Stage" dropdown. Each value is a RULES key, or a
+ * plain workflowStatus that matchesStageFilter compares directly.
+ */
+export const STAGE_FILTERS: { value: string; label: string }[] = [
+  { value: "NOT_PAID", label: "Not Paid" },
+  { value: "PARTNER_NOT_JOINED", label: "Partner Not Joined" },
+  { value: "APPLICANT_DRAFTING", label: "Applicant Drafting" },
+  { value: "PARTNER_REVIEW", label: "Partner Review" },
+  { value: "CM_NOT_ASSIGNED", label: "Case Manager Not Assigned" },
+  { value: "MY_ACTIVE_REVIEWS", label: "Case Manager Review — My Active Reviews" },
+  { value: "PRE_LAWYER_PENDING", label: "Pre-Lawyer Questionnaire Pending" },
+  { value: "LAWYER_ASSIGNMENT_PENDING", label: "Lawyer Assignment Pending" },
+  { value: "LEGAL_REVIEW", label: "Legal Review" },
+  { value: "LAWYER_ILA_PENDING", label: "Independent Legal Advice (ILA)" },
+  { value: "COMPLETED", label: "Completion & Execution" },
+  { value: "READY_FOR_ARCHIVE", label: "Ready for Archive" },
+  { value: "ARCHIVED", label: "Archived" },
+];
+
 /** The lawyer portal's stage filter: one list behind its cards and its dropdown. */
 export const LAWYER_STAGES = [
   { value: "ALL", label: "Total Cases" },
