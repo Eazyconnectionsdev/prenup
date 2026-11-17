@@ -10,16 +10,19 @@ import { toast } from "react-toastify";
 import { getErrorMessage } from "@/lib/getErrorMessage";
 
 import { useDispatch, useSelector } from "react-redux";
-import { RootState } from "@/store/store";
+import { AppDispatch, RootState } from "@/store/store";
+import { getCasesDetails } from "@/store/asyncThunk/casesThunk";
 import type { PartnerData, TimelineEvent } from "@/types/invite-partner";
 
 export default function InvitePartnerPage() {
   const { user } = useSelector((state: RootState) => state.auth);
+  const dispatch = useDispatch<AppDispatch>();
 
   const [justSent, setJustSent] = useState(false);
 
   const [partnerData, setPartnerData] = useState<PartnerData>({
     firstName: "",
+    middleName: "",
     lastName: "",
     email: "",
     targetWeddingDate: "",
@@ -48,6 +51,7 @@ export default function InvitePartnerPage() {
       setPartnerData((prev) => ({
         ...prev,
         firstName: inv.invitee.firstName ?? "",
+        middleName: (inv.invitee as any)?.middleName ?? "",
         lastName: inv.invitee.lastName ?? "",
         email: inv.invitee.email ?? "",
         mobileNumber: inv.invitee.mobileNumber ?? "",
@@ -71,10 +75,11 @@ export default function InvitePartnerPage() {
         nameDiffers: inv.nameDiffers,
         linkOnHold: Boolean(inv.conflict?.open),
       }));
+      dispatch(getCasesDetails(user.inviteCaseId));
     } catch (error) {
       toast.error(getErrorMessage(error, "Unable to load your invitation"));
     }
-  }, [user?.inviteCaseId]);
+  }, [user?.inviteCaseId, dispatch]);
 
   useEffect(() => {
     loadInvite();
@@ -135,6 +140,7 @@ export default function InvitePartnerPage() {
     try {
       await Axios.post(`cases/${user.inviteCaseId}/invite`, {
         firstName: partnerData.firstName.trim(),
+        middleName: partnerData.middleName?.trim() || undefined,
         lastName: partnerData.lastName.trim(),
         email: partnerData.email.trim().toLowerCase(),
       });
@@ -144,6 +150,7 @@ export default function InvitePartnerPage() {
           ? "Invitation sent"
           : "Invitation updated and re-sent"
       );
+      await dispatch(getCasesDetails(user.inviteCaseId));
       await loadInvite();
     } catch (error: any) {
       toast.error(getErrorMessage(error?.response?.data, "Unable to send the invitation"));

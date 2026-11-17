@@ -4,6 +4,7 @@ export type InvitationStateStatus = 'DRAFT' | 'INVITATION_SENT';
 
 export interface PartnerData {
   firstName: string;
+  middleName?: string;
   lastName: string;
   email: string;
   mobileNumber?: string;

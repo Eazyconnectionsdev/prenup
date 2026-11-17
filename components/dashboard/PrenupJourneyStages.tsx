@@ -60,19 +60,19 @@ function Row({
   return (
     <div className="flex items-center gap-4 rounded-2xl border border-[#EDEDF5] bg-white px-4 py-4">
       <div
-        className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-sm ${tile}`}
+        className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-white text-lg font-bold shadow-sm ${tile}`}
       >
-        {icon}
+        {badge}
       </div>
 
-      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#EDE9FE] text-xs font-bold text-[#6D28D9]">
-        {badge}
+      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#EDE9FE] text-[#6D28D9]">
+        {icon}
       </div>
 
       <div className="min-w-0 flex-1">
         <div className="text-sm font-semibold text-[#1E1B3C]">{title}</div>
         {description && (
-          <div className="mt-0.5 max-w-md text-xs text-[#8A8AA0]">
+          <div className="mt-1.5 max-w-md text-xs font-medium text-[#4B5563]">
             {description}
           </div>
         )}
