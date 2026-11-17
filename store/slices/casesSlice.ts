@@ -18,6 +18,7 @@ const initialState: CasesState = {
   payment: null,
   partnerInvited: false,
   invitedEmail: null,
+  partnerInviteDetails: null,
   status: {},
   preQuestionnaireUser1: {},
   preQuestionnaireUser2: {},
@@ -80,6 +81,7 @@ const CasesSlice = createSlice({
           state.invitedUser = payload.invitedUser;
           state.partnerInvited = Boolean(payload.partnerInvited);
           state.invitedEmail = payload.invitedEmail ?? null;
+          state.partnerInviteDetails = payload.partnerInviteDetails ?? null;
           state.status = payload.status;
           state.preQuestionnaireUser1 = payload.preQuestionnaireUser1;
           state.preQuestionnaireUser2 = payload.preQuestionnaireUser2;

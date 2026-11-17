@@ -12,9 +12,10 @@ import {
 } from "lucide-react";
 import { FaUserPlus } from "react-icons/fa6";
 import { LuChartNoAxesCombined } from "react-icons/lu";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
-import { RootState } from "@/store/store";
+import { AppDispatch, RootState } from "@/store/store";
+import { getCasesDetails } from "@/store/asyncThunk/casesThunk";
 import {
   calculateOverallProgress,
   MY_PARTNER_KEYS,
@@ -41,9 +42,8 @@ import StatCard, {
 const steps: StepConfig[] = [
   {
     id: "questionnaire",
-    title: "Fill out your questionnaire",
-    description:
-      "Select your prenup terms. We guide you through state-specific processes.",
+    title: "My Questionnaire",
+    description: "Complete your personal details & terms",
     cta: "Select Terms",
     completedLabel: "Completed",
     icon: (
@@ -61,8 +61,8 @@ const steps: StepConfig[] = [
   },
   {
     id: "partner_questionnaire",
-    title: "Partners Questionnaire",
-    description: "Your partner prenup terms.",
+    title: "Partner Questionnaire",
+    description: "Your partner completes their details & terms.",
     cta: "Select Terms",
     completedLabel: "Completed",
     icon: (
@@ -81,8 +81,7 @@ const steps: StepConfig[] = [
   {
     id: "joint_questionnaire",
     title: "Joint Questionnaire",
-    description:
-      "Select your Joint terms. We guide you through state-specific processes.",
+    description: "Work through the joint agreement terms.",
     cta: "Select Terms",
     completedLabel: "Completed",
     icon: (
@@ -102,7 +101,7 @@ const steps: StepConfig[] = [
   {
     id: "final_review",
     title: "Final Review & Confirmation",
-    description: "Your Contract is Almost done!",
+    description: "Review and confirm your agreement.",
     cta: "Review & Confirm",
     completedLabel: "Completed",
     icon: (
@@ -178,6 +177,46 @@ function ProgressDial({
   );
 }
 
+function CircularProgress({ percent }: { percent: number }) {
+  const size = 48;
+  const stroke = 3.5;
+  const center = size / 2;
+  const radius = center - stroke / 2;
+  const circumference = 2 * Math.PI * radius;
+  const filled = (circumference * Math.min(Math.max(percent, 0), 100)) / 100;
+
+  return (
+    <div className="relative h-12 w-12 flex-shrink-0" title={`${percent}% Complete`}>
+      <svg viewBox={`0 0 ${size} ${size}`} className="h-12 w-12 -rotate-90">
+        <circle cx={center} cy={center} r={center} fill="#F6F6FB" />
+        <circle
+          cx={center}
+          cy={center}
+          r={radius}
+          fill="none"
+          stroke="#EDEDF5"
+          strokeWidth={stroke}
+        />
+        <circle
+          cx={center}
+          cy={center}
+          r={radius}
+          fill="none"
+          stroke="#6D4AFF"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={circumference - filled}
+          className="transition-[stroke-dashoffset] duration-500 ease-out"
+        />
+      </svg>
+      <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-[#1E1B3C]">
+        {percent}%
+      </span>
+    </div>
+  );
+}
+
 function StepTrack({ completed, total }: { completed: number; total: number }) {
   if (total <= 0) {
     return <div className="h-1.5 w-full rounded-full bg-[#EDEDF5]" />;
@@ -228,17 +267,38 @@ type PopupId =
 
 export default function PrenupDashboard() {
   const router = useRouter();
+  const dispatch = useDispatch<AppDispatch>();
 
   const { user } = useSelector((state: RootState) => state.auth);
   const cases = useSelector((state: RootState) => state.cases);
 
   const isUser1 = user?.endUserType === "user1";
-  const isUser2 = user?.endUserType === "user2";
+  const isUser2 =
+    user?.endUserType === "user2" ||
+    (Boolean(cases?.owner?._id) &&
+      String(user?._id) === String((cases as any)?.invitedUser?._id));
 
   const [invite, setInvite] = useState<InviteSummary | null | undefined>(
     undefined,
   );
   const inviteCaseId = user?.inviteCaseId;
+
+  // Re-fetch latest case state on mount or when case ID changes
+  useEffect(() => {
+    if (inviteCaseId) {
+      dispatch(getCasesDetails(inviteCaseId));
+    }
+  }, [inviteCaseId, dispatch]);
+
+  // Also refresh when tab is focused
+  useEffect(() => {
+    if (!inviteCaseId) return;
+    const handleFocus = () => {
+      dispatch(getCasesDetails(inviteCaseId));
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [inviteCaseId, dispatch]);
 
   // Only user 1 sends invites, so only user 1 has one to look up.
   const expectsInvite = Boolean(inviteCaseId) && isUser1;
@@ -254,7 +314,12 @@ export default function PrenupDashboard() {
     let cancelled = false;
     Axios.get(`cases/${inviteCaseId}/invite`)
       .then(({ data }) => {
-        if (!cancelled) setInvite(data?.invite ?? null);
+        if (!cancelled) {
+          setInvite(data?.invite ?? null);
+          if (data?.invite) {
+            dispatch(getCasesDetails(inviteCaseId));
+          }
+        }
       })
       .catch(() => {})
       .finally(() => {
@@ -264,22 +329,49 @@ export default function PrenupDashboard() {
     return () => {
       cancelled = true;
     };
-  }, [inviteCaseId, expectsInvite]);
+  }, [inviteCaseId, expectsInvite, dispatch]);
 
   const isPartnerInvited =
-    invite === undefined ? Boolean(cases?.invitedEmail) : invite !== null;
+    Boolean(cases?.partnerInvited) ||
+    Boolean(cases?.invitedEmail) ||
+    (invite === undefined ? false : invite !== null);
   const hasP2Joined = Boolean((cases as any)?.invitedUser?._id);
+  const isPartnerComplete = isUser2 || hasP2Joined || isPartnerInvited;
+  const isBothCompleted = Boolean(cases?.agreementType) && isPartnerComplete;
 
-  const partnerName =
-    [cases?.invitedUser?.firstName, cases?.invitedUser?.lastName]
+  const ownerName =
+    [cases?.owner?.firstName, cases?.owner?.lastName]
       .filter(Boolean)
       .join(" ")
-      .trim() || "Your partner";
-  const partnerEmail =
-    cases?.invitedUser?.email ??
-    invite?.invitee?.email ??
-    cases?.invitedEmail ??
-    "";
+      .trim() ||
+    cases?.owner?.email ||
+    "Your partner";
+
+  const inviteName = [
+    cases?.partnerInviteDetails?.firstName,
+    cases?.partnerInviteDetails?.lastName,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+  const invitedUserName = [
+    cases?.invitedUser?.firstName,
+    cases?.invitedUser?.lastName,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+  const partnerName = isUser2
+    ? ownerName
+    : invitedUserName || inviteName || cases?.invitedEmail || "Your partner";
+  const partnerEmail = isUser2
+    ? cases?.owner?.email ?? ""
+    : cases?.invitedUser?.email ??
+      invite?.invitee?.email ??
+      cases?.invitedEmail ??
+      "";
 
   const { mine: myQuestData, theirs: partnerQuestData } =
     resolvePartyInformation(
@@ -582,117 +674,132 @@ export default function PrenupDashboard() {
           </p>
         </div>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
-          <StatCard
-            label="Overall progress"
-            icon={<LuChartNoAxesCombined className="h-5 w-5 text-[#6D4AFF]" />}
-            value={
-              <>
-                {progressResult?.percentage || 0}
-                <span className="text-lg">%</span>
-              </>
-            }
-            valueAside={
-              <ProgressDial
-                percent={progressResult?.percentage || 0}
-                completed={progressResult?.completed || 0}
-                total={progressResult?.total || 0}
-              />
-            }
-            subtitle={
-              <StepTrack
-                completed={progressResult?.completed || 0}
-                total={progressResult?.total || 0}
-              />
-            }
-            action={
-              <span className={statCardCaptionClasses}>steps complete</span>
-            }
-          />
+        {!isBothCompleted && (
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            <StatCard
+              label="Progress"
+              icon={<LuChartNoAxesCombined className="h-5 w-5 text-[#6D4AFF]" />}
+              value={
+                <>
+                  {progressResult?.percentage || 0}
+                  <span className="text-lg">%</span>
+                </>
+              }
+              valueAside={
+                <ProgressDial
+                  percent={progressResult?.percentage || 0}
+                  completed={progressResult?.completed || 0}
+                  total={progressResult?.total || 0}
+                />
+              }
+              subtitle={
+                <StepTrack
+                  completed={progressResult?.completed || 0}
+                  total={progressResult?.total || 0}
+                />
+              }
+              action={
+                <span className={statCardCaptionClasses}>steps complete</span>
+              }
+            />
 
-          <ServiceStatus
-            agreementType={cases?.agreementType}
-            approved={isLegalAdviceStage}
-          />
+            <ServiceStatus
+              agreementType={cases?.agreementType}
+              approved={isLegalAdviceStage}
+            />
 
-          {isUser2 ? (
-            <StatCard
-              label="Support"
-              icon={<BookOpen className="h-5 w-5 text-[#6D4AFF]" />}
-              value="Need help?"
-              subtitle="Visit our guidance resources."
-            />
-          ) : hasP2Joined ? (
-            <StatCard
-              label="Your partner"
-              icon={
-                isLegalAdviceStage ? (
-                  <ApprovedPill />
-                ) : (
-                  <UserRoundCheck className="h-5 w-5 text-[#6D4AFF]" />
-                )
-              }
-              value={partnerName}
-              subtitle={partnerEmail || "Partner has joined your case"}
-              subtitleTooltip={partnerEmail || undefined}
-              /* Nothing left to do here, so the slot holds a state, not a
-                 button — which also keeps the card's height steady. */
-              action={
-                isLegalAdviceStage ? (
-                  <span className={statCardCaptionClasses}>Completed</span>
-                ) : (
-                  <span className={statCardBadgeClasses}>
-                    <Check className="h-3.5 w-3.5" aria-hidden="true" />
-                    Joined
-                  </span>
-                )
-              }
-            />
-          ) : isPartnerInvited ? (
-            <StatCard
-              label="Invite partner"
-              icon={<Send className="h-5 w-5 text-[#6D4AFF]" />}
-              value="Invitation sent"
-              subtitle={partnerEmail || "Waiting for them to join"}
-              subtitleTooltip={partnerEmail || undefined}
-              action={
-                <button
-                  onClick={() => router.push("/dashboard/invite-partner")}
-                  className={statCardActionClasses}
-                  aria-label="Resend the invitation to your partner"
-                >
-                  Resend
-                </button>
-              }
-            />
-          ) : (
-            <StatCard
-              label="Invite partner"
-              icon={<FaUserPlus className="h-5 w-5 text-[#6D4AFF]" />}
-              value="Invite your partner"
-              subtitle="Send them an email to join"
-              action={
-                <button
-                  onClick={() => router.push("/dashboard/invite-partner")}
-                  className={statCardActionClasses}
-                  aria-label="Invite your partner"
-                >
-                  Invite
-                </button>
-              }
-            />
-          )}
-        </div>
+            {isUser2 ? (
+              <StatCard
+                label="Support"
+                icon={<BookOpen className="h-5 w-5 text-[#6D4AFF]" />}
+                value="Need help?"
+                subtitle="Visit our guidance resources."
+              />
+            ) : hasP2Joined ? (
+              <StatCard
+                label="Your partner"
+                icon={
+                  isLegalAdviceStage ? (
+                    <ApprovedPill />
+                  ) : (
+                    <UserRoundCheck className="h-5 w-5 text-[#6D4AFF]" />
+                  )
+                }
+                value={partnerName}
+                subtitle={partnerEmail || "Partner has joined your case"}
+                subtitleTooltip={partnerEmail || undefined}
+                /* Nothing left to do here, so the slot holds a state, not a
+                   button — which also keeps the card's height steady. */
+                action={
+                  isLegalAdviceStage ? (
+                    <span className={statCardCaptionClasses}>Completed</span>
+                  ) : (
+                    <span className={statCardBadgeClasses}>
+                      <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                      Joined
+                    </span>
+                  )
+                }
+              />
+            ) : isPartnerInvited ? (
+              <StatCard
+                label="Invite partner"
+                icon={<Send className="h-5 w-5 text-[#6D4AFF]" />}
+                value="Invitation sent"
+                subtitle={partnerEmail || "Waiting for them to join"}
+                subtitleTooltip={partnerEmail || undefined}
+                action={
+                  <button
+                    onClick={() => router.push("/dashboard/invite-partner")}
+                    className={statCardActionClasses}
+                    aria-label="Resend the invitation to your partner"
+                  >
+                    Resend
+                  </button>
+                }
+              />
+            ) : (
+              <StatCard
+                label="Invite partner"
+                icon={<FaUserPlus className="h-5 w-5 text-[#6D4AFF]" />}
+                value="Invite your partner"
+                subtitle="Send them an email to join"
+                action={
+                  <button
+                    onClick={() => router.push("/dashboard/invite-partner")}
+                    className={statCardActionClasses}
+                    aria-label="Invite your partner"
+                  >
+                    Invite
+                  </button>
+                }
+              />
+            )}
+          </div>
+        )}
 
         {!isAgreementReady && (
           <div className="mt-8 bg-white p-5 rounded-2xl shadow-sm">
-            <h2 className="text-lg font-bold tracking-tight text-[#1E1B3C]">
-              Your Prenup Journey
-            </h2>
-            <p className="mt-1 text-sm text-[#6B6B80]">
-              Welcome to your dashboard! This page will help guide you through
-              your prenup journey.
-            </p>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-bold tracking-tight text-[#1E1B3C]">
+                  Your Prenup Journey
+                </h2>
+                <p className="mt-1 text-sm text-[#6B6B80]">
+                  Welcome to your dashboard! This page will help guide you through
+                  your prenup journey.
+                </p>
+              </div>
+
+              {isBothCompleted && (
+                <div className="flex flex-col items-center gap-3.5 flex-shrink-0 self-start sm:self-center">
+                  <span className="text-xs font-semibold text-[#475569]">
+                    Progress
+                  </span>
+                  <CircularProgress percent={progressResult?.percentage || 0} />
+                </div>
+              )}
+            </div>
 
             <div className="mt-5 flex flex-col gap-3">
               {steps.map((step, i) => {
@@ -709,22 +816,22 @@ export default function PrenupDashboard() {
                     }`}
                   >
                     <div
-                      className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-sm ${
+                      className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-white text-lg font-bold shadow-sm ${
                         STEP_TILES[step.id]
                       }`}
                     >
-                      {step.icon}
+                      {i + 1}
                     </div>
 
-                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#EDE9FE] text-sm font-bold text-[#6D28D9]">
-                      {i + 1}
+                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#EDE9FE] text-[#6D28D9]">
+                      {step.icon}
                     </div>
 
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-semibold text-[#1E1B3C]">
                         {step.title}
                       </div>
-                      <div className="mt-0.5 max-w-md text-xs text-[#8A8AA0]">
+                      <div className="mt-1.5 max-w-md text-xs font-medium text-[#4B5563]">
                         {step.description}
                       </div>
                     </div>

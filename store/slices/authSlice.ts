@@ -1,12 +1,13 @@
 "use client";
 
 import { createSlice } from "@reduxjs/toolkit";
+import { REHYDRATE } from "redux-persist";
 import { emailVerification, getFreshProfile, LoginUser, logOutUser, registerUser } from "@/store/asyncThunk/authThunk";
 import type { authState } from "@/types/store/auth-slice";
 
 const initialState: authState = {
   isLoading: false,
-  isAuthenticated : false,
+  isAuthenticated: false,
   caseId: null,
   user: {},
   message: null,
@@ -17,7 +18,7 @@ const AuthSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    setUserProfileData(state, {payload} ) {
+    setUserProfileData(state, { payload }) {
       state.user = payload;
     },
 
@@ -27,9 +28,16 @@ const AuthSlice = createSlice({
     clearMessage(state) {
       state.message = null;
     },
+    resetLoading(state) {
+      state.isLoading = false;
+    },
   },
 
   extraReducers: (builder) => {
+    builder
+      .addCase(REHYDRATE, (state) => {
+        state.isLoading = false;
+      })
     // Check Login
     builder
       .addCase(LoginUser.pending, (state) => {
@@ -76,7 +84,7 @@ const AuthSlice = createSlice({
         state.submitError = payload as string;
       });
 
-      // Check Email Verification
+    // Check Email Verification
     builder
       .addCase(emailVerification.pending, (state) => {
         state.isLoading = true;
@@ -101,7 +109,7 @@ const AuthSlice = createSlice({
         state.submitError = payload as string;
       });
 
-      // Logout User
+    // Logout User
     builder
       .addCase(logOutUser.pending, (state) => {
         state.isLoading = true;
@@ -123,7 +131,7 @@ const AuthSlice = createSlice({
         state.submitError = payload as string;
       });
 
-      // fetch profile data
+    // fetch profile data
     builder
       .addCase(getFreshProfile.pending, (state) => {
         state.isLoading = true;
@@ -151,5 +159,5 @@ const AuthSlice = createSlice({
   },
 });
 
-export const { clearError, clearMessage, setUserProfileData } = AuthSlice.actions;
+export const { clearError, clearMessage, resetLoading, setUserProfileData } = AuthSlice.actions;
 export default AuthSlice.reducer;

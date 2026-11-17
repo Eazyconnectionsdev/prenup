@@ -129,20 +129,20 @@ export default function LegalAdviceJourney({
               }`}
             >
               <div
-                className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-sm ${step.tile}`}
+                className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-white text-lg font-bold shadow-sm ${step.tile}`}
               >
-                {step.icon}
+                {i + 5}
               </div>
 
-              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#EDE9FE] text-sm font-bold text-[#6D28D9]">
-                {i + 5}
+              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#EDE9FE] text-[#6D28D9]">
+                {step.icon}
               </div>
 
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-semibold text-[#1E1B3C]">
                   {step.title}
                 </div>
-                <div className="mt-0.5 max-w-md text-xs text-[#8A8AA0]">
+                <div className="mt-1.5 max-w-md text-xs font-medium text-[#4B5563]">
                   {step.description}
                 </div>
               </div>

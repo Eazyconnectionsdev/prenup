@@ -1,27 +1,29 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import{ useCallback, useEffect, useState } from "react";
 import { PartnerHeader } from "@/components/invite-partner/PartnerHeader";
 import { PartnerDetailsForm } from "@/components/invite-partner/PartnerDetailsForm";
 import { InvitationStatusCard } from "@/components/invite-partner/InvitationStatusCard";
-import { CaseTimeline } from "@/components/invite-partner/CaseTimeline";
 import Axios from "@/lib/ApiConfig";
 import { toast } from "react-toastify";
 import { getErrorMessage } from "@/lib/getErrorMessage";
 
 import { useDispatch, useSelector } from "react-redux";
-import { RootState } from "@/store/store";
 import { useEnsureCaseId } from "@/hooks/useEnsureCaseId";
-import type { PartnerData, TimelineEvent } from "@/types/invite-partner";
+import { AppDispatch, RootState } from "@/store/store";
+import { getCasesDetails } from "@/store/asyncThunk/casesThunk";
+import type { PartnerData } from "@/types/invite-partner";
 
 export default function InvitePartnerPage() {
   const { user } = useSelector((state: RootState) => state.auth);
   const ensureCaseId = useEnsureCaseId();
+  const dispatch = useDispatch<AppDispatch>();
 
   const [justSent, setJustSent] = useState(false);
 
   const [partnerData, setPartnerData] = useState<PartnerData>({
     firstName: "",
+    middleName: "",
     lastName: "",
     email: "",
     targetWeddingDate: "",
@@ -50,6 +52,7 @@ export default function InvitePartnerPage() {
       setPartnerData((prev) => ({
         ...prev,
         firstName: inv.invitee.firstName ?? "",
+        middleName: (inv.invitee as any)?.middleName ?? "",
         lastName: inv.invitee.lastName ?? "",
         email: inv.invitee.email ?? "",
         mobileNumber: inv.invitee.mobileNumber ?? "",
@@ -73,10 +76,11 @@ export default function InvitePartnerPage() {
         nameDiffers: inv.nameDiffers,
         linkOnHold: Boolean(inv.conflict?.open),
       }));
+      dispatch(getCasesDetails(user.inviteCaseId));
     } catch (error) {
       toast.error(getErrorMessage(error, "Unable to load your invitation"));
     }
-  }, [user?.inviteCaseId]);
+  }, [user?.inviteCaseId, dispatch]);
 
   useEffect(() => {
     loadInvite();
@@ -129,11 +133,10 @@ export default function InvitePartnerPage() {
 
   const handleSendInvitation = async () => {
     try {
-      // The partner can be invited before an agreement is chosen, so the case
-      // is started here if the client hasn't got one yet.
       const caseId = await ensureCaseId();
       await Axios.post(`cases/${caseId}/invite`, {
         firstName: partnerData.firstName.trim(),
+        middleName: partnerData.middleName?.trim() || undefined,
         lastName: partnerData.lastName.trim(),
         email: partnerData.email.trim().toLowerCase(),
       });
@@ -143,6 +146,7 @@ export default function InvitePartnerPage() {
           ? "Invitation sent"
           : "Invitation updated and re-sent"
       );
+      await dispatch(getCasesDetails(user.inviteCaseId));
       await loadInvite();
     } catch (error: any) {
       toast.error(getErrorMessage(error?.response?.data, "Unable to send the invitation"));
@@ -153,7 +157,6 @@ export default function InvitePartnerPage() {
     try {
       await handleSendInvitation();
     } catch {
-      // handled in handleSendInvitation
     }
   };
 

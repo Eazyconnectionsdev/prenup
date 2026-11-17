@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
@@ -14,7 +14,7 @@ import AuthHeader from "@/components/auth/AuthHeader";
 import FormAlert from "@/components/auth/FormAlert";
 import { loginSchema, type LoginFormValues } from "@/lib/validations/auth";
 import { getErrorMessage } from "@/lib/getErrorMessage";
-import { setUserProfileData } from "@/store/slices/authSlice";
+import { resetLoading, setUserProfileData } from "@/store/slices/authSlice";
 import Image from "next/image";
 import Google from "@/images/icons/google.png";
 
@@ -36,7 +36,12 @@ function callbackTarget(): string | null {
 export default function LoginPageStatic() {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
-  const { isLoading } = useSelector((state: RootState) => state.auth);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    dispatch(resetLoading());
+    setIsSubmitting(false);
+  }, [dispatch]);
 
   const {
     register,
@@ -80,16 +85,16 @@ export default function LoginPageStatic() {
 
   const onSubmit = async (values: LoginFormValues) => {
     clearErrors("root");
+    setIsSubmitting(true);
     try {
-      await dispatch(LoginUser(values)).unwrap();
+      const result: any = await dispatch(LoginUser(values)).unwrap();
       toast.success("Signed in successfully");
       const target = callbackTarget();
-      if (target) {
-        router.replace(target);
-      } else {
-        router.refresh();
-      }
+      const role = result?.user?.role;
+      const home = role === "case_manager" ? "/cm" : role === "admin" ? "/admin" : role === "lawyer" ? "/lawyer" : "/dashboard";
+      window.location.href = target || home;
     } catch (error) {
+      setIsSubmitting(false);
       const message = getErrorMessage(
         error,
         "Unable to sign in. Please try again.",
@@ -192,10 +197,10 @@ export default function LoginPageStatic() {
             {/* Submit */}
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isSubmitting}
               className="w-full px-6 py-2 mt-4 disabled:bg-[#6a69ff]/50 bg-[#6a69ff] text-white text-[14px] rounded transition-colors hover:bg-[#5958e6]"
             >
-              {isLoading ? <span>Please wait...</span> : "Sign In"}
+              {isSubmitting ? <span>Please wait...</span> : "Sign In"}
             </button>
 
             {/* Sign up link */}

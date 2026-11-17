@@ -8,11 +8,14 @@ import {
   LogOut,
   Copy,
   Check,
+  Crown,
+  UserCheck,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
 import { logOutUser } from "@/store/asyncThunk/authThunk";
+import { agreementTypeServiceLabel } from "@/lib/agreementTypes";
 import NotificationTopBars from "./NotificationTopBars";
 
 type TopBarProps = {
@@ -66,6 +69,48 @@ const TopBar = ({
     `${user?.firstName?.charAt(0) ?? ""}${user?.lastName?.charAt(0) ?? ""}`.toUpperCase() || "U";
   const badge = notificationCount > 99 ? "99+" : String(notificationCount);
 
+  // Dynamic service & partner details
+  const serviceName = agreementTypeServiceLabel(cases?.agreementType);
+  const isUser2 =
+    user?.endUserType === "user2" ||
+    (Boolean(cases?.owner?._id) &&
+      String(user?._id) === String((cases as any)?.invitedUser?._id));
+
+  const hasP2Joined = Boolean((cases as any)?.invitedUser?._id);
+  const isPartnerInvited =
+    Boolean(cases?.partnerInvited) || Boolean(cases?.invitedEmail);
+  const isPartnerComplete = isUser2 || hasP2Joined || isPartnerInvited;
+
+  const ownerName =
+    [cases?.owner?.firstName, cases?.owner?.lastName]
+      .filter(Boolean)
+      .join(" ")
+      .trim() ||
+    cases?.owner?.email ||
+    "Your partner";
+
+  const inviteName = [
+    cases?.partnerInviteDetails?.firstName,
+    cases?.partnerInviteDetails?.lastName,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+  const invitedUserName = [
+    cases?.invitedUser?.firstName,
+    cases?.invitedUser?.lastName,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+  const partnerName = isUser2
+    ? ownerName
+    : invitedUserName || inviteName || cases?.invitedEmail || "Your partner";
+
+  const isBothCompleted = Boolean(cases?.agreementType) && isPartnerComplete;
+
   const handleLogOut = async () => {
     const result = await dispatch(logOutUser());
     if (logOutUser.fulfilled.match(result)) {
@@ -109,22 +154,58 @@ const TopBar = ({
     <div className="sticky top-0 z-40 w-full">
       <NotificationTopBars />
       <header className="flex h-[56px] items-center justify-between gap-4 border-b border-[#EEEEF6] bg-white px-6 backdrop-blur-md">
-      <div className="min-w-0">
+      <div className="flex flex-wrap items-center gap-2.5 min-w-0">
         {displayCaseNumber && (
           <button
             type="button"
             onClick={copyCaseId}
-            title="Copy case ID"
-            className="group flex items-center gap-2 rounded-lg border border-[#EEEEF6] bg-white px-2.5 py-1.5 text-[12px] transition-colors duration-200 hover:border-[#DDD9FF]"
+            title="Click to copy Case ID"
+            className="group flex h-[34px] items-center gap-2 rounded-xl border border-[#E2E4F0] bg-[#F8F9FD] px-3 text-[12px] shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-all duration-200 hover:border-[#C7C3FF] hover:bg-white"
           >
             <span className="font-medium text-[#8A8AA0]">Case ID</span>
             <span className="font-semibold text-[#1E1B3C]">{displayCaseNumber}</span>
             {copied ? (
-              <Check className="h-3.5 w-3.5 text-emerald-500" />
+              <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600">
+                <Check className="h-3.5 w-3.5 text-emerald-600" />
+                <span>Copied</span>
+              </span>
             ) : (
-              <Copy className="h-3.5 w-3.5 text-[#B0B0C3] transition-colors group-hover:text-[#5B55F6]" />
+              <Copy className="h-3.5 w-3.5 text-[#9CA3AF] transition-colors group-hover:text-[#5B55F6]" />
             )}
           </button>
+        )}
+
+        {isBothCompleted && (
+          <>
+            {/* Selected Agreement Pill */}
+            <div className="flex h-[34px] items-center gap-2 rounded-xl border border-[#E2E4F0] bg-[#F8F9FD] px-3 text-[12px] shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+              <span className="flex h-5 w-5 items-center justify-center rounded-md bg-[#FEF3C7] text-[#D97706]">
+                <Crown className="h-3 w-3 fill-current" />
+              </span>
+              <span className="font-semibold text-[#475569]">Agreement</span>
+              <span className="font-bold text-[#1E1B3C]">{serviceName}</span>
+            </div>
+
+            {/* Partner Pill */}
+            <div className="flex h-[34px] items-center gap-2 rounded-xl border border-[#E2E4F0] bg-[#F8F9FD] px-3 text-[12px] shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+              <span className="flex h-5 w-5 items-center justify-center rounded-md bg-[#EEEDFB] text-[#5B55F6]">
+                <UserCheck className="h-3 w-3" />
+              </span>
+              <span className="font-semibold text-[#475569]">Partner</span>
+              <span className="font-bold text-[#1E1B3C] max-w-[140px] truncate" title={partnerName}>
+                {partnerName}
+              </span>
+              <span
+                className={`ml-0.5 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold border ${
+                  isUser2 || hasP2Joined
+                    ? "bg-[#DCFCE7] text-[#15803D] border-[#86EFAC]"
+                    : "bg-[#DBEAFE] text-[#1D4ED8] border-[#93C5FD]"
+                }`}
+              >
+                {isUser2 || hasP2Joined ? "Joined" : "Invited"}
+              </span>
+            </div>
+          </>
         )}
       </div>
 

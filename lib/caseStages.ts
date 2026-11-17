@@ -1,19 +1,3 @@
-// One set of rules for the Case Manager dashboard counts and the Cases page
-// stage filter, so a tile's number always equals the rows it opens.
-//
-// Real workflow, as the backend moves a case:
-//   NOT_PAID -> (payment) DRAFT -> (both partners approve) COUPLE_SUBMITTED
-//   -> (CM approves) CM_APPROVED            (CM returns -> DRAFT + cmReturnReason)
-//   -> (CM assigns lawyers) LAWYERS_ASSIGNED   (pre-lawyer questionnaires filled here)
-//   -> (both questionnaires submitted) PRE_LAWYER_COMPLETED
-//   -> (lawyer review done / both client confirmations) LAWYER_REVIEW_COMPLETED
-//   -> (ILA requested) LAWYER_ILA_PENDING
-//   -> (both lawyers signed off) LAWYER_CLIENT_CONFIRMATION
-//   -> (both final confirmations, case completed) COMPLETED + readyForArchive
-//   -> (archived) ARCHIVED
-// PRE_LAWYER_PENDING and LAWYER_REVIEW exist in the enum but nothing sets them;
-// they are still accepted below so older cases are not lost.
-
 import { isCasePaid } from "@/lib/casePayment";
 
 export interface CaseStageFacts {
