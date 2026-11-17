@@ -123,6 +123,16 @@ const RULES: Record<string, Rule> = {
     inIlaAndSignoff(c) && (!c.p2IlaDone || !c.p2LawyerSigned),
   FINAL_CONFIRMATION_PENDING: (c) => at(c, "LAWYER_CLIENT_CONFIRMATION"),
 
+  // ── Lawyer portal (the same workflow, grouped as the lawyer's own queue) ──
+  LAWYER_ONBOARDING_PENDING: (c) => RULES.PRE_LAWYER_PENDING(c, ""),
+  LAWYER_REVIEW_PENDING: (c) => inLawyerReview(c),
+  LAWYER_ILA_SIGNOFF: (c) => inIlaAndSignoff(c),
+  LAWYER_FINAL_CONFIRMATION: (c) => at(c, "LAWYER_CLIENT_CONFIRMATION"),
+  LAWYER_COMPLETED: (c) => at(c, "COMPLETED", "ARCHIVED"),
+  LAWYER_ONBOARDED: (c) =>
+    !at(c, "COMPLETED", "ARCHIVED", "CANCELLED") &&
+    !RULES.LAWYER_ONBOARDING_PENDING(c, ""),
+
   // ── 4. Completed ──
   // executionPackGenerated is never set by the backend; the pack is produced
   // when the case is completed, so Completed status is the signal.
@@ -156,3 +166,18 @@ export function countByStageFilter(
   }
   return out;
 }
+
+/** The lawyer portal's stage filter: one list behind its cards and its dropdown. */
+export const LAWYER_STAGES = [
+  { value: "ALL", label: "Total Cases" },
+  { value: "LAWYER_ONBOARDING_PENDING", label: "Onboarding Pending" },
+  { value: "LAWYER_ONBOARDED", label: "Onboarded" },
+  { value: "LAWYER_REVIEW_PENDING", label: "Review Pending" },
+  { value: "LAWYER_ILA_SIGNOFF", label: "ILA & Sign-Off Pending" },
+  { value: "LAWYER_FINAL_CONFIRMATION", label: "Final Confirmation Pending" },
+  { value: "LAWYER_COMPLETED", label: "Completed" },
+];
+
+/** A workflowStatus from the Case schema, as a badge reads it. */
+export const workflowStatusLabel = (status?: string | null) =>
+  status ? status.replace(/_/g, " ") : "UNKNOWN";

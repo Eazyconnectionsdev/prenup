@@ -11,10 +11,12 @@ import { getErrorMessage } from "@/lib/getErrorMessage";
 
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/store/store";
+import { useEnsureCaseId } from "@/hooks/useEnsureCaseId";
 import type { PartnerData, TimelineEvent } from "@/types/invite-partner";
 
 export default function InvitePartnerPage() {
   const { user } = useSelector((state: RootState) => state.auth);
+  const ensureCaseId = useEnsureCaseId();
 
   const [justSent, setJustSent] = useState(false);
 
@@ -126,14 +128,11 @@ export default function InvitePartnerPage() {
   // };
 
   const handleSendInvitation = async () => {
-    // An account has no case until the legal matter is started, and that
-    // happens when the agreement is chosen.
-    if (!user?.inviteCaseId) {
-      toast.error("Please choose your agreement first, then invite your partner.");
-      return;
-    }
     try {
-      await Axios.post(`cases/${user.inviteCaseId}/invite`, {
+      // The partner can be invited before an agreement is chosen, so the case
+      // is started here if the client hasn't got one yet.
+      const caseId = await ensureCaseId();
+      await Axios.post(`cases/${caseId}/invite`, {
         firstName: partnerData.firstName.trim(),
         lastName: partnerData.lastName.trim(),
         email: partnerData.email.trim().toLowerCase(),

@@ -118,7 +118,7 @@ const TopBar = ({
             className="group flex items-center gap-2 rounded-lg border border-[#EEEEF6] bg-white px-2.5 py-1.5 text-[12px] transition-colors duration-200 hover:border-[#DDD9FF]"
           >
             <span className="font-medium text-[#8A8AA0]">Case ID</span>
-            <span className="font-mono font-semibold text-[#1E1B3C]">{displayCaseNumber}</span>
+            <span className="font-semibold text-[#1E1B3C]">{displayCaseNumber}</span>
             {copied ? (
               <Check className="h-3.5 w-3.5 text-emerald-500" />
             ) : (

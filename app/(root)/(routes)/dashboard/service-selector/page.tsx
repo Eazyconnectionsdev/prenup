@@ -9,9 +9,8 @@ import {
   completeOnboarding,
   getCasesDetails,
   getOnboarding,
-  startCase,
 } from "@/store/asyncThunk/casesThunk";
-import { getFreshProfile } from "@/store/asyncThunk/authThunk";
+import { useEnsureCaseId } from "@/hooks/useEnsureCaseId";
 import { setAgreementType } from "@/store/slices/casesSlice";
 import { getErrorMessage } from "@/lib/getErrorMessage";
 import { isCasePaid, paymentHref } from "@/lib/casePayment";
@@ -199,6 +198,7 @@ export default function ServiceSelector({
 } = {}) {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
+  const ensureCaseId = useEnsureCaseId();
 
   const user = useSelector((state: RootState) => state.auth.user);
   const cases = useSelector((state: RootState) => state.cases);
@@ -288,15 +288,7 @@ export default function ServiceSelector({
 
     setIsSaving(true);
     try {
-      // Choosing an agreement is what starts the legal matter, so this is
-      // where the Case ID is issued (an account alone doesn't have one).
-      // Idempotent on the server, so a retry gets the same case back.
-      let activeCaseId = caseId;
-      if (!activeCaseId) {
-        const started = await dispatch(startCase()).unwrap();
-        activeCaseId = started._id;
-        await dispatch(getFreshProfile());
-      }
+      const activeCaseId = await ensureCaseId();
 
       await dispatch(
         completeOnboarding({

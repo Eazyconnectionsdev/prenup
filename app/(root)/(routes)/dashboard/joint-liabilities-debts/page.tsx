@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, CreditCard, Wallet } from "lucide-react";
@@ -83,6 +83,9 @@ export default function SharedLiabilitiesForm({
   const [sharedDebts, setSharedDebts] = useState<SharedDebtRow[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
+  // A ref, not state: it blocks a second click within the same render, before
+  // isApproving has had a chance to disable the button.
+  const approveInFlight = useRef(false);
   const [isDisapproving, setIsDisapproving] = useState(false);
   const [disapproveReason, setDisapproveReason] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
@@ -161,12 +164,15 @@ export default function SharedLiabilitiesForm({
   };
 
   const handleApprove = async () => {
+    if (approveInFlight.current) return;
+    approveInFlight.current = true;
     setIsApproving(true);
     setActionError(null);
     try {
       await Axios.post(`/cases/${caseId}/approve`);
     } catch (error) {
       setActionError(getErrorMessage(error, "Couldn't approve right now. Please try again."));
+      approveInFlight.current = false;
       setIsApproving(false);
       return;
     }
@@ -183,6 +189,7 @@ export default function SharedLiabilitiesForm({
       );
     } finally {
       await refreshCase();
+      approveInFlight.current = false;
       setIsApproving(false);
     }
   };

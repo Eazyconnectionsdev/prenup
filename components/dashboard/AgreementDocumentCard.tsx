@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FileText, Loader2, RefreshCw } from "lucide-react";
 import {
   fetchAllVersions,
@@ -26,14 +26,12 @@ function DownloadIcon() {
   );
 }
 
-/** "v1.0" to "Version 1 Finalised". Anything else is shown as it came. */
 function versionLabel(version?: string | null): string {
   if (!version) return "";
   const major = /^v?(\d+)/i.exec(version.trim())?.[1];
   return major ? `Version ${major} Finalised` : version;
 }
 
-/** Which file of a version a row hands over. */
 type FileKind = "pdf" | "docx";
 
 type Row = {
@@ -42,20 +40,12 @@ type Row = {
   cta: string;
 };
 
-/**
- * The generated agreement, as the partners see it once both have confirmed
- * the joint information. It shows whichever version is current -- first the
- * one built from their own answers, later the case manager's and the
- * lawyers' -- and hands over that version's two files: the agreement itself
- * as a PDF, and the Word document the same version was built from, which
- * carries the couple's financial disclosure.
- */
+
 export default function AgreementDocumentCard({
   caseId,
   agreementType,
 }: {
   caseId: string | null;
-  /** Names the first row, e.g. "Prenuptial Agreement (Marriage)". */
   agreementType?: string | null;
 }) {
   const [versions, setVersions] = useState<VersionEntry[] | null>(null);
@@ -67,6 +57,10 @@ export default function AgreementDocumentCard({
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
+  // A ref, not state: it blocks a second click within the same render, before
+  // isGenerating has had a chance to disable the button. Two generations at
+  // once race for the same version number and one of them fails.
+  const generateInFlight = useRef(false);
 
   useEffect(() => {
     if (!caseId) return;
@@ -89,8 +83,6 @@ export default function AgreementDocumentCard({
     };
   }, [caseId, reloadKey]);
 
-  // Retry / refresh: the effect above owns the request, so this only asks
-  // for another run.
   const reload = () => {
     setIsLoading(true);
     setLoadError(null);
@@ -98,24 +90,23 @@ export default function AgreementDocumentCard({
     setReloadKey((key) => key + 1);
   };
 
-  // The list arrives newest first, so the first entry stands in whenever no
-  // version is flagged as current.
   const current = versions?.find((v) => v.isLatest) ?? versions?.[0] ?? null;
 
-  // Only offered when the list came back empty: the agreement is generated on
-  // confirmation, so this is the way back from a call that never landed.
   const handleGenerate = async () => {
-    if (!caseId) return;
+    if (!caseId || generateInFlight.current) return;
+    generateInFlight.current = true;
     setIsGenerating(true);
     setGenerateError(null);
-    const result = await generateUserAgreement(caseId);
-    setIsGenerating(false);
-    if (result.success) reload();
-    else setGenerateError(result.error);
+    try {
+      const result = await generateUserAgreement(caseId);
+      if (result.success) reload();
+      else setGenerateError(result.error);
+    } finally {
+      generateInFlight.current = false;
+      setIsGenerating(false);
+    }
   };
 
-  // The file URLs only come with the version's detail, so the first download
-  // of either row fetches it and both rows use it from then on.
   const handleDownload = async (kind: FileKind) => {
     if (!caseId || !current) return;
     setDownloadError(null);

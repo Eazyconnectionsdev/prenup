@@ -757,15 +757,11 @@ export default function PrenupDashboard() {
         >
           <div className="overflow-hidden">
             <div className="grid items-start gap-6 md:grid-cols-2">
-              {/* The generated agreement, straight from the case's versions */}
               <AgreementDocumentCard
                 caseId={cases?.caseId ?? null}
                 agreementType={cases?.agreementType}
               />
 
-              {/* Up to approval the couple deal with their case manager; from
-                  then on the card beside the agreement is their own two
-                  independent solicitors. */}
               {isLegalAdviceStage ? (
                 <LegalTeamCard myPre={myPre} partnerPre={partnerPre} />
               ) : (
