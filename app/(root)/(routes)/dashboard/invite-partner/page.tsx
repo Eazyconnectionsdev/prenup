@@ -1,21 +1,22 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import{ useCallback, useEffect, useState } from "react";
 import { PartnerHeader } from "@/components/invite-partner/PartnerHeader";
 import { PartnerDetailsForm } from "@/components/invite-partner/PartnerDetailsForm";
 import { InvitationStatusCard } from "@/components/invite-partner/InvitationStatusCard";
-import { CaseTimeline } from "@/components/invite-partner/CaseTimeline";
 import Axios from "@/lib/ApiConfig";
 import { toast } from "react-toastify";
 import { getErrorMessage } from "@/lib/getErrorMessage";
 
 import { useDispatch, useSelector } from "react-redux";
+import { useEnsureCaseId } from "@/hooks/useEnsureCaseId";
 import { AppDispatch, RootState } from "@/store/store";
 import { getCasesDetails } from "@/store/asyncThunk/casesThunk";
-import type { PartnerData, TimelineEvent } from "@/types/invite-partner";
+import type { PartnerData } from "@/types/invite-partner";
 
 export default function InvitePartnerPage() {
   const { user } = useSelector((state: RootState) => state.auth);
+  const ensureCaseId = useEnsureCaseId();
   const dispatch = useDispatch<AppDispatch>();
 
   const [justSent, setJustSent] = useState(false);
@@ -131,14 +132,9 @@ export default function InvitePartnerPage() {
   // };
 
   const handleSendInvitation = async () => {
-    // An account has no case until the legal matter is started, and that
-    // happens when the agreement is chosen.
-    if (!user?.inviteCaseId) {
-      toast.error("Please choose your agreement first, then invite your partner.");
-      return;
-    }
     try {
-      await Axios.post(`cases/${user.inviteCaseId}/invite`, {
+      const caseId = await ensureCaseId();
+      await Axios.post(`cases/${caseId}/invite`, {
         firstName: partnerData.firstName.trim(),
         middleName: partnerData.middleName?.trim() || undefined,
         lastName: partnerData.lastName.trim(),
@@ -161,7 +157,6 @@ export default function InvitePartnerPage() {
     try {
       await handleSendInvitation();
     } catch {
-      // handled in handleSendInvitation
     }
   };
 
