@@ -87,20 +87,12 @@ export async function checkOutDocument(
   }
 }
 
-/**
- * ASSUMPTION: the original component had a "Check In" button in the lock
- * panel with no onClick and no matching endpoint anywhere in the file.
- * "Check in with a new version" already exists as checkInDocument() below.
- * This releases the lock WITHOUT uploading a file (e.g. "never mind,
- * I'm done reviewing, let someone else check it out"). I've guessed a
- * REST-ish path — confirm/adjust it against your actual backend route.
- */
 export async function releaseCheckout(
   caseId: string,
 ): Promise<ApiResult<{ success: boolean }>> {
   try {
     const { data } = await Axios.post<{ success: boolean }>(
-      `/agreement/${caseId}/document/lawyer/checkin-release`,
+      `/agreement/${caseId}/document/lawyer/release`,
     );
     return { success: true, data };
   } catch (error) {
@@ -181,11 +173,7 @@ export async function compareDocumentVersions(
     };
   }
 }
-/**
- * Builds the partners' own version of the agreement from their confirmed
- * answers. The final-review page fires this as soon as the second partner
- * approves; the dashboard offers it again if that call never landed.
- */
+
 export async function generateUserAgreement(
   caseId: string,
 ): Promise<ApiResult<{ success?: boolean }>> {

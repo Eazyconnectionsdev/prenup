@@ -16,8 +16,9 @@ const MENU_ITEMS = [
   { path: "/lawyer/settings", label: "Settings" },
 ];
 
+// workflowStatus values from the Case schema.
 const isCompleted = (status: string) =>
-  status === "COMPLETED" || status === "CLOSED" || status === "ARCHIVED";
+  status === "COMPLETED" || status === "ARCHIVED";
 
 export const LawyerSidebar: React.FC = () => {
   const router = useRouter();

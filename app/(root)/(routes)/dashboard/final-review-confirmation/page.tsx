@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
@@ -27,13 +27,10 @@ import {
 import type { SectionProgress } from "@/types/lib/progress-calculator";
 import { resolvePartyInformation } from "@/lib/caseSections";
 
-// One form inside a review section, and what to show for it
 type FormRow = {
   key: string;
   label: string;
-  // Shown once the form has been filled in
   detail: string;
-  // Where to go to fill it in, when the signed-in partner owns the form
   href?: string;
 };
 
@@ -66,7 +63,6 @@ function StatusBadge({ progress }: { progress: SectionProgress }) {
   );
 }
 
-// The forms of one section, each marked with what has actually been saved
 function FormRowList({
   section,
   rows,
@@ -146,7 +142,10 @@ export default function FinalReviewConfirmationPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
-  // The reviewing partner's note to the sender, sent with their changes
+  // Refs, not state: these block a second click within the same render.
+  const approveInFlight = useRef(false);
+  const submitInFlight = useRef(false);
+
   const [changeMessage, setChangeMessage] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -349,6 +348,8 @@ export default function FinalReviewConfirmationPage() {
   // Filling in the forms only saves them. This is the explicit "send the
   // approval request", and it is what puts the case in front of the partner.
   const handleConfirmSubmitForPartnerReview = async () => {
+    if (submitInFlight.current) return;
+    submitInFlight.current = true;
     setIsSubmitting(true);
     setActionError(null);
     try {
@@ -390,31 +391,46 @@ export default function FinalReviewConfirmationPage() {
         getErrorMessage(err, "Couldn't send the approval request right now. Please try again."),
       );
     } finally {
+      submitInFlight.current = false;
       setIsSubmitting(false);
     }
   };
 
   const handleConfirmApprove = async () => {
     if (!exhibitDConfirmed) return;
+    // setIsApproving only disables the button on the next render, so a quick
+    // double click used to send approve + generate twice. The second generate
+    // raced the first for the same version number and came back as a 500.
+    if (approveInFlight.current) return;
+    approveInFlight.current = true;
     setIsApproving(true);
     try {
       if (caseId) {
         await Axios.post(`/cases/${caseId}/approve`);
         dispatch(updateApproval({ user2Approved: true }));
+        // The approval is already saved; a failed draft must not look like a
+        // failed approval, but it must not pass silently either.
         try {
           await Axios.post(`/agreement/${caseId}/document/generate`);
-        } catch {
-          // Document generation fallback
+          toast.success("Mutual confirmation complete!");
+        } catch (error) {
+          toast.error(
+            getErrorMessage(
+              error,
+              "Approved, but the agreement document couldn't be generated.",
+            ),
+          );
         }
         await dispatch(getCasesDetails(caseId));
       } else {
         dispatch(updateApproval({ user2Approved: true }));
+        toast.success("Mutual confirmation complete!");
       }
       setShowExhibitDModal(false);
-      toast.success("Mutual confirmation complete!");
     } catch (err) {
       toast.error(getErrorMessage(err, "Couldn't approve right now. Please try again."));
     } finally {
+      approveInFlight.current = false;
       setIsApproving(false);
     }
   };
@@ -444,14 +460,11 @@ export default function FinalReviewConfirmationPage() {
         minute: "2-digit",
       });
 
-  // ----------------------------------------------------
-  // CASE 1: MUTUAL APPROVAL ACHIEVED (EXHIBIT D RESULT)
-  // ----------------------------------------------------
+
   if (isMutualApproved) {
     return (
       <div className="min-h-screen bg-[#F8F9FC] px-4 py-8 md:px-8">
         <div className="mx-auto max-w-4xl space-y-6">
-          {/* Header celebration banner */}
           <div className="rounded-2xl border border-[#BBF7D0] bg-[#F0FDF4] p-8 text-center shadow-[0_10px_25px_-5px_rgba(22,163,74,0.1)]">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#DCFCE7] text-[#16A34A] shadow-inner">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-8 w-8">
@@ -467,7 +480,6 @@ export default function FinalReviewConfirmationPage() {
             </p>
           </div>
 
-          {/* Status summary card */}
           <div className="rounded-2xl border border-[#E7E7F2] bg-white p-6 shadow-sm md:p-8">
             <h2 className="text-base font-bold text-[#1E1B3C]">Agreement Package Summary</h2>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -492,7 +504,6 @@ export default function FinalReviewConfirmationPage() {
               </div>
             </div>
 
-            {/* Next step: Independent Legal Advice */}
             <div className="mt-8 rounded-xl border border-[#DDD6FE] bg-[#F5F3FF] p-6">
               <div className="flex items-start gap-4">
                 <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-[#EDE9FE] text-[#6D28D9]">
@@ -590,7 +601,6 @@ export default function FinalReviewConfirmationPage() {
     return (
       <div className="min-h-screen bg-[#F8F9FC] px-4 py-8 md:px-8">
         <div className="mx-auto max-w-4xl space-y-6">
-          {/* Top Banner: Green background with paper airplane icon */}
           <div className="flex items-center gap-4 rounded-2xl border border-[#BBF7D0] bg-[#DCFCE7]/70 p-5 md:p-6 shadow-sm">
             <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[#16A34A]/15 text-[#16A34A]">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-6 w-6">
@@ -607,9 +617,7 @@ export default function FinalReviewConfirmationPage() {
             </div>
           </div>
 
-          {/* Two-column layout matching Exhibit C */}
           <div className="grid gap-6 md:grid-cols-2">
-            {/* Left Card: What happens next? */}
             <div className="flex flex-col justify-between rounded-2xl border border-[#E7E7F2] bg-white p-6 shadow-sm">
               <div>
                 <h2 className="text-base font-bold text-[#1E1B3C]">What happens next?</h2>
@@ -633,7 +641,6 @@ export default function FinalReviewConfirmationPage() {
                 </p>
               </div>
 
-              {/* Blue callout at bottom of left card */}
               <div className="mt-6 flex items-start gap-3 rounded-xl border border-[#BFDBFE] bg-[#EFF6FF] p-3.5">
                 <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-[#3B82F6] text-white text-xs font-bold">
                   i
@@ -649,7 +656,6 @@ export default function FinalReviewConfirmationPage() {
               </div>
             </div>
 
-            {/* Right Card: Current Status Timeline */}
             <div className="flex flex-col justify-between rounded-2xl border border-[#E7E7F2] bg-white p-6 shadow-sm">
               <div>
                 <h2 className="text-base font-bold text-[#1E1B3C]">Current Status</h2>
@@ -724,7 +730,6 @@ export default function FinalReviewConfirmationPage() {
                     ))
                   ) : (
                     <>
-                      {/* Step 1: You - Submitted */}
                       <div className="flex items-start gap-3.5">
                         <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#DCFCE7] text-[#16A34A]">
                           <svg

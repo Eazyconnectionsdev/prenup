@@ -12,6 +12,7 @@ import { FIRST_STEP_SLUG, getStep } from "./steps";
 import { isCasePaid, paymentHref } from "@/lib/casePayment";
 import { SERVICE_SELECTOR_HREF } from "@/components/ServiceStatus";
 import { useEditingPartnerForm } from "./EditingPartnerContext";
+import { useEnsureCaseId } from "@/hooks/useEnsureCaseId";
 import { otherSectionName, ownSectionName } from "@/lib/caseSections";
 import type { QuestionnaireStepSlug } from "@/types/questionnaire/steps";
 import type { Options } from "@/types/questionnaire/use-questionnaire";
@@ -41,6 +42,8 @@ export function useQuestionnaire({ step, source = "own", onLoad }: Options) {
   // The `partner-…` pages show this same form on the other partner's answers
   // for the partner who sent the case back for changes.
   const editingPartner = useEditingPartnerForm() && source === "own";
+
+  const ensureCaseId = useEnsureCaseId();
 
   const sectionName =
     source === "own" && !editingPartner
@@ -78,11 +81,6 @@ export function useQuestionnaire({ step, source = "own", onLoad }: Options) {
 
   // Saves the step, refreshes the sidebar status and moves to the next form
   const save = async (payload: unknown) => {
-    if (!caseId) {
-      toast.error("We couldn't find your case. Please sign in again.");
-      return;
-    }
-
     // The `partner-` steps write to `partnerInformation`, which is the invited
     // partner's own section -- so that is the prefix THEY save through.
     // Editing the other partner's answers flips which section is written to.
@@ -93,13 +91,16 @@ export function useQuestionnaire({ step, source = "own", onLoad }: Options) {
 
     try {
       setIsSaving(true);
-      await Axios.post(`/cases/${caseId}/questionnaire/${apiStep}`, payload);
+      // The first form can be filled in before an agreement is chosen, so the
+      // case is started here if the client hasn't got one yet.
+      const activeCaseId = await ensureCaseId();
+      await Axios.post(`/cases/${activeCaseId}/questionnaire/${apiStep}`, payload);
       toast.success(`${stepInfo.title} saved.`);
 
       // Awaited, so what happens next is decided on the case as the server has
       // it -- a payment made in another tab is not missed, and a stale store
       // cannot send someone to a screen they are already past.
-      const fresh = await dispatch(getCasesDetails(caseId))
+      const fresh = await dispatch(getCasesDetails(activeCaseId))
         .unwrap()
         .catch(() => null);
       const caseNow = fresh ?? cases;
@@ -107,12 +108,15 @@ export function useQuestionnaire({ step, source = "own", onLoad }: Options) {
       // The first form is the only one open before the case is paid for, so
       // finishing it leads to whatever is actually outstanding -- choose a
       // service, or pay for the one already chosen -- rather than to a form
-      // that is still locked.
-      if (stepInfo.slug === FIRST_STEP_SLUG && isCaseOwner && !isCasePaid(caseNow)) {
+      // that is still locked. The invited partner has neither to do, so they
+      // go back to their dashboard.
+      if (stepInfo.slug === FIRST_STEP_SLUG && !isCasePaid(caseNow)) {
         router.push(
-          caseNow?.agreementType
-            ? paymentHref(caseNow.agreementType)
-            : SERVICE_SELECTOR_HREF,
+          !isCaseOwner
+            ? "/dashboard"
+            : caseNow?.agreementType
+              ? paymentHref(caseNow.agreementType)
+              : SERVICE_SELECTOR_HREF,
         );
         return;
       }
