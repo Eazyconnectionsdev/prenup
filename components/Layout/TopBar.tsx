@@ -162,8 +162,8 @@ const TopBar = ({
             title="Click to copy Case ID"
             className="group flex h-[34px] items-center gap-2 rounded-xl border border-[#E2E4F0] bg-[#F8F9FD] px-3 text-[12px] shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-all duration-200 hover:border-[#C7C3FF] hover:bg-white"
           >
-            <span className="font-medium text-[#8A8AA0]">Case ID</span>
-            <span className="font-semibold text-[#1E1B3C]">{displayCaseNumber}</span>
+            <span className="font-semibold text-[#475569]">Case ID</span>
+            <span className="font-mono font-bold text-[#1E1B3C] tracking-tight">{displayCaseNumber}</span>
             {copied ? (
               <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600">
                 <Check className="h-3.5 w-3.5 text-emerald-600" />
