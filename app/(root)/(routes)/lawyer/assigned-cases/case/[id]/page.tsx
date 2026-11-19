@@ -2,130 +2,98 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { useSelector } from "react-redux";
+import type { RootState } from "@/store/store";
 
 import OverviewTab from "./components/OverviewTab";
-import FormsTab from "./components/FormsTab";
 import AgreementTab from "./components/AgreementTab";
 import LawyerActionsTab from "./components/LawyerActionTabs";
-import TimelineTab from "./components/TimelineTab";
-import EmailsTab from "./components/EmailsTab";
-import AuditTab from "./components/AuditTab";
-import NotesTab from "./components/NotesTab";
+import CaseHeader from "@/components/caseShared/CaseHeader";
+import { isMe } from "@/components/caseShared/LawyerDetails";
+import { caseLawyers } from "@/lib/caseStages";
 
 import Axios from "@/lib/ApiConfig";
 
+// The lawyer's case page: the same header and Overview as the case manager's,
+// with the lawyer's own menu (Overview, Agreement, Lawyer Action).
+const TABS = [
+  { id: "overview", label: "Overview" },
+  { id: "agreement", label: "Agreement" },
+  { id: "lawyers", label: "Lawyer Action" },
+];
+
+const personName = (u: any) =>
+  u && typeof u === "object"
+    ? [u.firstName, u.middleName, u.lastName].filter(Boolean).join(" ").trim() || u.email || ""
+    : "";
+
 export default function CaseDetailPage() {
   const params = useParams();
-
   const caseId = params?.id as string;
+  const me = useSelector((state: RootState) => state.auth.user);
 
   const [activeTab, setActiveTab] = useState("overview");
   const [caseData, setCaseData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [isCmEditing, setIsCmEditing] = useState(false);
 
   useEffect(() => {
-    if (caseId) {
-      loadCase();
-    }
+    if (!caseId) return;
+    (async () => {
+      try {
+        setLoading(true);
+        const { data } = await Axios.get(`/lawyer/${caseId}`);
+        setCaseData(data);
+      } catch (err) {
+        console.error("Case loading failed:", err);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [caseId]);
 
-  const loadCase = async () => {
-    try {
-      setLoading(true);
-
-      const { data } = await Axios.get(
-        `/lawyer/${caseId}`
-      );
-      console.log("case full data", data)
-      setCaseData(data);
-    } catch (err) {
-      console.error("Case loading failed:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleFormsSave = async (updatedData?: any) => {
-    try {
-      if (updatedData) {
-        await Axios.put(
-          `/cases/${caseId}`,
-          updatedData
-        );
-      }
-
-      await loadCase();
-      setIsCmEditing(false);
-    } catch (err) {
-      console.error("Forms save failed:", err);
-      throw err;
-    }
-  };
-
-  const tabs = [
-    {
-      id: "overview",
-      label: "Overview",
-    },
-    {
-      id: "forms",
-      label: "Forms & Disclosures",
-    },
-    {
-      id: "agreement",
-      label: "Agreement",
-    },
-    {
-      id: "lawyers",
-      label: "Lawyer Actions",
-    },
-    {
-      id: "timeline",
-      label: "Timeline",
-    },
-    {
-      id: "emails",
-      label: "Emails",
-    },
-    {
-      id: "audit",
-      label: "Audit Logs",
-    },
-    {
-      id: "notes",
-      label: "Notes",
-    },
-  ];
-
   if (loading) {
-    return (
-      <div className="p-10">
-        Loading case...
-      </div>
-    );
+    return <div className="p-10 font-sans text-slate-600">Loading case...</div>;
   }
 
   if (!caseData) {
-    return (
-      <div className="p-10 text-red-600">
-        Case not found
-      </div>
-    );
+    return <div className="p-10 text-red-600 font-sans">Case not found</div>;
   }
 
+  const lawyers = caseLawyers(caseData);
+  const actingFor = isMe(lawyers.p1, me)
+    ? { side: "Partner 1", name: personName(caseData.owner) }
+    : isMe(lawyers.p2, me)
+    ? { side: "Partner 2", name: personName(caseData.invitedUser) || caseData.invitedEmail }
+    : null;
+
+  const archived = ["COMPLETED", "ARCHIVED"].includes(caseData.workflowStatus);
+
   return (
-      <div className="bg-white overflow-hidden">
+    <div className="p-6">
+      <CaseHeader
+        caseData={caseData}
+        backHref={archived ? "/lawyer/archived" : "/lawyer/assigned-cases"}
+        backLabel={archived ? "Back to Archived Cases" : "Back to Active Cases"}
+        extra={
+          actingFor && (
+            <div className="mt-1 pt-3 border-t border-slate-100 text-xs text-slate-600">
+              You act for <strong className="text-slate-900">{actingFor.name || actingFor.side}</strong>{" "}
+              ({actingFor.side}).
+            </div>
+          )
+        }
+      />
+
+      <div className="bg-white border rounded-xl overflow-hidden">
         <div className="flex overflow-auto border-b">
-          {tabs.map((tab) => (
+          {TABS.map((tab) => (
             <button
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={`px-5 py-3 text-sm font-semibold whitespace-nowrap ${activeTab === tab.id
-                  ? "border-b-2 border-black bg-slate-50"
-                  : ""
-                }`}
+              className={`px-5 py-3 text-sm font-semibold whitespace-nowrap ${
+                activeTab === tab.id ? "border-b-2 border-black bg-slate-50" : ""
+              }`}
             >
               {tab.label}
             </button>
@@ -133,42 +101,11 @@ export default function CaseDetailPage() {
         </div>
 
         <div className="p-6">
-          {activeTab === "overview" && (
-            <OverviewTab caseData={caseData} />
-          )}
-
-          {activeTab === "forms" && (
-            <FormsTab
-              caseData={caseData}
-              isCmEditing={isCmEditing}
-              setIsCmEditing={setIsCmEditing}
-            />
-          )}
-
-          {activeTab === "agreement" && (
-            <AgreementTab />
-          )}
-
-          {activeTab === "lawyers" && (
-            <LawyerActionsTab  />
-          )}
-
-          {activeTab === "timeline" && (
-            <TimelineTab caseData={caseData} />
-          )}
-
-          {activeTab === "emails" && (
-            <EmailsTab caseData={caseData} />
-          )}
-
-          {activeTab === "audit" && (
-            <AuditTab caseData={caseData} />
-          )}
-
-          {activeTab === "notes" && (
-            <NotesTab caseId={caseId} />
-          )}
+          {activeTab === "overview" && <OverviewTab caseData={caseData} />}
+          {activeTab === "agreement" && <AgreementTab />}
+          {activeTab === "lawyers" && <LawyerActionsTab />}
         </div>
       </div>
+    </div>
   );
 }

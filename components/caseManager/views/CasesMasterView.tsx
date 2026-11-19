@@ -7,7 +7,16 @@ import type { RootState } from "@/store/store";
 import { Eye, RotateCcw, Filter, Search } from "lucide-react";
 import Axios from "@/lib/ApiConfig";
 import type { FilterState } from "@/types/case-manager";
-import { toStageFacts, matchesStageFilter, STAGE_FILTERS, type CaseStageFacts } from "@/lib/caseStages";
+import {
+  toStageFacts,
+  matchesStageFilter,
+  normaliseStageFilter,
+  stageLabelOf,
+  paymentLabel,
+  serviceLabel,
+  ACTIVE_STAGES,
+  type CaseStageFacts,
+} from "@/lib/caseStages";
 
 interface CasesMasterViewProps {
   filters?: FilterState;
@@ -25,6 +34,7 @@ interface RowCase extends CaseStageFacts {
   p2Email: string;
   agreementType: string;
   paymentStatus: string;
+  stageLabel: string;
   caseManager: string;
   priority: string;
 }
@@ -44,7 +54,6 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
   const [rawCases, setRawCases] = useState<RowCase[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // 7 Filters from spreadsheet
   const [stageFilter, setStageFilter] = useState("ALL");
   const [planFilter, setPlanFilter] = useState("ALL");
   const [paymentFilter, setPaymentFilter] = useState("ALL");
@@ -55,7 +64,7 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
   const urlStatus = searchParams.get("status");
 
   useEffect(() => {
-    if (urlStatus) setStageFilter(urlStatus);
+    setStageFilter(normaliseStageFilter(urlStatus));
   }, [urlStatus]);
 
   useEffect(() => {
@@ -83,7 +92,6 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
             : "Unassigned";
 
           const facts = toStageFacts(item);
-          const rawPayment = String(item.paymentStatus || "").toUpperCase();
 
           return {
             ...facts,
@@ -94,13 +102,8 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
             p1Email: item.owner?.email || "",
             p2Email: item.invitedUser?.email || item.invitedEmail || "",
             agreementType: item.agreementType || "prenup-marriage",
-            paymentStatus: facts.isPaid
-              ? "Completed"
-              : rawPayment === "PARTIALLY_REFUNDED"
-              ? "Partially Refunded"
-              : rawPayment
-              ? rawPayment.charAt(0) + rawPayment.slice(1).toLowerCase()
-              : "Pending",
+            paymentStatus: paymentLabel(item),
+            stageLabel: stageLabelOf(facts),
             caseManager: cm || "Unassigned",
             priority: (item.priority || "MEDIUM").toUpperCase(),
           };
@@ -119,12 +122,18 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
   }, []);
 
   const handleResetFilters = () => {
-    setStageFilter("ALL");
+    changeStage("ALL");
     setPlanFilter("ALL");
     setPaymentFilter("ALL");
     setCmFilter("ALL");
     setPriorityFilter("ALL");
     setSearchQuery("");
+  };
+
+  // Keep the URL in step so a refresh or a shared link shows the same list.
+  const changeStage = (value: string) => {
+    setStageFilter(value);
+    router.replace(value === "ALL" ? "/cm/cases" : `/cm/cases?status=${encodeURIComponent(value)}`);
   };
 
   const handleCaseClick = (caseId: string) => {
@@ -135,7 +144,7 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
   const filteredCases = useMemo(() => {
     return rawCases.filter((c) => {
       // 1. Stage filter (same rules as the dashboard counts)
-      if (!matchesStageFilter(c, stageFilter, currentUserId)) return false;
+      if (!matchesStageFilter(c, stageFilter)) return false;
 
       // 2. Plan filter
       if (planFilter !== "ALL" && c.agreementType !== planFilter) {
@@ -206,7 +215,7 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
         <div className="flex items-center justify-between border-b pb-3 border-slate-100">
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-800">
             <Filter className="w-4 h-4 text-sky-600" />
-            <span>Case Master Filters (7 Filters)</span>
+            <span>Filters</span>
           </div>
 
           <button
@@ -221,29 +230,32 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
 
         {/* Filter controls grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
-          {/* 1. Workflow Stage */}
           <div>
             <label className="text-[11px] font-bold text-slate-600 block mb-1">
-              1. Workflow Stage
+              Workflow Stage
             </label>
             <select
               value={stageFilter}
-              onChange={(e) => setStageFilter(e.target.value)}
+              onChange={(e) => changeStage(e.target.value)}
               className="w-full border border-slate-200 rounded-lg p-2 bg-white text-xs"
             >
               <option value="ALL">All Stages</option>
-              {STAGE_FILTERS.map((f) => (
+              <option value="NOT_PAID">Not Paid</option>
+              <option value="ACTIVE" className="font-bold">
+                Active Cases
+              </option>
+              {ACTIVE_STAGES.map((f) => (
                 <option key={f.value} value={f.value}>
+                  {"    "}
                   {f.label}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* 2. Plans Type */}
           <div>
             <label className="text-[11px] font-bold text-slate-600 block mb-1">
-              2. Plans Type
+              Service Type
             </label>
             <select
               value={planFilter}
@@ -251,18 +263,17 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
               className="w-full border border-slate-200 rounded-lg p-2 bg-white text-xs"
             >
               <option value="ALL">All Services</option>
-              <option value="prenup-marriage">Prenup — Marriage</option>
-              <option value="prenup-civil">Prenup — Civil Partnership</option>
-              <option value="postnup-marriage">Postnup — Marriage</option>
-              <option value="postnup-civil">Postnup — Civil Partnership</option>
-              <option value="cohabitation">Cohabitation</option>
+              <option value="prenup-marriage">Prenuptial Agreement – Marriage</option>
+              <option value="prenup-civil">Prenuptial Agreement – Civil Partnership</option>
+              <option value="postnup-marriage">Postnuptial Agreement – Marriage</option>
+              <option value="postnup-civil">Postnuptial Agreement – Civil Partnership</option>
+              <option value="cohabitation">Cohabitation Agreement</option>
             </select>
           </div>
 
-          {/* 3. Payment Status */}
           <div>
             <label className="text-[11px] font-bold text-slate-600 block mb-1">
-              3. Payment Status
+              Payment Status
             </label>
             <select
               value={paymentFilter}
@@ -273,16 +284,15 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
               <option value="Pending">Pending</option>
               <option value="Initiated">Initiated</option>
               <option value="Failed">Failed</option>
-              <option value="Completed">Completed</option>
+              <option value="Successful">Successful</option>
               <option value="Partially Refunded">Partially Refunded</option>
               <option value="Refunded">Refunded</option>
             </select>
           </div>
 
-          {/* 4. Case Manager */}
           <div>
             <label className="text-[11px] font-bold text-slate-600 block mb-1">
-              4. Case Manager
+              Case Manager
             </label>
             <select
               value={cmFilter}
@@ -296,10 +306,9 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
             </select>
           </div>
 
-          {/* 5. Priority */}
           <div>
             <label className="text-[11px] font-bold text-slate-600 block mb-1">
-              5. Priority
+              Priority
             </label>
             <select
               value={priorityFilter}
@@ -313,10 +322,9 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
             </select>
           </div>
 
-          {/* 6. Search */}
           <div>
             <label className="text-[11px] font-bold text-slate-600 block mb-1">
-              6. Search
+              Search
             </label>
             <div className="relative">
               <input
@@ -336,7 +344,7 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
       <div className="bg-white border border-slate-300 rounded-xl overflow-hidden shadow-xs">
         <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
           <h3 className="font-bold text-sm text-slate-900 tracking-tight">
-            Case Master Table ({filteredCases.length}{" "}
+            Active Cases ({filteredCases.length}{" "}
             {filteredCases.length === 1 ? "Case" : "Cases"})
           </h3>
           <span className="text-xs text-slate-500">
@@ -351,7 +359,9 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
                 <th className="p-4 pl-6">CASE ID</th>
                 <th className="p-4">PRIMARY APPLICANT</th>
                 <th className="p-4">PARTNER</th>
+                <th className="p-4">SERVICE TYPE</th>
                 <th className="p-4">WORKFLOW STAGE</th>
+                <th className="p-4">PAYMENT</th>
                 <th className="p-4">CASE MANAGER</th>
                 <th className="p-4 text-center">PRIORITY</th>
                 <th className="p-4 pr-6 text-center">ACTION</th>
@@ -396,9 +406,21 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
                         )}
                       </td>
 
+                      <td className="p-4 text-slate-700">{serviceLabel(c.agreementType)}</td>
+
                       <td className="p-4">
                         <span className="px-2.5 py-1 rounded-md bg-slate-100 border border-slate-200 text-slate-800 text-[10px] font-bold">
-                          {c.workflowStage}
+                          {c.stageLabel}
+                        </span>
+                      </td>
+
+                      <td className="p-4 text-slate-700">
+                        <span
+                          className={`text-[10px] font-bold ${
+                            c.paymentStatus === "Successful" ? "text-emerald-700" : "text-amber-700"
+                          }`}
+                        >
+                          {c.paymentStatus}
                         </span>
                       </td>
 
@@ -430,7 +452,7 @@ export const CasesMasterView: React.FC<CasesMasterViewProps> = () => {
                 })
               ) : (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-400">
+                  <td colSpan={9} className="p-8 text-center text-slate-400">
                     No matching cases found with current filter parameters.
                   </td>
                 </tr>

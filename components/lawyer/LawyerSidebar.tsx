@@ -11,14 +11,9 @@ import { logOutUser } from "@/store/asyncThunk/authThunk";
 
 const MENU_ITEMS = [
   { path: "/lawyer", label: "Dashboard" },
-  { path: "/lawyer/assigned-cases", label: "Assigned Cases", countKey: "assigned" as const },
-  { path: "/lawyer/completed-case", label: "Completed Cases", countKey: "completed" as const },
-  { path: "/lawyer/settings", label: "Settings" },
+  { path: "/lawyer/assigned-cases", label: "Active Cases", countKey: "assigned" as const },
+  { path: "/lawyer/archived", label: "Archived Cases", countKey: "completed" as const },
 ];
-
-// workflowStatus values from the Case schema.
-const isCompleted = (status: string) =>
-  status === "COMPLETED" || status === "ARCHIVED";
 
 export const LawyerSidebar: React.FC = () => {
   const router = useRouter();
@@ -56,12 +51,14 @@ export const LawyerSidebar: React.FC = () => {
     let cancelled = false;
     const loadCounts = async () => {
       try {
-        const response = await Axios.get("/lawyer/cases");
+        // Same lists as the Active Cases and Archived Cases pages.
+        const [active, archived] = await Promise.all([
+          Axios.get("/lawyer/assignments", { params: { scope: "active" } }),
+          Axios.get("/lawyer/assignments", { params: { scope: "archived" } }),
+        ]);
         if (cancelled) return;
-        const list: any[] = Array.isArray(response.data) ? response.data : [];
-        const completed = list.filter((c) => isCompleted(c.workflowStatus)).length;
-        setCompletedCount(completed);
-        setAssignedCount(list.length - completed);
+        setAssignedCount(Array.isArray(active.data) ? active.data.length : 0);
+        setCompletedCount(Array.isArray(archived.data) ? archived.data.length : 0);
       } catch (err) {
         console.error("Failed to load sidebar counts", err);
       }

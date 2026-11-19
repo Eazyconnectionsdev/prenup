@@ -1,5 +1,33 @@
 import { isCasePaid } from "@/lib/casePayment";
 
+// One set of rules for the Case Manager dashboard counts, the Active Cases
+// stage filter and the Archived Cases page, so a tile's number always equals
+// the rows it opens.
+//
+// Real workflow, as the backend moves a case:
+//   NOT_PAID -> (payment) DRAFT -> (both partners approve) COUPLE_SUBMITTED
+//   -> (CM approves) LAWYERS_ASSIGNED       (CM returns -> DRAFT + cmReturnReason)
+//      the pre-lawyer stage opens: each partner fills the pre-lawyer
+//      questionnaire and chooses their own solicitor
+//      (preQuestionnaireUserN.selectedLawyer)
+//   -> (both questionnaires submitted) PRE_LAWYER_COMPLETED
+//   -> (lawyer review done) LAWYER_REVIEW_COMPLETED
+//   -> (ILA requested) LAWYER_ILA_PENDING
+//   -> (both lawyers signed off) LAWYER_CLIENT_CONFIRMATION
+//   -> (both final confirmations, case completed) COMPLETED
+//   -> (30 days after completion, automatically) ARCHIVED
+// Older cases may sit in CM_APPROVED / PRE_LAWYER_PENDING, or have lawyers a
+// case manager assigned (assignedLawyerP1/P2); both are still understood.
+//
+// Lifecycle buckets: Not Paid -> Active Cases -> Archived.
+//   Not Paid     payment not completed (or refunded)
+//   Active       paid, still being worked on; every active case is in exactly
+//                one active stage below, so the stage counts add up to it
+//   Completed    finished, waiting out the 30 days ("Recently Completed");
+//                listed on Archived Cases, not on Active Cases
+//   Archived     archived
+// Set-aside (cancelled) cases are in none of them.
+
 export interface CaseStageFacts {
   workflowStage: string;
   isPaid: boolean;
@@ -11,6 +39,7 @@ export interface CaseStageFacts {
   caseManagerId: string;
   p1QuestionnaireDone: boolean;
   p2QuestionnaireDone: boolean;
+  lawyersAssigned: boolean;
   p1Confirmed: boolean;
   p2Confirmed: boolean;
   p1IlaDone: boolean;
@@ -18,6 +47,9 @@ export interface CaseStageFacts {
   p1LawyerSigned: boolean;
   p2LawyerSigned: boolean;
   readyForArchive: boolean;
+  cancelled: boolean;
+  completedAt: string | null;
+  archivedAt: string | null;
 }
 
 const idOf = (ref: any): string =>
@@ -27,13 +59,37 @@ const idOf = (ref: any): string =>
     ? ref
     : "";
 
+// One definition of "paid", shared with the client dashboard.
+export { isCasePaid };
+
+/**
+ * The solicitor acting for each partner: the one they chose, falling back to
+ * the older case-manager assignment. Same rule as the backend's caseLawyerIds.
+ */
+export function caseLawyers(item: any): { p1: any; p2: any } {
+  return {
+    p1: item?.preQuestionnaireUser1?.selectedLawyer || item?.assignedLawyerP1 || null,
+    p2: item?.preQuestionnaireUser2?.selectedLawyer || item?.assignedLawyerP2 || null,
+  };
+}
+
+/** Payment status as shown to staff: a completed payment reads "Successful". */
+export function paymentLabel(item: any): string {
+  if (isCasePaid(item)) return "Successful";
+  const raw = String(item?.paymentStatus || "").toUpperCase();
+  if (raw === "PARTIALLY_REFUNDED") return "Partially Refunded";
+  if (!raw || raw === "COMPLETED") return "Pending";
+  return raw.charAt(0) + raw.slice(1).toLowerCase();
+}
+
 /** Pull the stage-related facts out of a raw case from the API. */
 export function toStageFacts(item: any): CaseStageFacts {
   const approval = item.approval || {};
   const user1Approved = Boolean(approval.user1Approved);
   const user2Approved = Boolean(approval.user2Approved);
+  const workflowStage = item.workflowStatus || "DRAFT";
   return {
-    workflowStage: item.workflowStatus || "DRAFT",
+    workflowStage,
     isPaid: isCasePaid(item),
     partnerJoined: Boolean(item.invitedUser),
     user1Approved,
@@ -45,6 +101,10 @@ export function toStageFacts(item: any): CaseStageFacts {
     caseManagerId: idOf(item.assignedCaseManager),
     p1QuestionnaireDone: Boolean(item.preQuestionnaireUser1?.submitted),
     p2QuestionnaireDone: Boolean(item.preQuestionnaireUser2?.submitted),
+    lawyersAssigned: (() => {
+      const { p1, p2 } = caseLawyers(item);
+      return Boolean(p1 && p2);
+    })(),
     p1Confirmed: Boolean(item.p1Confirmed),
     p2Confirmed: Boolean(item.p2Confirmed),
     p1IlaDone: Boolean(item.p1ILACompleted),
@@ -52,137 +112,175 @@ export function toStageFacts(item: any): CaseStageFacts {
     p1LawyerSigned: Boolean(item.p1LawyerSigned),
     p2LawyerSigned: Boolean(item.p2LawyerSigned),
     readyForArchive: Boolean(item.readyForArchive),
+    cancelled: workflowStage === "CANCELLED" || Boolean(item.abandonedAt),
+    completedAt: item.completedAt || null,
+    archivedAt: item.archivedAt || null,
   };
 }
 
-const at = (c: CaseStageFacts, ...stages: string[]) =>
-  stages.includes(c.workflowStage);
+const PRE_LAWYER_STAGES = [
+  "CM_APPROVED",
+  "PRE_LAWYER_PENDING",
+  "PRE_LAWYER_COMPLETED",
+  "LAWYERS_ASSIGNED",
+];
 
-const questionnairesDone = (c: CaseStageFacts) =>
-  c.p1QuestionnaireDone && c.p2QuestionnaireDone;
+export type Lifecycle = "NOT_PAID" | "ACTIVE" | "COMPLETED" | "ARCHIVED" | "CANCELLED";
 
-/** Lawyers assigned, both questionnaires in, lawyer review not finished yet. */
-const inLawyerReview = (c: CaseStageFacts) =>
-  (at(c, "LAWYERS_ASSIGNED") && questionnairesDone(c)) ||
-  at(c, "PRE_LAWYER_COMPLETED", "LAWYER_REVIEW");
+export function lifecycleOf(c: CaseStageFacts): Lifecycle {
+  if (c.workflowStage === "ARCHIVED") return "ARCHIVED";
+  if (c.cancelled) return "CANCELLED";
+  if (c.workflowStage === "COMPLETED") return "COMPLETED";
+  if (!c.isPaid) return "NOT_PAID";
+  return "ACTIVE";
+}
 
-/** Lawyer review finished; ILA and lawyer sign-off in progress. */
-const inIlaAndSignoff = (c: CaseStageFacts) =>
-  at(c, "LAWYER_REVIEW_COMPLETED", "LAWYER_ILA_PENDING", "LAWYER_SIGNOFF_COMPLETE");
+/** The active stages, in workflow order (the Active Cases sub-menu). */
+export const ACTIVE_STAGES: { value: string; label: string; hint: string }[] = [
+  { value: "PARTNER_NOT_JOINED", label: "Partner Not Joined", hint: "Paid; partner has not joined yet" },
+  { value: "APPLICANT_DRAFTING", label: "Applicant Drafting", hint: "Both partners completing forms" },
+  { value: "PARTNER_REVIEW", label: "Partner Review", hint: "One partner approved; waiting for the other" },
+  { value: "CM_NOT_ASSIGNED", label: "Case Manager Not Assigned", hint: "Submitted; no case manager assigned" },
+  { value: "CM_REVIEW", label: "Case Manager Review", hint: "Submitted; with the case manager for review" },
+  { value: "PRE_LAWYER_PENDING", label: "Pre-Lawyer Questionnaire Pending", hint: "CM approved; waiting for applicant questionnaires" },
+  { value: "LAWYER_ASSIGNMENT_PENDING", label: "Lawyer Assignment Pending", hint: "Questionnaires done; waiting for both partners to choose a solicitor" },
+  { value: "LEGAL_REVIEW", label: "Legal Review", hint: "Both solicitors chosen and reviewing" },
+  { value: "LAWYER_ILA_PENDING", label: "Independent Legal Advice (ILA)", hint: "Waiting for ILA and lawyer sign-off" },
+  { value: "COMPLETION_EXECUTION", label: "Completion & Execution", hint: "Signed off; final confirmations in progress" },
+];
 
-type Rule = (c: CaseStageFacts, me: string) => boolean;
+/** The one active stage of a paid, open case. */
+export function activeStageOf(c: CaseStageFacts): string {
+  const s = c.workflowStage;
+  // A paid case still marked NOT_PAID is a draft the payment hook missed.
+  if (s === "DRAFT" || s === "NOT_PAID") {
+    if (!c.partnerJoined) return "PARTNER_NOT_JOINED";
+    return c.user1Approved || c.user2Approved ? "PARTNER_REVIEW" : "APPLICANT_DRAFTING";
+  }
+  if (s === "COUPLE_SUBMITTED") return c.caseManagerId ? "CM_REVIEW" : "CM_NOT_ASSIGNED";
+  if (PRE_LAWYER_STAGES.includes(s)) {
+    if (!(c.p1QuestionnaireDone && c.p2QuestionnaireDone)) return "PRE_LAWYER_PENDING";
+    return c.lawyersAssigned ? "LEGAL_REVIEW" : "LAWYER_ASSIGNMENT_PENDING";
+  }
+  if (s === "LAWYER_REVIEW" || s === "LAWYER_REVIEW_COMPLETED") return "LEGAL_REVIEW";
+  if (s === "LAWYER_ILA_PENDING") return "LAWYER_ILA_PENDING";
+  if (s === "LAWYER_SIGNOFF_COMPLETE" || s === "LAWYER_CLIENT_CONFIRMATION") {
+    return "COMPLETION_EXECUTION";
+  }
+  // Unknown status on a paid open case: keep it visible at the start.
+  return "APPLICANT_DRAFTING";
+}
 
-const RULES: Record<string, Rule> = {
-  // ── Top cards / column groups ──
-  NOT_PAID: (c) => !c.isPaid,
-  DRAFT: (c) => at(c, "DRAFT"),
-  CM_REVIEW: (c) =>
-    at(c, "COUPLE_SUBMITTED", "CM_APPROVED") || RULES.PRE_LAWYER_PENDING(c, ""),
-  LEGAL_REVIEW: (c) =>
-    inLawyerReview(c) || inIlaAndSignoff(c) || at(c, "LAWYER_CLIENT_CONFIRMATION"),
-  COMPLETED: (c) => at(c, "COMPLETED"),
-
-  // ── 1. Applicant Drafting (these three split DRAFT exactly) ──
-  PARTNER_NOT_JOINED: (c) => at(c, "DRAFT") && !c.partnerJoined,
-  APPLICANT_DRAFTING: (c) =>
-    at(c, "DRAFT") && c.partnerJoined && !c.user1Approved && !c.user2Approved,
-  PARTNER_REVIEW: (c) =>
-    at(c, "DRAFT") && c.partnerJoined && (c.user1Approved || c.user2Approved),
-  RETURNED_TO_DRAFT: (c) => at(c, "DRAFT") && c.returnedToDraft,
-
-  // ── 2. Case Manager Review ──
-  CM_NOT_ASSIGNED: (c) => at(c, "COUPLE_SUBMITTED") && !c.caseManagerId,
-  MY_ACTIVE_REVIEWS: (c, me) =>
-    at(c, "COUPLE_SUBMITTED") && Boolean(me) && c.caseManagerId === me,
-  LAWYER_ASSIGNMENT_PENDING: (c) => at(c, "CM_APPROVED"),
-  PRE_LAWYER_PENDING: (c) =>
-    at(c, "LAWYERS_ASSIGNED", "PRE_LAWYER_PENDING") && !questionnairesDone(c),
-
-  // ── 3. Legal Review ──
-  P1_CONFIRMATION_PENDING: (c) => inLawyerReview(c) && !c.p1Confirmed,
-  P2_CONFIRMATION_PENDING: (c) => inLawyerReview(c) && !c.p2Confirmed,
-  P1_LAWYER_APPROVAL_PENDING: (c) =>
-    inIlaAndSignoff(c) && (!c.p1IlaDone || !c.p1LawyerSigned),
-  P2_LAWYER_APPROVAL_PENDING: (c) =>
-    inIlaAndSignoff(c) && (!c.p2IlaDone || !c.p2LawyerSigned),
-  FINAL_CONFIRMATION_PENDING: (c) => at(c, "LAWYER_CLIENT_CONFIRMATION"),
-
-  // ── Lawyer portal (the same workflow, grouped as the lawyer's own queue) ──
-  LAWYER_ONBOARDING_PENDING: (c) => RULES.PRE_LAWYER_PENDING(c, ""),
-  LAWYER_REVIEW_PENDING: (c) => inLawyerReview(c),
-  LAWYER_ILA_SIGNOFF: (c) => inIlaAndSignoff(c),
-  LAWYER_FINAL_CONFIRMATION: (c) => at(c, "LAWYER_CLIENT_CONFIRMATION"),
-  LAWYER_COMPLETED: (c) => at(c, "COMPLETED", "ARCHIVED"),
-  LAWYER_ONBOARDED: (c) =>
-    !at(c, "COMPLETED", "ARCHIVED", "CANCELLED") &&
-    !RULES.LAWYER_ONBOARDING_PENDING(c, ""),
-
-  // ── 4. Completed ──
-  // executionPackGenerated is never set by the backend; the pack is produced
-  // when the case is completed, so Completed status is the signal.
-  EXECUTION_PACK_GENERATED: (c) => at(c, "COMPLETED"),
-  READY_FOR_ARCHIVE: (c) => c.readyForArchive && !at(c, "ARCHIVED"),
+// Old links (dashboard bookmarks) used these names.
+const ALIASES: Record<string, string> = {
+  MY_ACTIVE_REVIEWS: "CM_REVIEW",
+  COMPLETED: "COMPLETION_EXECUTION",
 };
 
+/** The stage label shown in tables. */
+export function stageLabelOf(c: CaseStageFacts): string {
+  switch (lifecycleOf(c)) {
+    case "NOT_PAID":
+      return "Not Paid";
+    case "COMPLETED":
+      return "Recently Completed";
+    case "ARCHIVED":
+      return "Archived";
+    case "CANCELLED":
+      return "Set Aside";
+    default: {
+      const v = activeStageOf(c);
+      return ACTIVE_STAGES.find((x) => x.value === v)?.label ?? v;
+    }
+  }
+}
+
 /**
- * Does a case match a stage filter value? "ALL" matches everything; any value
- * without a rule is treated as a plain workflowStatus.
+ * Does a case match an Active Cases filter value?
+ *   ALL      everything on Active Cases (Not Paid + Active)
+ *   NOT_PAID / ACTIVE, or one active stage.
  */
-export function matchesStageFilter(
-  c: CaseStageFacts,
-  filter: string,
-  currentUserId = ""
-): boolean {
-  if (!filter || filter === "ALL") return true;
-  const rule = RULES[filter];
-  return rule ? rule(c, String(currentUserId || "")) : c.workflowStage === filter;
+export function matchesStageFilter(c: CaseStageFacts, filter: string): boolean {
+  const f = ALIASES[filter] ?? filter;
+  const life = lifecycleOf(c);
+  if (!f || f === "ALL") return life === "NOT_PAID" || life === "ACTIVE";
+  if (f === "NOT_PAID") return life === "NOT_PAID";
+  if (f === "ACTIVE") return life === "ACTIVE";
+  if (life !== "ACTIVE") return false;
+  return activeStageOf(c) === f;
+}
+
+/** Normalise a filter value from the URL (old names, unknown values). */
+export function normaliseStageFilter(value: string | null | undefined): string {
+  const v = ALIASES[value || ""] ?? (value || "ALL");
+  const known = ["ALL", "NOT_PAID", "ACTIVE", ...ACTIVE_STAGES.map((s) => s.value)];
+  return known.includes(v) ? v : "ALL";
 }
 
 /** Count cases matching each filter value. */
 export function countByStageFilter(
   cases: CaseStageFacts[],
-  filters: string[],
-  currentUserId = ""
+  filters: string[]
 ): Record<string, number> {
   const out: Record<string, number> = {};
   for (const f of filters) {
-    out[f] = cases.filter((c) => matchesStageFilter(c, f, currentUserId)).length;
+    out[f] = cases.filter((c) => matchesStageFilter(c, f)).length;
   }
   return out;
 }
 
-/**
- * The case manager portal's stage filter: one list behind the dashboard tiles
- * and the Cases page "Workflow Stage" dropdown. Each value is a RULES key, or a
- * plain workflowStatus that matchesStageFilter compares directly.
- */
-export const STAGE_FILTERS: { value: string; label: string }[] = [
-  { value: "NOT_PAID", label: "Not Paid" },
-  { value: "PARTNER_NOT_JOINED", label: "Partner Not Joined" },
-  { value: "APPLICANT_DRAFTING", label: "Applicant Drafting" },
-  { value: "PARTNER_REVIEW", label: "Partner Review" },
-  { value: "CM_NOT_ASSIGNED", label: "Case Manager Not Assigned" },
-  { value: "MY_ACTIVE_REVIEWS", label: "Case Manager Review — My Active Reviews" },
-  { value: "PRE_LAWYER_PENDING", label: "Pre-Lawyer Questionnaire Pending" },
-  { value: "LAWYER_ASSIGNMENT_PENDING", label: "Lawyer Assignment Pending" },
-  { value: "LEGAL_REVIEW", label: "Legal Review" },
-  { value: "LAWYER_ILA_PENDING", label: "Independent Legal Advice (ILA)" },
-  { value: "COMPLETED", label: "Completion & Execution" },
-  { value: "READY_FOR_ARCHIVE", label: "Ready for Archive" },
-  { value: "ARCHIVED", label: "Archived" },
+// ── Archived Cases ──────────────────────────────────────────────────────────
+
+/** Services, as the Service Type filters list them. */
+export const SERVICE_TYPES: { value: string; label: string }[] = [
+  { value: "prenup-marriage", label: "Prenuptial Agreement – Marriage" },
+  { value: "prenup-civil", label: "Prenuptial Agreement – Civil Partnership" },
+  { value: "postnup-marriage", label: "Postnuptial Agreement – Marriage" },
+  { value: "postnup-civil", label: "Postnuptial Agreement – Civil Partnership" },
+  { value: "cohabitation", label: "Cohabitation Agreement" },
 ];
 
-/** The lawyer portal's stage filter: one list behind its cards and its dropdown. */
-export const LAWYER_STAGES = [
-  { value: "ALL", label: "Total Cases" },
-  { value: "LAWYER_ONBOARDING_PENDING", label: "Onboarding Pending" },
-  { value: "LAWYER_ONBOARDED", label: "Onboarded" },
-  { value: "LAWYER_REVIEW_PENDING", label: "Review Pending" },
-  { value: "LAWYER_ILA_SIGNOFF", label: "ILA & Sign-Off Pending" },
-  { value: "LAWYER_FINAL_CONFIRMATION", label: "Final Confirmation Pending" },
-  { value: "LAWYER_COMPLETED", label: "Completed" },
+export function serviceLabel(type?: string | null): string {
+  if (!type) return "Prenuptial Agreement – Marriage";
+  if (type === "help-choose") return "Prenuptial Agreement (help me choose)";
+  return SERVICE_TYPES.find((s) => s.value === type)?.label ?? type.replace(/-/g, " ");
+}
+
+export const DATE_RANGES: { value: string; label: string }[] = [
+  { value: "ALL", label: "All Time" },
+  { value: "TODAY", label: "Today" },
+  { value: "7", label: "Last 7 Days" },
+  { value: "30", label: "Last 30 Days" },
+  { value: "90", label: "Last 90 Days" },
+  { value: "CUSTOM", label: "Custom Range" },
 ];
 
-/** A workflowStatus from the Case schema, as a badge reads it. */
-export const workflowStatusLabel = (status?: string | null) =>
-  status ? status.replace(/_/g, " ") : "UNKNOWN";
+/** Is `date` inside the chosen range? `from`/`to` are yyyy-mm-dd for CUSTOM. */
+export function inDateRange(
+  date: string | Date | null | undefined,
+  range: string,
+  from = "",
+  to = ""
+): boolean {
+  if (!range || range === "ALL") return true;
+  if (!date) return false;
+  const d = new Date(date);
+  if (isNaN(+d)) return false;
+  const now = new Date();
+  if (range === "TODAY") return d.toDateString() === now.toDateString();
+  if (range === "CUSTOM") {
+    if (from && d < new Date(`${from}T00:00:00`)) return false;
+    if (to && d > new Date(`${to}T23:59:59.999`)) return false;
+    return true;
+  }
+  const days = Number(range);
+  if (!Number.isFinite(days)) return true;
+  return now.getTime() - d.getTime() <= days * 86_400_000;
+}
+
+export function formatDate(date?: string | Date | null): string {
+  if (!date) return "—";
+  const d = new Date(date);
+  if (isNaN(+d)) return "—";
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+}

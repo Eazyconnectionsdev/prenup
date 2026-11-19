@@ -9,9 +9,9 @@ import { logOutUser } from "@/store/asyncThunk/authThunk";
 
 // Ordered most-specific first; matched by prefix so nested routes keep a title.
 const PATH_TITLES: [string, string][] = [
-  ["/lawyer/assigned-cases", "Assigned Matters"],
-  ["/lawyer/completed-case", "Completed Cases"],
-  ["/lawyer/settings", "Portal Settings"],
+  ["/lawyer/assigned-cases/case", "Case Details"],
+  ["/lawyer/assigned-cases", "Active Cases"],
+  ["/lawyer/archived", "Archived Cases"],
   ["/lawyer/lawyer-profile", "Lawyer Profile"],
   ["/lawyer", "Lawyer Dashboard"],
 ];
