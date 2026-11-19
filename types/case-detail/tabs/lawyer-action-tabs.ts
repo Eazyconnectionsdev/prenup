@@ -109,6 +109,8 @@ export type ConfirmationUploadFormProps = {
 /* CONFIRMATION CARD                                                          */
 /* ========================================================================== */
 export type ConfirmationCardProps = {
+  /** Why this lawyer cannot act on this card (another partner's side, or not yet); shown instead of the upload form. */
+  locked?: string | null;
   persona: Persona;
   complete: boolean;
   confirmedAt?: string | null;
@@ -135,6 +137,8 @@ export type ILAUploadFormProps = {
 /* ILA CARD                                                                   */
 /* ========================================================================== */
 export type ILACardProps = {
+  /** Why this lawyer cannot act on this card (another partner's side, or not yet); shown instead of the upload form. */
+  locked?: string | null;
   type: ILAPersona;
   complete: boolean;
   completedAt?: string | null;

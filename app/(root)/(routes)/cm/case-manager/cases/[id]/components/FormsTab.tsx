@@ -541,7 +541,15 @@ export default function FormsViewTab({
           <button
             type="button"
             onClick={enableCmEdit}
-            className="border border-slate-300 bg-white rounded-lg px-4 py-2 flex items-center gap-2 hover:bg-slate-50"
+            // The case manager edits the couple's forms only while the case is
+            // with them for review (the API enforces the same rule).
+            disabled={caseData?.workflowStatus !== "COUPLE_SUBMITTED"}
+            title={
+              caseData?.workflowStatus !== "COUPLE_SUBMITTED"
+                ? "Available while the case is with the case manager for review"
+                : undefined
+            }
+            className="border border-slate-300 bg-white rounded-lg px-4 py-2 flex items-center gap-2 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Edit3 size={16} />
 

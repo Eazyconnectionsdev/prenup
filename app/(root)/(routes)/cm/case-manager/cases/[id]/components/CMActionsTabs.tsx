@@ -1,5 +1,6 @@
 "use client";
 
+import { isCasePaid } from "@/lib/casePayment";
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/store/store";
@@ -140,24 +141,17 @@ export default function CMActionsTab({ caseData }: Props) {
   // 1. Partner invited check
   const isPartnerInvited = Boolean(caseData?.partnerInvited);
 
-  // 2. Final review submitted & accepted by both users
+  // 2. Handed over by the couple: paid, both partners' information complete
+  //    and the final review approved by both. Same rule as the backend
+  //    (CmActionGuard / isHandedToCaseManager), so the buttons match the API.
   const isFinalReviewAccepted =
-    Boolean(caseData?.approval?.user1Approved && caseData?.approval?.user2Approved) ||
-    caseData?.approval?.mutualApprovalAndSnapshot === "COMPLETED" ||
-    [
-      "COUPLE_SUBMITTED",
-      "CM_APPROVED",
-      "PRE_LAWYER_PENDING",
-      "PRE_LAWYER_COMPLETED",
-      "LAWYERS_ASSIGNED",
-      "LAWYER_CLIENT_CONFIRMATION",
-      "LAWYER_REVIEW",
-      "LAWYER_REVIEW_COMPLETED",
-      "LAWYER_ILA_PENDING",
-      "LAWYER_SIGNOFF_COMPLETE",
-      "COMPLETED",
-      "ARCHIVED",
-    ].includes(caseData?.workflowStatus);
+    isCasePaid(caseData) &&
+    Boolean(caseData?.approval?.user1Approved && caseData?.approval?.user2Approved) &&
+    !["NOT_PAID", "DRAFT", "CANCELLED"].includes(caseData?.workflowStatus);
+
+  // The review decision (approve / return to draft) is taken while the case
+  // is with the case manager, and only then.
+  const isWithCaseManager = caseData?.workflowStatus === "COUPLE_SUBMITTED";
 
   // 3. Assignment checks
   const assignedCm = caseData?.assignedCaseManager;
@@ -365,8 +359,10 @@ export default function CMActionsTab({ caseData }: Props) {
         });
       }
 
-      await Axios.post(`/case-manager/${caseId}/approve`, {});
+      // The case manager's draft is what the solicitors receive on approval,
+      // so generate it first (the API refuses to approve without one).
       await Axios.post(`/agreement/${caseId}/document/cm/generate`);
+      await Axios.post(`/case-manager/${caseId}/approve`, {});
       toast.success("Case approved successfully");
     } catch (error) {
       console.error(error);
@@ -611,7 +607,8 @@ export default function CMActionsTab({ caseData }: Props) {
                     <div className="flex justify-end pt-1">
                       <Button
                         onClick={handleApproveCase}
-                        disabled={loading}
+                        disabled={loading || !isWithCaseManager}
+                        title={isWithCaseManager ? undefined : "This case is no longer with the case manager for review"}
                         className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
                       >
                         {loading ? "Processing..." : "Approve Case"}
@@ -659,7 +656,8 @@ export default function CMActionsTab({ caseData }: Props) {
                       <Button
                         variant="destructive"
                         onClick={handleReturnToDraft}
-                        disabled={loading}
+                        disabled={loading || !isWithCaseManager}
+                        title={isWithCaseManager ? undefined : "This case is no longer with the case manager for review"}
                         className="font-bold text-xs"
                       >
                         Return To Draft
@@ -738,8 +736,10 @@ export default function CMActionsTab({ caseData }: Props) {
           <p className="text-amber-800">
             {!isPartnerInvited || !isFinalReviewAccepted ? (
               <>
-                This case cannot proceed to full case-manager actions until the partner has been invited
-                and both applicants have submitted and accepted their final review.
+                The couple have not finished yet. Case manager actions open once the case is paid, the
+                partner has joined, both applicants have completed their information and both have
+                approved the final review. Until then only <strong>Case Details &amp; Priority</strong> and{" "}
+                <strong>Case Assignment</strong> are available; assigning a case manager does not move the case on.
               </>
             ) : !isCaseAssigned ? (
               <>

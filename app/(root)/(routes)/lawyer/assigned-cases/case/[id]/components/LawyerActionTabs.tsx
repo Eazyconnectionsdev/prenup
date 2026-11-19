@@ -21,6 +21,10 @@ import {
 } from "lucide-react";
 import { toast } from "react-toastify";
 import Axios from "@/lib/ApiConfig";
+import { useSelector } from "react-redux";
+import type { RootState } from "@/store/store";
+import { isMe } from "@/components/caseShared/LawyerDetails";
+import { caseLawyers } from "@/lib/caseStages";
 import type { CaseResponse, Confirmation, ConfirmationCardProps, ConfirmationResponse, ConfirmationUploadFormProps, ILACardProps, ILAPersona, ILAStatus, ILAUploadFormProps, Note, NotesResponse, Persona } from "@/types/case-detail/tabs/lawyer-action-tabs";
 
 /* ========================================================================== */
@@ -204,6 +208,7 @@ function ConfirmationUploadForm({
 
 function ConfirmationCard({
   persona,
+  locked,
   complete,
   confirmedAt,
   uploading,
@@ -294,11 +299,17 @@ function ConfirmationCard({
             </p>
           </div>
 
+          {locked ? (
+            <p className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+              {locked}
+            </p>
+          ) : (
           <ConfirmationUploadForm
             persona={persona}
             uploading={uploading}
             onSubmit={onSubmit}
           />
+          )}
         </>
       )}
     </div>
@@ -444,6 +455,7 @@ function ILAUploadForm({
 
 function ILACard({
   type,
+  locked,
   complete,
   completedAt,
   uploading,
@@ -530,11 +542,17 @@ function ILACard({
             </p>
           </div>
 
+          {locked ? (
+            <p className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+              {locked}
+            </p>
+          ) : (
           <ILAUploadForm
             type={type}
             uploading={uploading}
             onSubmit={onSubmit}
           />
+          )}
         </>
       )}
     </div>
@@ -935,11 +953,51 @@ export default function LawyerCaseWorkflowPage() {
     ],
   );
 
-  /*
-   * Stage 2 requires BOTH confirmations.
-   */
-  const stage2Unlocked =
-    p1Confirmed && p2Confirmed;
+  /* ---------------------------------------------------------------------- */
+  /* Which partner this lawyer acts for, and where the legal stage stands.    */
+  /* Same order the API enforces (LawyerActionGuard):                         */
+  /*   review (each lawyer) -> request ILA -> each side's ILA + sign-off      */
+  /*   -> each side's final confirmation -> complete.                         */
+  /* ---------------------------------------------------------------------- */
+  const me = useSelector((state: RootState) => (state as any).auth?.user);
+  const c: any = caseData || {};
+  const lawyers = caseLawyers(c);
+  const actsForP1 = isMe(lawyers.p1, me);
+  const actsForP2 = isMe(lawyers.p2, me);
+  const status = String(c.workflowStatus || "");
+  const legalStageOpen = Boolean(
+    c.preQuestionnaireUser1?.submitted && c.preQuestionnaireUser2?.submitted && lawyers.p1 && lawyers.p2,
+  );
+  const myReviewDone =
+    (!actsForP1 || Boolean(c.p1LawyerApproved)) && (!actsForP2 || Boolean(c.p2LawyerApproved)) && (actsForP1 || actsForP2);
+  const reviewDone = Boolean(c.lawyerReviewCompleted);
+  const canRequestIla = reviewDone && status === "LAWYER_REVIEW_COMPLETED";
+  const bothFinal = Boolean(c.finalP1Confirmed && c.finalP2Confirmed);
+  const sideLabel = (side: "P1" | "P2") => (side === "P1" ? "Partner 1" : "Partner 2");
+  const notMine = (side: "P1" | "P2") =>
+    `Handled by ${sideLabel(side)}'s lawyer. You act for ${actsForP1 ? "Partner 1" : "Partner 2"}.`;
+
+  /* ILA (stage 2) opens once ILA has been requested. */
+  const stage2Unlocked = [
+    "LAWYER_ILA_PENDING",
+    "LAWYER_SIGNOFF_COMPLETE",
+    "LAWYER_CLIENT_CONFIRMATION",
+    "COMPLETED",
+    "ARCHIVED",
+  ].includes(status);
+
+  const ilaLock = (side: "P1" | "P2"): string | null => {
+    if (!(side === "P1" ? actsForP1 : actsForP2)) return notMine(side);
+    if (!stage2Unlocked) return "Available once ILA has been requested.";
+    return null;
+  };
+  const confirmationLock = (side: "P1" | "P2"): string | null => {
+    if (!(side === "P1" ? actsForP1 : actsForP2)) return notMine(side);
+    if (!c[side === "P1" ? "p1LawyerSigned" : "p2LawyerSigned"]) {
+      return `Available after ${sideLabel(side)}'s ILA and your sign-off.`;
+    }
+    return null;
+  };
 
   /* ======================================================================== */
   /* UPLOAD CONFIRMATION                                                       */
@@ -1084,7 +1142,7 @@ export default function LawyerCaseWorkflowPage() {
 
     if (!stage2Unlocked) {
       toast.error(
-        "Both P1 and P2 confirmations must be completed first.",
+        "ILA has not been requested yet.",
       );
       return;
     }
@@ -1331,17 +1389,31 @@ export default function LawyerCaseWorkflowPage() {
               <button
                 type="button"
                 onClick={handleReviewComplete}
-                disabled={reviewCompleting || caseData?.lawyerReviewCompleted}
+                disabled={reviewCompleting || reviewDone || myReviewDone || !legalStageOpen}
+                title={
+                  !legalStageOpen
+                    ? "Both partners must submit the pre-lawyer questionnaire and choose their solicitor first"
+                    : myReviewDone && !reviewDone
+                    ? "Waiting for the other lawyer to complete their review"
+                    : undefined
+                }
                 className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:bg-emerald-700 disabled:opacity-50 transition-colors"
               >
                 {reviewCompleting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                {caseData?.lawyerReviewCompleted ? "Review Completed" : "Mark Review Complete"}
+                {reviewDone ? "Review Completed" : myReviewDone ? "Your Review Done" : "Mark Review Complete"}
               </button>
 
               <button
                 type="button"
                 onClick={handleRequestILA}
-                disabled={requestingIla}
+                disabled={requestingIla || !canRequestIla}
+                title={
+                  !reviewDone
+                    ? "Both lawyers must complete their review first"
+                    : !canRequestIla
+                    ? "ILA has already been requested"
+                    : undefined
+                }
                 className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:bg-indigo-700 disabled:opacity-50 transition-colors"
               >
                 {requestingIla && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
@@ -1351,7 +1423,8 @@ export default function LawyerCaseWorkflowPage() {
               <button
                 type="button"
                 onClick={handleCompleteCase}
-                disabled={completingCase || caseData?.workflowStatus === "COMPLETED"}
+                disabled={completingCase || status === "COMPLETED" || !bothFinal}
+                title={!bothFinal && status !== "COMPLETED" ? "Both final confirmations are needed first" : undefined}
                 className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:bg-slate-800 disabled:opacity-50 transition-colors"
               >
                 {completingCase && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
@@ -1372,57 +1445,12 @@ export default function LawyerCaseWorkflowPage() {
                 )}
 
                 {stage2Unlocked
-                  ? "Stage 2 Unlocked"
-                  : "Stage 2 Locked"}
+                  ? "ILA Open"
+                  : "ILA Not Requested"}
               </div>
             </div>
           </div>
         </div>
-
-        {/* ================================================================== */}
-        {/* CLIENT CONFIRMATIONS                                               */}
-        {/* ================================================================== */}
-
-        <section>
-          <div className="mb-4">
-            <h2 className="text-xl font-bold text-slate-900">
-              Client Confirmations
-            </h2>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Both client confirmations are required
-              before Stage 2 can be unlocked.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <ConfirmationCard
-              persona="L1"
-              complete={p1Confirmed}
-              confirmedAt={p1ConfirmedAt}
-              uploading={
-                confirmationUploadingPersona ===
-                "L1"
-              }
-              onSubmit={
-                uploadConfirmation
-              }
-            />
-
-            <ConfirmationCard
-              persona="L2"
-              complete={p2Confirmed}
-              confirmedAt={p2ConfirmedAt}
-              uploading={
-                confirmationUploadingPersona ===
-                "L2"
-              }
-              onSubmit={
-                uploadConfirmation
-              }
-            />
-          </div>
-        </section>
 
         {/* ================================================================== */}
         {/* STAGE 2 — ILA                                                      */}
@@ -1466,8 +1494,8 @@ export default function LawyerCaseWorkflowPage() {
                   </p>
 
                   <p className="mt-1 text-sm text-slate-500">
-                    Complete both P1 and P2 client
-                    confirmations to access ILA.
+                    Opens once both lawyers have completed
+                    their review and ILA has been requested.
                   </p>
                 </div>
               </div>
@@ -1480,6 +1508,7 @@ export default function LawyerCaseWorkflowPage() {
 
               <ILACard
                 type="P1"
+                locked={ilaLock("P1")}
                 complete={
                   p1ILACompleted
                 }
@@ -1501,6 +1530,7 @@ export default function LawyerCaseWorkflowPage() {
 
               <ILACard
                 type="P2"
+                locked={ilaLock("P2")}
                 complete={
                   p2ILACompleted
                 }
@@ -1562,6 +1592,53 @@ export default function LawyerCaseWorkflowPage() {
               </div>
             </div>
           )}
+        </section>
+
+        {/* ================================================================== */}
+        {/* STAGE 3 — FINAL CONFIRMATION                                       */}
+        {/* ================================================================== */}
+
+        <section>
+          <div className="mb-4">
+            <h2 className="text-xl font-bold text-slate-900">
+              Stage 3 — Final Confirmation
+            </h2>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Each lawyer confirms their client after ILA and
+              sign-off. Both are needed to complete the case.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <ConfirmationCard
+              persona="L1"
+              locked={confirmationLock("P1")}
+              complete={p1Confirmed}
+              confirmedAt={p1ConfirmedAt}
+              uploading={
+                confirmationUploadingPersona ===
+                "L1"
+              }
+              onSubmit={
+                uploadConfirmation
+              }
+            />
+
+            <ConfirmationCard
+              persona="L2"
+              locked={confirmationLock("P2")}
+              complete={p2Confirmed}
+              confirmedAt={p2ConfirmedAt}
+              uploading={
+                confirmationUploadingPersona ===
+                "L2"
+              }
+              onSubmit={
+                uploadConfirmation
+              }
+            />
+          </div>
         </section>
 
         {/* ================================================================== */}

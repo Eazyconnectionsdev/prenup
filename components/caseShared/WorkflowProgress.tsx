@@ -129,8 +129,9 @@ export function phase2Rows(c: any): Row[] {
   const sel2 = a2;
 
   const reviewDone = Boolean(c?.lawyerReviewCompleted) || REVIEW_DONE.includes(status);
-  const review = (assigned: boolean): Cell =>
-    reviewDone ? done() : assigned ? progress() : pending();
+  // Each lawyer completes their own review (p1/p2LawyerApproved).
+  const review = (assigned: boolean, mine: boolean): Cell =>
+    reviewDone || mine ? done() : assigned ? progress() : pending();
 
   const ila = (p: "p1" | "p2"): Cell => {
     const ilaDone = Boolean(c?.[`${p}ILACompleted`]);
@@ -163,8 +164,8 @@ export function phase2Rows(c: any): Row[] {
     {
       no: 8,
       stage: "Lawyer Review",
-      p1: review(a1),
-      p2: review(a2),
+      p1: review(a1, Boolean(c?.p1LawyerApproved)),
+      p2: review(a2, Boolean(c?.p2LawyerApproved)),
       overall: reviewDone ? done() : a1 || a2 ? progress() : pending(),
     },
     {
