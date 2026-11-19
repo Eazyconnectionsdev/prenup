@@ -1086,10 +1086,7 @@ function CaseManagerContent({ initialView = "dashboard" }: { initialView?: NavVi
       )}
 
       {currentView === "archived" && (
-        <ArchivedVaultView
-          archivedCases={archivedCases}
-          onSelectCase={handleOpenDrawer}
-        />
+        <ArchivedVaultView portal="cm" />
       )}
 
       {currentView === "reports" && (

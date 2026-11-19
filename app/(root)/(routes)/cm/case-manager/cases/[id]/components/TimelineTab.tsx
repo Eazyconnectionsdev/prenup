@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Axios from "@/lib/ApiConfig";
+import { caseLawyers } from "@/lib/caseStages";
 import { CheckCircle2, Clock, Circle } from "lucide-react";
 import type { Props } from "@/types/case-detail/tabs/timeline-tab";
 
@@ -86,9 +87,10 @@ const MILESTONES: StageMilestone[] = [
     no: 8,
     name: "Lawyer Assignment",
     criteria: "All required lawyers assigned.",
-    isComplete: (c) => Boolean(c?.assignedLawyerP1) && Boolean(c?.assignedLawyerP2),
+    // Each partner chooses their own solicitor (older cases: a CM assigned them).
+    isComplete: (c) => Boolean(caseLawyers(c).p1) && Boolean(caseLawyers(c).p2),
     isInProgress: (c) =>
-      c?.workflowStatus === "LAWYERS_ASSIGNED" && (!c?.assignedLawyerP1 || !c?.assignedLawyerP2),
+      c?.workflowStatus === "LAWYERS_ASSIGNED" && (!caseLawyers(c).p1 || !caseLawyers(c).p2),
   },
   {
     no: 9,

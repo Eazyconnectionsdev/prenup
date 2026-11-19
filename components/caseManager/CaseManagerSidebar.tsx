@@ -9,7 +9,6 @@ import {
   Home,
   Briefcase,
   Archive,
-  BarChart3,
   LogOut,
   ChevronRight,
   type LucideIcon,
@@ -18,6 +17,7 @@ import { RootState, AppDispatch } from "@/store/store";
 import Axios from "@/lib/ApiConfig";
 import { logOutUser } from "@/store/asyncThunk/authThunk";
 import { CaseManagerAccountModal } from "@/components/caseManager/modals/CaseManagerAccountModal";
+import { toStageFacts, lifecycleOf } from "@/lib/caseStages";
 
 interface MenuItem {
   path: string;
@@ -28,9 +28,8 @@ interface MenuItem {
 
 const MENU_ITEMS: MenuItem[] = [
   { path: "/cm/dashboard", label: "Dashboard", icon: Home },
-  { path: "/cm/cases", label: "Cases", icon: Briefcase, countKey: "cases" },
-  { path: "/cm/archived", label: "Archived", icon: Archive, countKey: "archived" },
-  { path: "/cm/reports", label: "Reports", icon: BarChart3 },
+  { path: "/cm/cases", label: "Active Cases", icon: Briefcase, countKey: "cases" },
+  { path: "/cm/archived", label: "Archived Cases", icon: Archive, countKey: "archived" },
 ];
 
 // The violet rail bar that marks the active item (same as user1/user2)
@@ -70,8 +69,15 @@ export const CaseManagerSidebar: React.FC = () => {
         const response = await Axios.get("/case-manager/cases");
         if (cancelled) return;
         const list: any[] = Array.isArray(response.data) ? response.data : [];
-        const archived = list.filter((c) => c.workflowStatus === "ARCHIVED").length;
-        setCounts({ cases: list.length - archived, archived });
+        // Same buckets as the Active Cases and Archived Cases pages.
+        let cases = 0;
+        let archived = 0;
+        for (const c of list) {
+          const life = lifecycleOf(toStageFacts(c));
+          if (life === "NOT_PAID" || life === "ACTIVE") cases++;
+          else if (life === "COMPLETED" || life === "ARCHIVED") archived++;
+        }
+        setCounts({ cases, archived });
       } catch (err) {
         console.log("Failed to load sidebar counts", err);
       }
