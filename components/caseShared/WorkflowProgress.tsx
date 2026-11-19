@@ -156,8 +156,8 @@ export function phase2Rows(c: any): Row[] {
     {
       no: 7,
       stage: "Lawyer Selection & Assignment",
-      p1: a1 ? done("Lawyer assigned") : sel1 ? progress("Lawyer selected") : pending(),
-      p2: a2 ? done("Lawyer assigned") : sel2 ? progress("Lawyer selected") : pending(),
+      p1: sel1 ? done("Lawyer selected") : pending(),
+      p2: sel2 ? done("Lawyer selected") : pending(),
       overall: overallOf(a1, a2, sel1 || sel2),
     },
     {
@@ -215,11 +215,14 @@ function PhaseTable({
   rows,
   p1Label,
   p2Label,
+  overallInMiddle = false,
 }: {
   title: string;
   rows: Row[];
   p1Label: string;
   p2Label: string;
+  /** Phase 1 reads Partner 1 | Overall | Partner 2, as in the spec sheet. */
+  overallInMiddle?: boolean;
 }) {
   const completed = rows.filter((r) => r.overall.tone === "done").length;
   return (
@@ -243,8 +246,9 @@ function PhaseTable({
               <th className="py-2 pr-3 text-left w-10">No.</th>
               <th className="py-2 pr-3 text-left">Workflow Stage</th>
               <th className="py-2 px-3 text-center">{p1Label}</th>
+              {overallInMiddle && <th className="py-2 px-3 text-center">Overall Status</th>}
               <th className="py-2 px-3 text-center">{p2Label}</th>
-              <th className="py-2 pl-3 text-center">Overall Status</th>
+              {!overallInMiddle && <th className="py-2 pl-3 text-center">Overall Status</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -253,8 +257,9 @@ function PhaseTable({
                 <td className="py-2.5 pr-3 font-mono text-slate-400">{r.no}</td>
                 <td className="py-2.5 pr-3 font-semibold text-slate-800">{r.stage}</td>
                 <td className="py-2.5 px-3 text-center"><Badge cell={r.p1} /></td>
+                {overallInMiddle && <td className="py-2.5 px-3 text-center"><Badge cell={r.overall} /></td>}
                 <td className="py-2.5 px-3 text-center"><Badge cell={r.p2} /></td>
-                <td className="py-2.5 pl-3 text-center"><Badge cell={r.overall} /></td>
+                {!overallInMiddle && <td className="py-2.5 pl-3 text-center"><Badge cell={r.overall} /></td>}
               </tr>
             ))}
           </tbody>
@@ -284,6 +289,7 @@ export default function WorkflowProgress({
           rows={phase1Rows(caseData)}
           p1Label={p1}
           p2Label={p2}
+          overallInMiddle
         />
       )}
       {phases.includes(2) && (
