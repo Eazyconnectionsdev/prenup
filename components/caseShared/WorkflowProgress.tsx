@@ -216,14 +216,11 @@ function PhaseTable({
   rows,
   p1Label,
   p2Label,
-  overallInMiddle = false,
 }: {
   title: string;
   rows: Row[];
   p1Label: string;
   p2Label: string;
-  /** Phase 1 reads Partner 1 | Overall | Partner 2, as in the spec sheet. */
-  overallInMiddle?: boolean;
 }) {
   const completed = rows.filter((r) => r.overall.tone === "done").length;
   return (
@@ -247,9 +244,8 @@ function PhaseTable({
               <th className="py-2 pr-3 text-left w-10">No.</th>
               <th className="py-2 pr-3 text-left">Workflow Stage</th>
               <th className="py-2 px-3 text-center">{p1Label}</th>
-              {overallInMiddle && <th className="py-2 px-3 text-center">Overall Status</th>}
               <th className="py-2 px-3 text-center">{p2Label}</th>
-              {!overallInMiddle && <th className="py-2 pl-3 text-center">Overall Status</th>}
+              <th className="py-2 pl-3 text-center">Overall Status</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -258,9 +254,8 @@ function PhaseTable({
                 <td className="py-2.5 pr-3 font-mono text-slate-400">{r.no}</td>
                 <td className="py-2.5 pr-3 font-semibold text-slate-800">{r.stage}</td>
                 <td className="py-2.5 px-3 text-center"><Badge cell={r.p1} /></td>
-                {overallInMiddle && <td className="py-2.5 px-3 text-center"><Badge cell={r.overall} /></td>}
                 <td className="py-2.5 px-3 text-center"><Badge cell={r.p2} /></td>
-                {!overallInMiddle && <td className="py-2.5 pl-3 text-center"><Badge cell={r.overall} /></td>}
+                <td className="py-2.5 pl-3 text-center"><Badge cell={r.overall} /></td>
               </tr>
             ))}
           </tbody>
@@ -288,9 +283,8 @@ export default function WorkflowProgress({
         <PhaseTable
           title="Phase 1 – Applicant Submission & Case Manager Approval"
           rows={phase1Rows(caseData)}
-          p1Label={p1}
-          p2Label={p2}
-          overallInMiddle
+          p1Label="Partner 1"
+          p2Label="Partner 2"
         />
       )}
       {phases.includes(2) && (

@@ -26,14 +26,6 @@ export function useQuestionnaire({ step, source = "own", onLoad }: Options) {
 
   // Choosing a service and paying for it are the owner's to do -- both screens
   // are read-only for the invited partner, so only the owner is sent to them.
-  const isCaseOwner =
-    user?.endUserType === "user1" ||
-    Boolean(
-      user?._id &&
-      cases.owner?._id &&
-      String(cases.owner._id) === String(user._id),
-    );
-
   const stepInfo = getStep(step);
   // The invited partner's own answers live in `partnerInformation`; the
   // owner's in `myInformation`. Resolved centrally so every screen agrees.
@@ -108,15 +100,13 @@ export function useQuestionnaire({ step, source = "own", onLoad }: Options) {
       // The first form is the only one open before the case is paid for, so
       // finishing it leads to whatever is actually outstanding -- choose a
       // service, or pay for the one already chosen -- rather than to a form
-      // that is still locked. The invited partner has neither to do, so they
-      // go back to their dashboard.
+      // that is still locked. This is the same for both partners: either of
+      // them may pay, and whoever pays becomes Partner 1.
       if (stepInfo.slug === FIRST_STEP_SLUG && !isCasePaid(caseNow)) {
         router.push(
-          !isCaseOwner
-            ? "/dashboard"
-            : caseNow?.agreementType
-              ? paymentHref(caseNow.agreementType)
-              : SERVICE_SELECTOR_HREF,
+          caseNow?.agreementType
+            ? paymentHref(caseNow.agreementType)
+            : SERVICE_SELECTOR_HREF,
         );
         return;
       }
