@@ -183,14 +183,20 @@ export default function OnboardingPage () {
   }, [dispatch]);
 
   useEffect(() => {
-    if (user?.endUserType === 'user2') {
-      router.replace('/dashboard');
+    // The invited partner can choose and pay too while the case is unpaid
+    // (whoever pays becomes Partner 1); once it is paid there is nothing
+    // here for them.
+    if (!caseId) {
+      if (user?.endUserType === 'user2') router.replace('/dashboard');
       return;
     }
-    if (!caseId) return;
     dispatch(getOnboarding(caseId))
       .unwrap()
       .then((res) => {
+        if (user?.endUserType === 'user2' && (res as any).paid && !justPaid.current) {
+          router.replace('/dashboard');
+          return;
+        }
         if (res.completed && user?.paymentDone && !justPaid.current) {
           router.replace('/dashboard');
           return;

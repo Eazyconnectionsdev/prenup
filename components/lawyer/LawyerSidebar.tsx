@@ -8,6 +8,7 @@ import { RootState, AppDispatch } from "@/store/store";
 import Axios from "@/lib/ApiConfig";
 import { LogOut } from "lucide-react";
 import { logOutUser } from "@/store/asyncThunk/authThunk";
+import { LawyerAccountModal } from "@/components/lawyer/LawyerProfilePanel";
 
 const MENU_ITEMS = [
   { path: "/lawyer", label: "Dashboard" },
@@ -23,6 +24,7 @@ export const LawyerSidebar: React.FC = () => {
   const user = useSelector((state: RootState) => state.auth.user);
 
   const [assignedCount, setAssignedCount] = useState(0);
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [completedCount, setCompletedCount] = useState(0);
 
   const fullName = [user?.firstName, user?.middleName, user?.lastName]
@@ -114,37 +116,45 @@ export const LawyerSidebar: React.FC = () => {
         </nav>
       </div>
 
-      <div className="pt-4 border-t border-slate-800/80 flex flex-col gap-3">
-        <button
-          onClick={() => router.push("/lawyer/lawyer-profile")}
-          className="flex items-center gap-3 p-2 rounded-xl transition-all hover:bg-slate-800/50 text-left"
-          title="View Profile Details"
+      {/* Bottom user card, as in the case manager portal: opens the profile window */}
+      <div className="pt-4 border-t border-white/[0.08]">
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => setIsAccountModalOpen(true)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") setIsAccountModalOpen(true);
+          }}
+          title="View and edit your profile"
+          className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] transition-all cursor-pointer group"
         >
-          <div className="relative shrink-0">
-            <div className="w-9 h-9 rounded-full bg-emerald-950 border border-emerald-400/50 text-emerald-200 font-bold text-xs flex items-center justify-center shadow-xs font-sans">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#8B87FF] to-[#5B55F6] text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
               {initials}
             </div>
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-[#0d1527] absolute bottom-0 right-0" />
-          </div>
-
-          <div className="flex flex-col min-w-0">
-            <div className="text-xs font-bold text-white truncate font-sans">
-              {fullName}
-            </div>
-            <div className="text-[10px] text-slate-400 font-sans truncate">
-              {title}
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold text-white truncate leading-tight">{fullName}</p>
+              <span className="text-[10px] text-[#A9ACD6] block truncate uppercase tracking-wider font-semibold">
+                {title || "Lawyer"}
+              </span>
             </div>
           </div>
-        </button>
 
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 bg-[#131e36] hover:bg-red-950/40 text-slate-300 hover:text-red-400 border border-slate-800 hover:border-red-900/50 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs"
-        >
-          <LogOut className="w-3.5 h-3.5" />
-          <span>Log Out</span>
-        </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleLogout();
+            }}
+            title="Sign Out"
+            className="p-1.5 rounded-lg text-[#A9ACD6] hover:text-rose-400 hover:bg-rose-500/10 transition-colors shrink-0 cursor-pointer"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
       </div>
+
+      <LawyerAccountModal isOpen={isAccountModalOpen} onClose={() => setIsAccountModalOpen(false)} />
     </aside>
   );
 };

@@ -41,7 +41,7 @@ export const LAWYER_DOCUMENT_CATEGORIES = [
 ] as const;
 
 // Suggestions only: both fields accept free text.
-const REGULATORY_BODIES = [
+export const REGULATORY_BODIES = [
   "Solicitors Regulation Authority (SRA)",
   "Law Society of Scotland",
   "Law Society of Northern Ireland",
@@ -49,7 +49,7 @@ const REGULATORY_BODIES = [
   "CILEx Regulation",
 ];
 
-const JURISDICTIONS = [
+export const JURISDICTIONS = [
   "England and Wales",
   "Scotland",
   "Northern Ireland",
