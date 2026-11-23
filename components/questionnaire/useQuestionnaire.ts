@@ -9,7 +9,7 @@ import { getErrorMessage } from "@/lib/api/http-error";
 import { AppDispatch, RootState } from "@/store/store";
 import { getCasesDetails } from "@/store/asyncThunk/casesThunk";
 import { FIRST_STEP_SLUG, getStep } from "./steps";
-import { isCasePaid, paymentHref } from "@/lib/casePayment";
+import { isCasePaid } from "@/lib/casePayment";
 import { SERVICE_SELECTOR_HREF } from "@/components/ServiceStatus";
 import { useEditingPartnerForm } from "./EditingPartnerContext";
 import { useEnsureCaseId } from "@/hooks/useEnsureCaseId";
@@ -106,18 +106,12 @@ export function useQuestionnaire({ step, source = "own", onLoad }: Options) {
       const caseNow = fresh ?? cases;
 
       // The first form is the only one open before the case is paid for, so
-      // finishing it leads to whatever is actually outstanding -- choose a
-      // service, or pay for the one already chosen -- rather than to a form
-      // that is still locked. The invited partner has neither to do, so they
-      // go back to their dashboard.
+      // finishing it leads to the service selector, where the client picks or
+      // confirms their agreement and goes on to pay, rather than to a form
+      // that is still locked. Choosing and paying are the owner's to do, so
+      // the invited partner goes back to their dashboard instead.
       if (stepInfo.slug === FIRST_STEP_SLUG && !isCasePaid(caseNow)) {
-        router.push(
-          !isCaseOwner
-            ? "/dashboard"
-            : caseNow?.agreementType
-              ? paymentHref(caseNow.agreementType)
-              : SERVICE_SELECTOR_HREF,
-        );
+        router.push(isCaseOwner ? SERVICE_SELECTOR_HREF : "/dashboard");
         return;
       }
 

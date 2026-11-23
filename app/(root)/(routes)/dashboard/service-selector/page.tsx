@@ -11,7 +11,6 @@ import {
   getOnboarding,
 } from "@/store/asyncThunk/casesThunk";
 import { useEnsureCaseId } from "@/hooks/useEnsureCaseId";
-import { setAgreementType } from "@/store/slices/casesSlice";
 import { getErrorMessage } from "@/lib/getErrorMessage";
 import { isCasePaid, paymentHref } from "@/lib/casePayment";
 import {
@@ -216,7 +215,14 @@ export default function ServiceSelector({
 
   const [choice, setChoice] = useState<ServiceSelection | null>(null);
   const [confirmed, setConfirmed] = useState<Record<string, boolean>>({});
-  const [savedType, setSavedType] = useState<string | null>(null);
+  // The service the case has BOUGHT. Paying for a service is what chooses it,
+  // so this is the only thing that settles the question -- and the only thing
+  // that makes this screen read-only.
+  const [purchasedType, setPurchasedType] = useState<string | null>(null);
+  // The service the owner picked last and has not paid for. It re-fills the
+  // form so coming back from the payment screen does not lose the choice, and
+  // it can be changed as often as they like.
+  const [pendingType, setPendingType] = useState<string | null>(null);
   const [checkedOnboarding, setCheckedOnboarding] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
@@ -234,7 +240,8 @@ export default function ServiceSelector({
       .unwrap()
       .then((res) => {
         if (!active) return;
-        setSavedType(res.completed ? res.agreementType : null);
+        setPurchasedType(res.paid ? res.agreementType : null);
+        setPendingType(res.pendingAgreementType);
       })
       .catch(() => {})
       .finally(() => {
@@ -245,7 +252,19 @@ export default function ServiceSelector({
     };
   }, [dispatch, caseId, isCaseOwner]);
 
-  const existingType = savedType ?? cases.agreementType;
+  // `cases.agreementType` is only set once the case is paid for, so it can
+  // stand in for the fetched purchase; the pick is what fills the form before
+  // then.
+  const settledType = purchasedType ?? (isPaid ? cases.agreementType : null);
+  // The last fallback is for cases picked before the service moved behind the
+  // payment: they carry an `agreementType` they never paid for, which still
+  // re-fills the form here but no longer settles it.
+  const existingType =
+    settledType ??
+    pendingType ??
+    cases.onboarding?.pendingAgreementType ??
+    cases.agreementType ??
+    null;
   const existingChoice = fromAgreementType(existingType);
 
   const serviceId: ServiceId = choice?.service ?? existingChoice?.service ?? defaultService;
@@ -260,8 +279,14 @@ export default function ServiceSelector({
 
   const requiresSituation = Boolean(service.situations?.length);
 
-  const isReadOnly = !isCaseOwner || Boolean(savedType);
+  // Only a paid-for service is final. An unpaid pick stays editable, which is
+  // the whole point: walking back from the payment screen must not leave the
+  // owner stuck with a service they did not buy.
+  const isReadOnly = !isCaseOwner || Boolean(settledType);
   const chosenLabel = agreementTypeLabel(existingType);
+  // A pick made earlier and not yet paid for, worth saying out loud so the
+  // dashboard still reading "Select agreement" makes sense.
+  const unpaidPick = !isReadOnly && existingType ? chosenLabel : null;
   const canContinue =
     (!requiresSituation || Boolean(situation)) && allConfirmed && !isSaving;
 
@@ -299,16 +324,20 @@ export default function ServiceSelector({
         }),
       ).unwrap();
 
-      dispatch(setAgreementType(agreementType));
-      setSavedType(agreementType);
+      // Not `setAgreementType`: the case has not bought this service yet, and
+      // the dashboard reads that field to say which service it has. All that
+      // has happened is a pick, which the payment turns into a purchase.
+      setPendingType(agreementType);
       await dispatch(getCasesDetails(activeCaseId));
-      toast.success("Your service selection has been saved.");
 
       if (onContinue) {
         onContinue({ service: serviceId, situation });
       } else if (isPaid) {
         router.push("/dashboard");
       } else {
+        toast.success(
+          `${agreementTypeLabel(agreementType) ?? "Your service"} selected. Pay the fee to confirm it.`,
+        );
         router.push(paymentHref(agreementType));
       }
     } catch (error) {
@@ -342,6 +371,26 @@ export default function ServiceSelector({
           </h1>
         </div>
 
+        {/* A pick that is waiting on the fee. Saying so here is what keeps the
+            dashboard's "Select agreement" from reading as if the choice were
+            lost -- it is held, it is just not bought. */}
+        {unpaidPick && (
+          <div className="mx-auto mb-6 flex max-w-2xl items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50/70 px-4 py-3">
+            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500 text-[11px] font-bold text-white">
+              !
+            </span>
+            <div className="text-[13px] text-slate-700">
+              You chose{" "}
+              <span className="font-semibold text-slate-900">{unpaidPick}</span>{" "}
+              but have not paid for it yet.
+              <div className="mt-0.5 text-xs text-slate-500">
+                Your service is confirmed once the fee is paid. Until then you
+                can change it as often as you like.
+              </div>
+            </div>
+          </div>
+        )}
+
         {isReadOnly && (
           <div className="mx-auto mb-6 flex max-w-2xl items-start gap-2.5 rounded-xl border border-violet-200 bg-violet-50/70 px-4 py-3">
             <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-violet-600 text-white">
@@ -354,9 +403,7 @@ export default function ServiceSelector({
               is the service on this case.
               <div className="mt-0.5 text-xs text-slate-500">
                 {isCaseOwner
-                  ? isPaid
-                    ? "Your selection has been submitted, so it can no longer be changed here."
-                    : "Your selection has been saved. It can no longer be changed here, and there is still the fee to pay."
+                  ? "It has been paid for, so it can no longer be changed here."
                   : "It was chosen by the partner who started the case."}
               </div>
             </div>
@@ -542,27 +589,18 @@ export default function ServiceSelector({
               </div>
             </fieldset>
 
-            {/* CTA */}
+            {/* CTA. Read-only means the service has been paid for, or the case
+                is not this person's to choose for -- either way there is
+                nothing to pay here and nothing to change. */}
             {isReadOnly ? (
-              isCaseOwner && !isPaid && existingType ? (
-                <button
-                  type="button"
-                  onClick={() => router.push(paymentHref(existingType))}
-                  className="group mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-md shadow-violet-300/50 transition-all hover:shadow-xl hover:shadow-violet-300/70 hover:brightness-110 focus:outline-none focus-visible:ring-4 focus-visible:ring-violet-300"
-                >
-                  Continue to payment
-                  <ArrowRight />
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => router.push("/dashboard")}
-                  className="group mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50 focus:outline-none focus-visible:ring-4 focus-visible:ring-violet-300"
-                >
-                  Back to dashboard
-                  <ArrowRight />
-                </button>
-              )
+              <button
+                type="button"
+                onClick={() => router.push("/dashboard")}
+                className="group mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50 focus:outline-none focus-visible:ring-4 focus-visible:ring-violet-300"
+              >
+                Back to dashboard
+                <ArrowRight />
+              </button>
             ) : (
               <>
                 <button
@@ -571,7 +609,7 @@ export default function ServiceSelector({
                   onClick={handleContinue}
                   className="group mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-md shadow-violet-300/50 transition-all hover:shadow-xl hover:shadow-violet-300/70 hover:brightness-110 focus:outline-none focus-visible:ring-4 focus-visible:ring-violet-300 disabled:cursor-not-allowed disabled:from-slate-300 disabled:to-slate-300 disabled:shadow-none"
                 >
-                  {isSaving ? "Saving..." : "Continue"}
+                  {isSaving ? "Saving..." : "Continue to payment"}
                   {!isSaving && <ArrowRight />}
                 </button>
                 {!canContinue && (

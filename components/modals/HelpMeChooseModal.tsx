@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { HelpCircle, X, ChevronRight, CheckCircle2, RotateCcw } from 'lucide-react';
+import { HelpCircle, ChevronRight, CheckCircle2, RotateCcw } from 'lucide-react';
+import { Modal } from './Modal';
 
 interface HelpMeChooseModalProps {
   isOpen: boolean;
@@ -31,40 +32,22 @@ export const HelpMeChooseModal: React.FC<HelpMeChooseModalProps> = ({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs transition-opacity"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="help-modal-title"
-    >
-      <div className="bg-[#FAF8F5] border-2 border-[#8B3A3A] w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        {/* Header */}
-        <div className="bg-[#0F172A] text-white p-5 flex items-center justify-between border-b border-[#1E293B]">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 rounded-full bg-[#8B3A3A] flex items-center justify-center text-white">
-              <HelpCircle className="w-4 h-4" />
-            </div>
-            <div>
-              <h2 id="help-modal-title" className="font-serif-legal font-bold text-base md:text-lg text-white">
-                Help Me Choose
-              </h2>
-              <p className="text-[11px] text-[#94A3B8]">
-                Find the right agreement for your situation in 2 simple steps
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      headerVariant="dark"
+      className="max-w-xl border-2 border-[#8B3A3A] bg-[#FAF8F5]"
+      // A two-step wizard: a stray click beside it must not throw the answers away.
+      closeOnBackdrop={false}
+      icon={
+        <div className="w-8 h-8 rounded-full bg-[#8B3A3A] flex items-center justify-center text-white">
+          <HelpCircle className="w-4 h-4" />
         </div>
-
-        {/* Content */}
-        <div className="p-5 md:p-6 overflow-y-auto space-y-5 text-[#0F172A]">
+      }
+      title={<span className="font-serif-legal md:text-lg">Help Me Choose</span>}
+      description="Find the right agreement for your situation in 2 simple steps"
+      bodyClassName="space-y-5 text-[#0F172A] md:p-6"
+    >
           {/* Step 1: Relationship Status */}
           {!relationshipStatus && (
             <div className="space-y-4">
@@ -433,9 +416,7 @@ export const HelpMeChooseModal: React.FC<HelpMeChooseModalProps> = ({
               </div>
             </div>
           )}
-        </div>
-      </div>
-    </div>
+    </Modal>
   );
 };
 

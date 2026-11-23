@@ -14,7 +14,7 @@ import { AgreementCard } from '@/components/onboarding/AgreementCard';
 import { Step2Payment } from '@/components/onboarding/Step2Payment';
 import { ServiceOverview } from '@/components/onboarding/ServiceOverview';
 import { Step3Success } from '@/components/onboarding/Step3Success';
-import { HelpMeChooseModal } from '@/components/onboarding/HelpMeChooseModal';
+import { HelpMeChooseModal } from '@/components/modals';
 import type { AgreementOption } from "@/types/onboarding";
 import type { AgreementServiceItem } from "@/types/onboarding/agreement-card";
 
@@ -195,8 +195,11 @@ export default function OnboardingPage () {
           router.replace('/dashboard');
           return;
         }
-        if (res.agreementType) {
-          setSelectedId(res.agreementType);
+        // The case's own service once it is paid for, otherwise the pick that
+        // is still waiting on the fee.
+        const picked = res.agreementType ?? res.pendingAgreementType;
+        if (picked) {
+          setSelectedId(picked);
         }
         setIsChecking(false);
       })

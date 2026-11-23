@@ -9,10 +9,10 @@ import {
   GitCompare,
   X,
   Scale,
-  Loader2,
   CheckCircle2,
 } from "lucide-react";
 import Axios from "@/lib/ApiConfig";
+import { ConfirmModal } from "@/components/modals";
 import type { InitializeLawyerStageResult } from "@/types/case-manager/agreement-tab";
 
 const caseId = "6a99454fb23e05b06008526a";
@@ -247,44 +247,18 @@ export default function AgreementTab() {
       {/* Confirmation — this action is one-time per case on the backend
           (initializeLawyerStage throws a conflict if called twice), so it's
           worth an explicit confirm rather than a single accidental click. */}
-      {showSubmitConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-6">
-          <div className="w-full max-w-sm rounded-xl bg-white border border-slate-300 shadow-lg p-5 flex flex-col gap-4">
-            <div className="flex items-center gap-2">
-              <Scale className="w-4 h-4 text-slate-700" />
-              <h4 className="font-bold text-sm text-slate-900">
-                Submit for lawyer review?
-              </h4>
-            </div>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              This locks in the latest case-manager-approved draft as the
-              starting point for lawyer review. This can only be done once per
-              case — make sure the draft is final before continuing.
-            </p>
-            <div className="flex gap-2 justify-end">
-              <button
-                type="button"
-                onClick={() => setShowSubmitConfirm(false)}
-                disabled={isSubmitting}
-                className="text-xs font-bold px-3.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSubmitToLawyer}
-                disabled={isSubmitting}
-                className="text-xs font-bold px-3.5 py-1.5 rounded-lg bg-slate-900 text-white hover:bg-slate-800 flex items-center gap-1.5 disabled:opacity-50"
-              >
-                {isSubmitting && (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                )}
-                {isSubmitting ? "Submitting…" : "Confirm & Submit"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        isOpen={showSubmitConfirm}
+        onClose={() => setShowSubmitConfirm(false)}
+        onConfirm={handleSubmitToLawyer}
+        isLoading={isSubmitting}
+        tone="warning"
+        icon={<Scale className="w-5 h-5" />}
+        title="Submit for lawyer review?"
+        confirmLabel="Confirm & Submit"
+        loadingLabel="Submitting…"
+        description="This locks in the latest case-manager-approved draft as the starting point for lawyer review. This can only be done once per case — make sure the draft is final before continuing."
+      />
     </div>
   );
 }

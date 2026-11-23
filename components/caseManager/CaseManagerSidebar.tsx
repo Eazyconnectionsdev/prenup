@@ -17,7 +17,7 @@ import {
 import { RootState, AppDispatch } from "@/store/store";
 import Axios from "@/lib/ApiConfig";
 import { logOutUser } from "@/store/asyncThunk/authThunk";
-import { CaseManagerAccountModal } from "@/components/caseManager/modals/CaseManagerAccountModal";
+import { CaseManagerAccountModal } from "@/components/modals";
 
 interface MenuItem {
   path: string;

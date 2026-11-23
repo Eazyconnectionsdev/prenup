@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import Axios from "@/lib/ApiConfig";
+import { Modal } from "@/components/modals";
 import {
   apiError,
   Badge,
@@ -16,7 +17,6 @@ import {
   FilterField,
   Filters,
   fmtDateTime,
-  Modal,
   Note,
   PercentBar,
   ReportTabs,
@@ -390,7 +390,16 @@ const RefundDialog: React.FC<{ payment: any; onClose: () => void; onDone: () => 
   };
 
   return (
-    <Modal title={`Refund ${payment.transactionId}`} onClose={onClose}>
+    <Modal
+      isOpen
+      title={`Refund ${payment.transactionId}`}
+      onClose={onClose}
+      size="lg"
+      className="font-sans"
+      bodyClassName="space-y-4 text-xs"
+      // A refund form: a stray click beside it must not discard what was typed.
+      closeOnBackdrop={false}
+    >
       <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-1">
         <div>
           <b>{payment.customerName}</b> · {payment.caseNumber}

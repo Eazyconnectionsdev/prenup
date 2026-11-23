@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   BookOpen,
   ChartNoAxesCombined,
@@ -18,6 +18,7 @@ import { AppDispatch, RootState } from "@/store/store";
 import { getCasesDetails } from "@/store/asyncThunk/casesThunk";
 import {
   calculateOverallProgress,
+  JOINT_KEYS,
   MY_PARTNER_KEYS,
 } from "@/lib/progressCalculator";
 import { resolvePartyInformation } from "@/lib/caseSections";
@@ -26,6 +27,8 @@ import { useJointSectionStatus } from "@/hooks/useJointSectionStatus";
 import { isCaseManagerApproved } from "@/lib/caseStage";
 import { isCasePaid } from "@/lib/casePayment";
 import Axios from "@/lib/ApiConfig";
+import { AlertModal } from "@/components/modals";
+import type { AlertTone } from "@/types/ui/modal";
 import { ServiceStatus } from "@/components/ServiceStatus";
 import CaseManagerCard from "@/components/dashboard/CaseManagerCard";
 import DashboardSkeleton from "@/components/dashboard/DashboardSkeleton";
@@ -61,7 +64,7 @@ const steps: StepConfig[] = [
   },
   {
     id: "partner_questionnaire",
-    title: "Partner Questionnaire",
+    title: "Partner's Questionnaire",
     description: "Your partner completes their details & terms.",
     cta: "Select Terms",
     completedLabel: "Completed",
@@ -81,7 +84,8 @@ const steps: StepConfig[] = [
   {
     id: "joint_questionnaire",
     title: "Joint Questionnaire",
-    description: "Work through the joint agreement terms.",
+    description:
+      "Complete and review your shared financial and agreement information.",
     cta: "Select Terms",
     completedLabel: "Completed",
     icon: (
@@ -100,9 +104,9 @@ const steps: StepConfig[] = [
   },
   {
     id: "final_review",
-    title: "Final Review & Confirmation",
+    title: "Mutual Review & Agreement",
     description: "Review and confirm your agreement.",
-    cta: "Review & Confirm",
+    cta: "Review & Submit",
     completedLabel: "Completed",
     icon: (
       <svg
@@ -186,7 +190,10 @@ function CircularProgress({ percent }: { percent: number }) {
   const filled = (circumference * Math.min(Math.max(percent, 0), 100)) / 100;
 
   return (
-    <div className="relative h-12 w-12 flex-shrink-0" title={`${percent}% Complete`}>
+    <div
+      className="relative h-12 w-12 flex-shrink-0"
+      title={`${percent}% Complete`}
+    >
       <svg viewBox={`0 0 ${size} ${size}`} className="h-12 w-12 -rotate-90">
         <circle cx={center} cy={center} r={center} fill="#F6F6FB" />
         <circle
@@ -248,12 +255,34 @@ const hasAllKeys = (
 
 const QUESTIONNAIRE_KEYS = MY_PARTNER_KEYS;
 
+
+type StepProgress = "not-started" | "in-progress" | "completed";
+
+const hasAnyKey = (
+  section: Record<string, any> | undefined,
+  keys: string[],
+): boolean => keys.some((key) => hasData(section?.[key]));
+
+/** The status a journey row reports, whoever fills that section in. */
+const statusText = (progress: StepProgress) =>
+  progress === "completed"
+    ? "Completed"
+    : progress === "in-progress"
+      ? "In Progress"
+      : "Not Started";
+
 const stepButtonBase =
   "ml-4 flex-shrink-0 rounded-lg px-4 py-2 text-xs font-semibold";
 const stepButtonDone = `${stepButtonBase} bg-[#DCFCE7] text-[#16A34A] hover:bg-[#BBF7D0]`;
 const stepButtonTodo = `${stepButtonBase} bg-primary text-white hover:bg-primary/90`;
 const stepButtonMuted = `${stepButtonBase} bg-[#F1F1F6] text-[#9494AA] hover:bg-[#E8E8F0]`;
-const stepButtonLocked = `${stepButtonBase} inline-flex items-center gap-1.5 cursor-not-allowed bg-[#F1F1F6] text-[#9494AA] opacity-80`;
+const stepButtonReview = `${stepButtonBase} bg-[#16A34A] text-white shadow-sm hover:bg-[#15803D]`;
+const stepButtonWaiting = `${stepButtonBase} bg-amber-100 text-amber-700`;
+const stepButtonLockedBase = `${stepButtonBase} inline-flex items-center gap-1.5 bg-[#F1F1F6] text-[#9494AA]`;
+/** Dead end: the step stays shut until the case is paid for. */
+const stepButtonLocked = `${stepButtonLockedBase} cursor-not-allowed opacity-80`;
+/** Clickable: opens the popup that explains why the step is still locked. */
+const stepButtonLockedInfo = `${stepButtonLockedBase} hover:bg-[#E8E8F0]`;
 
 type InviteSummary = {
   status?: string;
@@ -261,9 +290,11 @@ type InviteSummary = {
 };
 
 type PopupId =
+  | "p1-joint-initial"
   | "p2-joint-initial"
-  | "p1-joint-completed"
-  | "p2-wait-for-partner";
+  | "p1-review-locked"
+  | "p2-review-waiting"
+  | "awaiting-review";
 
 export default function PrenupDashboard() {
   const router = useRouter();
@@ -283,14 +314,13 @@ export default function PrenupDashboard() {
   );
   const inviteCaseId = user?.inviteCaseId;
 
-  // Re-fetch latest case state on mount or when case ID changes
   useEffect(() => {
     if (inviteCaseId) {
       dispatch(getCasesDetails(inviteCaseId));
     }
   }, [inviteCaseId, dispatch]);
 
-  // Also refresh when tab is focused
+
   useEffect(() => {
     if (!inviteCaseId) return;
     const handleFocus = () => {
@@ -300,11 +330,7 @@ export default function PrenupDashboard() {
     return () => window.removeEventListener("focus", handleFocus);
   }, [inviteCaseId, dispatch]);
 
-  // Only user 1 sends invites, so only user 1 has one to look up.
   const expectsInvite = Boolean(inviteCaseId) && isUser1;
-  // Which case the lookup has answered for, either way -- it replied, or it
-  // failed and the fallback below stands. Held as the id rather than a flag so
-  // switching case never reads as settled on the strength of the last one.
   const [inviteSettledFor, setInviteSettledFor] = useState<string | null>(null);
   const inviteSettled = !expectsInvite || inviteSettledFor === inviteCaseId;
 
@@ -367,11 +393,11 @@ export default function PrenupDashboard() {
     ? ownerName
     : invitedUserName || inviteName || cases?.invitedEmail || "Your partner";
   const partnerEmail = isUser2
-    ? cases?.owner?.email ?? ""
-    : cases?.invitedUser?.email ??
+    ? (cases?.owner?.email ?? "")
+    : (cases?.invitedUser?.email ??
       invite?.invitee?.email ??
       cases?.invitedEmail ??
-      "";
+      "");
 
   const { mine: myQuestData, theirs: partnerQuestData } =
     resolvePartyInformation(
@@ -391,6 +417,30 @@ export default function PrenupDashboard() {
   const isJointComplete =
     Boolean((cases?.jointInformation as any)?.jointAssets) ||
     Boolean((cases?.jointInformation as any)?.jointLiabilitiesAndDebts);
+
+  const myQuestProgress: StepProgress = isMyQuestComplete
+    ? "completed"
+    : hasAnyKey(myQuestData as Record<string, any>, QUESTIONNAIRE_KEYS)
+      ? "in-progress"
+      : "not-started";
+
+  const partnerQuestProgress: StepProgress = isPartnerQuestComplete
+    ? "completed"
+    : hasAnyKey(partnerQuestData as Record<string, any>, QUESTIONNAIRE_KEYS)
+      ? "in-progress"
+      : "not-started";
+
+  const jointProgress: StepProgress = isJointComplete
+    ? "completed"
+    : hasAnyKey(cases?.jointInformation as Record<string, any>, JOINT_KEYS)
+      ? "in-progress"
+      : "not-started";
+
+  // The joint questionnaire is the case owner's to fill in, and stays locked
+  // until their own questionnaire is complete. The partner only ever reads it,
+  // and only once there is something saved to read.
+  const jointLocked = !isMyQuestComplete;
+  const jointReadable = jointProgress !== "not-started";
 
   const areAll4SectionsComplete = isQuestionnaireComplete && isJointComplete;
 
@@ -469,20 +519,69 @@ export default function PrenupDashboard() {
   const senderLocked = lockedOut && !isMutualApproved;
   const reviewerOpen = (isMyTurnToApprove || iDisapproved) && !isMutualApproved;
 
-  const REVIEW_TARGETS: Record<StepId, string> = {
+  const STEP_TARGETS: Record<StepId, string> = {
     questionnaire: "/dashboard/personal-info",
     partner_questionnaire: "/dashboard/partner-personal-info",
     joint_questionnaire: "/dashboard/joint-assets",
     final_review: "/dashboard/final-review-confirmation",
   };
 
-  function renderStepButton(step: StepConfig) {
-    const isDone = effectiveCompleted.has(step.id);
+  // The agreement is out for review: whoever sent it waits, and whoever
+  // received it reviews. Either way, no section can be edited.
+  const inReview = senderLocked || reviewerOpen;
 
-    // Nothing past the first step is reachable until the case is paid for, so
-    // every later button is held shut rather than leading to a locked page.
-    // Same rule as the sidebar, which unlocks only personal-info before
-    // payment -- the first step's own CTA.
+  // Once we have both approved, my own sections are read-only for good.
+  const readOnly = isMutualApproved;
+
+  /** "Start" / "Continue" / "Edit" for a section I fill in myself. */
+  const ownActionLabel = (progress: StepProgress) => {
+    if (readOnly) return "View";
+    if (progress === "completed") return "Edit";
+    return progress === "in-progress" ? "Continue" : "Start";
+  };
+
+  /** The review row reports on the agreement, not on a questionnaire. */
+  function reviewStatus() {
+    if (isMutualApproved) return "Completed";
+    if (isUser2) {
+      return isP1SentForReview ? "In Progress" : "Waiting for Partner";
+    }
+    return areAll4SectionsComplete
+      ? "Ready to Submit for Partner Review"
+      : "Not Ready";
+  }
+
+  const STEP_STATUS: Record<StepId, string> = {
+    questionnaire: statusText(myQuestProgress),
+    partner_questionnaire: statusText(partnerQuestProgress),
+    joint_questionnaire: isUser2
+      ? jointReadable
+        ? statusText(jointProgress)
+        : "Waiting for Partner"
+      : jointLocked
+        ? "Locked"
+        : statusText(jointProgress),
+    final_review: reviewStatus(),
+  };
+
+
+
+  /** A button that only explains, in a popup, why its step is still locked. */
+  function lockedButton(popup: PopupId) {
+    return (
+      <button
+        onClick={() => setActivePopup(popup)}
+        className={stepButtonLockedInfo}
+      >
+        <Lock className="h-3 w-3" aria-hidden="true" />
+        Locked
+      </button>
+    );
+  }
+
+  function renderStepButton(step: StepConfig) {
+    const go = () => router.push(STEP_TARGETS[step.id]);
+
     if (!isPaymentDone && step.id !== FIRST_STEP_ID) {
       return (
         <button
@@ -496,27 +595,25 @@ export default function PrenupDashboard() {
       );
     }
 
+    // I sent the agreement over: every row waits on my partner's review.
     if (senderLocked) {
       return (
         <button
-          disabled
-          className={`${stepButtonBase} cursor-not-allowed bg-amber-100 text-amber-700 opacity-80`}
+          onClick={() => setActivePopup("awaiting-review")}
+          className={`${stepButtonWaiting} opacity-80 hover:opacity-100`}
         >
           Partner Reviewing
         </button>
       );
     }
 
+    // My partner sent it to me: every row is mine to read through.
     if (reviewerOpen) {
       const isFinal = step.id === "final_review";
       return (
         <button
-          onClick={() => router.push(REVIEW_TARGETS[step.id])}
-          className={
-            isFinal
-              ? "ml-4 flex-shrink-0 rounded-lg bg-[#16A34A] px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#15803D]"
-              : stepButtonTodo
-          }
+          onClick={go}
+          className={isFinal ? stepButtonReview : stepButtonTodo}
         >
           {isFinal ? "Review & Confirm" : "Review"}
         </button>
@@ -524,74 +621,50 @@ export default function PrenupDashboard() {
     }
 
     if (step.id === "questionnaire") {
-      if (isDone) {
-        return (
-          <button
-            onClick={() => router.push("/dashboard/personal-info")}
-            className={stepButtonDone}
-          >
-            Completed
-          </button>
-        );
-      }
       return (
         <button
-          onClick={() => router.push("/dashboard/personal-info")}
-          className={stepButtonTodo}
+          onClick={go}
+          className={isMyQuestComplete ? stepButtonDone : stepButtonTodo}
         >
-          Select Terms
+          {ownActionLabel(myQuestProgress)}
         </button>
       );
     }
 
+    // My partner's questionnaire is theirs to fill in: I can only read it.
     if (step.id === "partner_questionnaire") {
       return (
         <button
-          onClick={() => router.push("/dashboard/partner-personal-info")}
-          className={isDone ? stepButtonDone : stepButtonMuted}
+          onClick={go}
+          className={isPartnerQuestComplete ? stepButtonDone : stepButtonMuted}
         >
-          {isDone ? "Completed" : "Select Terms"}
+          View (Read Only)
         </button>
       );
     }
 
     if (step.id === "joint_questionnaire") {
-      if (isDone) {
-        if (isUser1) {
-          return (
-            <button
-              onClick={() => setActivePopup("p1-joint-completed")}
-              className={stepButtonDone}
-            >
-              Completed
-            </button>
-          );
-        }
-        return (
-          <button
-            onClick={() => setActivePopup("p2-wait-for-partner")}
-            className={stepButtonDone}
-          >
-            Completed
-          </button>
-        );
-      }
       if (isUser2) {
-        return (
+        return jointReadable ? (
           <button
-            onClick={() => setActivePopup("p2-joint-initial")}
-            className={stepButtonTodo}
+            onClick={go}
+            className={isJointComplete ? stepButtonDone : stepButtonMuted}
           >
-            Select Terms
+            View
           </button>
+        ) : (
+          lockedButton("p2-joint-initial")
         );
       }
+
+      if (jointLocked) return lockedButton("p1-joint-initial");
+
       return (
         <button
-          onClick={() => router.push("/dashboard/joint-assets")}
-          className={stepButtonTodo}
+          onClick={go}
+          className={isJointComplete ? stepButtonDone : stepButtonTodo}
         >
-          Select Terms
+          {ownActionLabel(jointProgress)}
         </button>
       );
     }
@@ -599,10 +672,7 @@ export default function PrenupDashboard() {
     if (step.id === "final_review") {
       if (isMutualApproved) {
         return (
-          <button
-            onClick={() => router.push("/dashboard/final-review-confirmation")}
-            className={stepButtonDone}
-          >
+          <button onClick={go} className={stepButtonDone}>
             Completed
           </button>
         );
@@ -611,36 +681,30 @@ export default function PrenupDashboard() {
       if (partnerDisapproved && isWaitingOnPartner) {
         return (
           <button
-            onClick={() => router.push("/dashboard/final-review-confirmation")}
-            className="ml-4 flex-shrink-0 rounded-lg bg-amber-100 px-4 py-2 text-xs font-semibold text-amber-700 hover:bg-amber-200"
+            onClick={go}
+            className={`${stepButtonWaiting} hover:bg-amber-200`}
           >
             Partner Making Changes
           </button>
         );
       }
 
-      const p1CanReview = isUser1 && areAll4SectionsComplete;
-      const p2CanReview = isUser2 && isP1SentForReview;
-      const canReview =
-        isMyTurnToApprove || iDisapproved || p1CanReview || p2CanReview;
-
-      if (canReview) {
-        return (
-          <button
-            onClick={() => router.push("/dashboard/final-review-confirmation")}
-            className="ml-4 flex-shrink-0 rounded-lg bg-[#16A34A] px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#15803D]"
-          >
+      // The partner never submits: they wait until the agreement reaches them.
+      if (isUser2) {
+        return isP1SentForReview ? (
+          <button onClick={go} className={stepButtonReview}>
             Review &amp; Confirm
           </button>
+        ) : (
+          lockedButton("p2-review-waiting")
         );
       }
 
+      if (!areAll4SectionsComplete) return lockedButton("p1-review-locked");
+
       return (
-        <button
-          disabled
-          className="ml-4 flex-shrink-0 cursor-not-allowed rounded-lg bg-[#93C5FD] px-4 py-2 text-xs font-semibold text-white opacity-80"
-        >
-          Review &amp; Confirm
+        <button onClick={go} className={stepButtonReview}>
+          Review &amp; Submit
         </button>
       );
     }
@@ -648,11 +712,66 @@ export default function PrenupDashboard() {
     return null;
   }
 
+  const popups: Record<
+    PopupId,
+    { tone: AlertTone; title: string; body: ReactNode }
+  > = {
+    "p1-joint-initial": {
+      tone: "info",
+      title: "Complete My Questionnaire",
+      body: "Please complete all sections of My Questionnaire before proceeding to the Joint Questionnaire. Once completed, you\u2019ll be able to continue.",
+    },
+    "p2-joint-initial": {
+      tone: "info",
+      title: "Joint Questionnaire",
+      body: "Your partner will submit the completed information for your review.",
+    },
+    "p1-review-locked": {
+      tone: "info",
+      title: "Questionnaires Pending Completion",
+      body: (
+        <>
+          <p>
+            All three sections should be completed before the agreement can be
+            submitted for your partner’s review.
+          </p>
+          <ul className="mt-2 list-disc space-y-1 pl-5 font-medium text-[#1E1B3C]">
+            {steps.slice(0, 3).map((section) => (
+              <li key={section.id}>{section.title}</li>
+            ))}
+          </ul>
+        </>
+      ),
+    },
+    "p2-review-waiting": {
+      tone: "warning",
+      title: "Waiting for Your Partner",
+      body: (
+        <>
+          <p>
+            Your partner is completing the required sections. Once they submit
+            the agreement, you’ll be able to review it, request changes, or
+            approve it.
+          </p>
+          <p className="mt-2">
+            <span className="font-medium text-[#1E1B3C]">In the meantime:</span>{" "}
+            If you haven’t completed your My Questionnaire section, please
+            complete it so you’re ready for the review.
+          </p>
+        </>
+      ),
+    },
+    "awaiting-review": {
+      tone: "warning",
+      title: "Awaiting Partner\u2019s Review",
+      body: "Your agreement has been sent to your partner for review. They can review and approve it or make changes and send it back to you.",
+    },
+  };
+
+  const popup = activePopup ? popups[activePopup] : null;
 
   const isBootstrapping =
     (Boolean(inviteCaseId) && !cases?.hasLoaded) || !inviteSettled;
-
-    console.log("cases?.hasLoaded",cases?.hasLoaded)
 
   if (isBootstrapping) return <DashboardSkeleton />;
 
@@ -678,7 +797,9 @@ export default function PrenupDashboard() {
           <div className="mt-6 grid gap-4 md:grid-cols-3">
             <StatCard
               label="Progress"
-              icon={<LuChartNoAxesCombined className="h-5 w-5 text-[#6D4AFF]" />}
+              icon={
+                <LuChartNoAxesCombined className="h-5 w-5 text-[#6D4AFF]" />
+              }
               value={
                 <>
                   {progressResult?.percentage || 0}
@@ -728,8 +849,6 @@ export default function PrenupDashboard() {
                 value={partnerName}
                 subtitle={partnerEmail || "Partner has joined your case"}
                 subtitleTooltip={partnerEmail || undefined}
-                /* Nothing left to do here, so the slot holds a state, not a
-                   button — which also keeps the card's height steady. */
                 action={
                   isLegalAdviceStage ? (
                     <span className={statCardCaptionClasses}>Completed</span>
@@ -786,8 +905,8 @@ export default function PrenupDashboard() {
                   Your Prenup Journey
                 </h2>
                 <p className="mt-1 text-sm text-[#6B6B80]">
-                  Welcome to your dashboard! This page will help guide you through
-                  your prenup journey.
+                  Welcome to your dashboard! This page will help guide you
+                  through your prenup journey.
                 </p>
               </div>
 
@@ -803,7 +922,6 @@ export default function PrenupDashboard() {
 
             <div className="mt-5 flex flex-col gap-3">
               {steps.map((step, i) => {
-                const isDone = effectiveCompleted.has(step.id);
                 const isActive = i === currentIndex;
 
                 return (
@@ -836,14 +954,8 @@ export default function PrenupDashboard() {
                       </div>
                     </div>
 
-                    <div className="hidden w-28 flex-shrink-0 text-right text-xs font-medium text-[#8A8AA0] lg:block">
-                      {senderLocked || reviewerOpen
-                        ? "In progress"
-                        : isDone
-                          ? "Completed"
-                          : isActive
-                            ? "In progress"
-                            : "Not started"}
+                    <div className="hidden w-56 flex-shrink-0 text-right text-xs font-medium text-[#8A8AA0] lg:block">
+                      {inReview ? "In Progress" : STEP_STATUS[step.id]}
                     </div>
 
                     {renderStepButton(step)}
@@ -882,164 +994,21 @@ export default function PrenupDashboard() {
           </div>
         </div>
 
-        {/* Once the case manager has approved, the earlier journey is behind
-            them: the independent legal advice steps are all that is left. */}
         {isLegalAdviceStage && (
           <LegalAdviceJourney myPre={myPre} partnerPre={partnerPre} />
         )}
       </div>
 
-      {/* ── Popups ─────────────────────────────────────────────────────────── */}
-      {activePopup && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
-          onClick={() => setActivePopup(null)}
-        >
-          <div
-            className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Close */}
-            <button
-              onClick={() => setActivePopup(null)}
-              className="absolute right-4 top-4 text-[#9494AA] hover:text-[#1E1B3C]"
-              aria-label="Close"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                className="h-5 w-5"
-              >
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-            </button>
-
-            {/* P2 — Joint initial */}
-            {activePopup === "p2-joint-initial" && (
-              <>
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#EDE9FE] text-[#6D28D9]">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={1.8}
-                    className="h-5 w-5"
-                  >
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 8v4m0 4h.01" />
-                  </svg>
-                </div>
-                <h2 className="mt-4 text-base font-semibold text-[#1E1B3C]">
-                  Joint Questionnaire
-                </h2>
-                <p className="mt-2 text-sm text-[#6B6B80]">
-                  Your partner will submit the completed information for your
-                  review.
-                </p>
-                <p className="mt-1 text-sm text-[#6B6B80]">
-                  If you have not completed your{" "}
-                  <span className="font-medium text-[#1E1B3C]">
-                    Personal Questionnaire
-                  </span>
-                  , please complete it first.
-                </p>
-                <div className="mt-5 flex gap-3">
-                  <button
-                    onClick={() => {
-                      setActivePopup(null);
-                      router.push("/dashboard/personal-info");
-                    }}
-                    className="flex-1 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary/90"
-                  >
-                    Go to My Questionnaire
-                  </button>
-                  <button
-                    onClick={() => setActivePopup(null)}
-                    className="rounded-lg border border-[#E7E7F2] px-4 py-2.5 text-sm font-semibold text-[#6B6B80] hover:bg-[#F6F6FB]"
-                  >
-                    Close
-                  </button>
-                </div>
-              </>
-            )}
-
-            {/* P1 — Joint completed (partner to review) */}
-            {activePopup === "p1-joint-completed" && (
-              <>
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#DCFCE7] text-[#16A34A]">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={1.8}
-                    className="h-5 w-5"
-                  >
-                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <h2 className="mt-4 text-base font-semibold text-[#1E1B3C]">
-                  Partner&apos;s Review Pending
-                </h2>
-                <p className="mt-2 text-sm text-[#6B6B80]">
-                  Your partner has completed all the section information. Please
-                  review all sections and make your final confirmation.
-                </p>
-                <div className="mt-5 flex gap-3">
-                  <button
-                    onClick={() => {
-                      setActivePopup(null);
-                      router.push("/dashboard/final-review-confirmation");
-                    }}
-                    className="flex-1 rounded-lg bg-[#16A34A] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#15803D]"
-                  >
-                    Go to Final Review
-                  </button>
-                  <button
-                    onClick={() => setActivePopup(null)}
-                    className="rounded-lg border border-[#E7E7F2] px-4 py-2.5 text-sm font-semibold text-[#6B6B80] hover:bg-[#F6F6FB]"
-                  >
-                    Close
-                  </button>
-                </div>
-              </>
-            )}
-
-            {/* P2 — Wait for partner to confirm */}
-            {activePopup === "p2-wait-for-partner" && (
-              <>
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-amber-600">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={1.8}
-                    className="h-5 w-5"
-                  >
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 6v6l4 2" />
-                  </svg>
-                </div>
-                <h2 className="mt-4 text-base font-semibold text-[#1E1B3C]">
-                  Waiting for Your Partner
-                </h2>
-                <p className="mt-2 text-sm text-[#6B6B80]">
-                  Please wait — your partner will review and confirm.
-                </p>
-                <div className="mt-5">
-                  <button
-                    onClick={() => setActivePopup(null)}
-                    className="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary/90"
-                  >
-                    OK, Got it
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+      {/* ── Popups ────────────────────────────────── */}
+      <AlertModal
+        isOpen={Boolean(popup)}
+        onClose={() => setActivePopup(null)}
+        tone={popup?.tone}
+        title={popup?.title}
+        closeLabel="Got it"
+      >
+        {popup?.body}
+      </AlertModal>
     </div>
   );
 }
