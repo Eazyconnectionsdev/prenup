@@ -203,15 +203,25 @@ export default function ServiceSelector({
   const cases = useSelector((state: RootState) => state.cases);
   const caseId: string | undefined = cases.caseId || user?.inviteCaseId;
 
-  const isCaseOwner =
+  const isPaid = isCasePaid(cases) || Boolean(user?.paymentDone);
+
+  const startedCase =
     user?.endUserType === "user1" ||
     Boolean(
       user?._id &&
       cases.owner?._id &&
       String(cases.owner._id) === String(user._id),
     );
-
-  const isPaid = isCasePaid(cases) || Boolean(user?.paymentDone);
+  const isInvitedPartner =
+    user?.endUserType === "user2" ||
+    Boolean(
+      user?._id &&
+      (cases as any).invitedUser?._id &&
+      String((cases as any).invitedUser._id) === String(user._id),
+    );
+  // Until the case is paid either partner may choose the service and pay;
+  // whoever pays becomes Partner 1. Afterwards only Partner 1 can.
+  const isCaseOwner = startedCase || (isInvitedPartner && !isPaid);
 
   const [choice, setChoice] = useState<ServiceSelection | null>(null);
   const [confirmed, setConfirmed] = useState<Record<string, boolean>>({});
@@ -307,7 +317,7 @@ export default function ServiceSelector({
       return;
     }
     if (!isCaseOwner) {
-      toast.error("Only the person who started the case can choose the service.");
+      toast.error("Only Partner 1 can change the service once the case is paid for.");
       return;
     }
 

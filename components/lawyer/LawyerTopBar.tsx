@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import { LawyerAccountModal } from "@/components/lawyer/LawyerProfilePanel";
+import React, { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState, AppDispatch } from "@/store/store";
@@ -9,14 +10,15 @@ import { logOutUser } from "@/store/asyncThunk/authThunk";
 
 // Ordered most-specific first; matched by prefix so nested routes keep a title.
 const PATH_TITLES: [string, string][] = [
-  ["/lawyer/assigned-cases", "Assigned Matters"],
-  ["/lawyer/completed-case", "Completed Cases"],
-  ["/lawyer/settings", "Portal Settings"],
+  ["/lawyer/assigned-cases/case", "Case Details"],
+  ["/lawyer/assigned-cases", "Active Cases"],
+  ["/lawyer/archived", "Archived Cases"],
   ["/lawyer/lawyer-profile", "Lawyer Profile"],
   ["/lawyer", "Lawyer Dashboard"],
 ];
 
 export const LawyerTopBar = () => {
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const dispatch = useDispatch<AppDispatch>();
@@ -64,7 +66,8 @@ export const LawyerTopBar = () => {
 
       <div className="flex items-center gap-4">
         <button
-          onClick={() => router.push("/lawyer/lawyer-profile")}
+          onClick={() => setIsAccountModalOpen(true)}
+          title="View and edit your profile"
           className="flex items-center gap-3 bg-white border border-slate-200 rounded-full px-3 py-1.5 shadow-xs cursor-pointer hover:border-slate-400 hover:bg-slate-50 transition-all"
         >
           <div className="w-7 h-7 rounded-full bg-slate-900 text-white font-bold text-[11px] font-sans flex items-center justify-center">
@@ -88,6 +91,7 @@ export const LawyerTopBar = () => {
           <LogOut className="w-3.5 h-3.5 text-white" />
         </button>
       </div>
+      <LawyerAccountModal isOpen={isAccountModalOpen} onClose={() => setIsAccountModalOpen(false)} />
     </header>
   );
 };

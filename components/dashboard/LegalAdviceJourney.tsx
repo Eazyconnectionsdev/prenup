@@ -1,11 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ClipboardList, Gavel } from "lucide-react";
 import {
   journeyButtonBase,
   journeyStatusWidth,
 } from "@/components/dashboard/journeyRowStyles";
+import { FileText, Scale } from "lucide-react";
 
 type Pre = Record<string, any> | undefined;
 
@@ -56,8 +56,8 @@ export default function LegalAdviceJourney({
       title: "My pre-lawyer questionnaire",
       description:
         "Tell us what matters to you so we can match you with the right lawyer.",
-      tile: "from-[#A78BFA] to-[#7C3AED]",
-      icon: <ClipboardList className="h-5 w-5" strokeWidth={1.8} />,
+      tile: "from-[#FBBF24] to-[#F59E0B]",
+      icon: <FileText className="h-5 w-5" strokeWidth={1.8} />,
       done: myQuestionnaireDone,
       mine: true,
       cta: myQuestionnaireDone ? "Completed" : "Start",
@@ -68,8 +68,8 @@ export default function LegalAdviceJourney({
       title: "My lawyer selection",
       description:
         "Choose the independent lawyer who will review the agreement with you.",
-      tile: "from-[#60A5FA] to-[#2563EB]",
-      icon: <Gavel className="h-5 w-5" strokeWidth={1.8} />,
+      tile: "from-[#FB7185] to-[#E11D48]",
+      icon: <Scale className="h-5 w-5" strokeWidth={1.8} />,
       done: myLawyerChosen,
       mine: true,
       blocked: !myQuestionnaireDone,
@@ -80,8 +80,8 @@ export default function LegalAdviceJourney({
       route: "/dashboard/partner-lawyer-questionaries",
       title: "Partner's pre-lawyer questionnaire",
       description: "Your partner answers the same questions for their lawyer.",
-      tile: "from-[#FB7185] to-[#E11D48]",
-      icon: <ClipboardList className="h-5 w-5" strokeWidth={1.8} />,
+      tile: "from-[#34D399] to-[#059669]",
+      icon: <FileText className="h-5 w-5" strokeWidth={1.8} />,
       done: partnerQuestionnaireDone,
       mine: false,
       cta: partnerQuestionnaireDone ? "Completed" : "View",
@@ -91,8 +91,8 @@ export default function LegalAdviceJourney({
       route: "/dashboard/partner-lawyer-selection",
       title: "Partner's lawyer selection",
       description: "Your partner picks their own independent lawyer.",
-      tile: "from-[#34D399] to-[#059669]",
-      icon: <Gavel className="h-5 w-5" strokeWidth={1.8} />,
+      tile: "from-[#60A5FA] to-[#2563EB]",
+      icon: <Scale className="h-5 w-5" strokeWidth={1.8} />,
       done: partnerLawyerChosen,
       mine: false,
       cta: partnerLawyerChosen ? "Completed" : "View",
@@ -134,7 +134,7 @@ export default function LegalAdviceJourney({
               <div
                 className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-white text-lg font-bold shadow-sm ${step.tile}`}
               >
-                {i + 5}
+                {i + 1}
               </div>
 
               <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#EDE9FE] text-[#6D28D9]">

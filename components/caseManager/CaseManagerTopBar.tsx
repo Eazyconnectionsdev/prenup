@@ -6,9 +6,9 @@ import { usePathname } from "next/navigation";
 // Ordered most-specific first; matched by prefix so nested routes keep a title.
 const PATH_TITLES: [string, string][] = [
   ["/cm/dashboard", "Dashboard Ledger"],
-  ["/cm/cases", "Cases Master List"],
+  ["/cm/cases", "Active Cases"],
   ["/cm/case-manager/cases", "Case Details"],
-  ["/cm/archived", "Archived Vault Ledger"],
+  ["/cm/archived", "Archived Cases"],
   ["/cm/reports", "Operational Intelligence Reports"],
   ["/cm", "Dashboard Ledger"],
 ];

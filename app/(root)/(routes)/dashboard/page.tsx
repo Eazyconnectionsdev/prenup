@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
-  BookOpen,
   ChartNoAxesCombined,
   Check,
   Lock,
@@ -923,14 +922,7 @@ export default function PrenupDashboard() {
               approved={isLegalAdviceStage}
             />
 
-            {isUser2 ? (
-              <StatCard
-                label="Support"
-                icon={<BookOpen className="h-5 w-5 text-[#6D4AFF]" />}
-                value="Need help?"
-                subtitle="Visit our guidance resources."
-              />
-            ) : hasP2Joined ? (
+            {isUser2 || hasP2Joined ? (
               <StatCard
                 label="Your partner"
                 icon={
