@@ -148,6 +148,8 @@ export default function FinalReviewConfirmationPage() {
 
   const ownerName = nameOf(cases?.owner, "Primary applicant");
   const invitedName = nameOf(cases?.invitedUser, "Your partner");
+  /** The partner on the other side of the request I am sending. */
+  const partnerDisplayName = isOwner ? invitedName : ownerName;
 
   // Rounds that ran before the message was recorded on the timeline left only
   // the latest one behind, on `disapprovalReason`. Shown when the timeline
@@ -399,7 +401,7 @@ export default function FinalReviewConfirmationPage() {
 
       await Axios.post(
         `/cases/${caseId}/joint-information/submit`,
-        iDisapproved ? { message: changeMessage.trim() } : {},
+        { message: changeMessage.trim() },
       );
 
       dispatch(
@@ -1345,22 +1347,29 @@ export default function FinalReviewConfirmationPage() {
           </span>
         </div>
 
-        {iDisapproved && (
-          <div className="mt-5">
-            <label className="block text-xs font-bold text-[#1E1B3C]">
-              Why did you change the information?
-            </label>
-            <textarea
-              value={changeMessage}
-              onChange={(e) => setChangeMessage(e.target.value)}
-              rows={4}
-              placeholder="Let your partner know what you changed or why."
-              className="mt-2 w-full rounded-xl border border-[#D1D1DC] p-3 text-sm text-[#1E1B3C] outline-none focus:border-[#6a69ff]"
-            />
-          </div>
-        )}
+        <div className="mt-5">
+          <label className="block text-xs font-bold text-[#1E1B3C]">
+            {iDisapproved
+              ? "Why did you change the information?"
+              : "Message for your partner (optional)"}
+          </label>
+          <textarea
+            value={changeMessage}
+            onChange={(e) => setChangeMessage(e.target.value)}
+            rows={4}
+            placeholder={
+              iDisapproved
+                ? "Let your partner know what you changed or why."
+                : "Add anything you'd like your partner to know before they review."
+            }
+            className="mt-2 w-full rounded-xl border border-[#D1D1DC] p-3 text-sm text-[#1E1B3C] outline-none focus:border-[#6a69ff]"
+          />
+          <p className="mt-1.5 text-[11px] text-[#8A8AA0]">
+            {partnerDisplayName} will see this with the request, and it stays in
+            your message history.
+          </p>
+        </div>
       </ConfirmModal>
-
 
       <ConfirmModal
         isOpen={showExhibitDModal}

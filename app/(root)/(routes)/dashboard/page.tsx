@@ -28,12 +28,16 @@ import { isCaseManagerApproved } from "@/lib/caseStage";
 import { isCasePaid } from "@/lib/casePayment";
 import Axios from "@/lib/ApiConfig";
 import { AlertModal } from "@/components/modals";
-import type { AlertTone } from "@/types/ui/modal";
+import type { AlertModalProps, AlertTone } from "@/types/ui/modal";
 import { ServiceStatus } from "@/components/ServiceStatus";
 import CaseManagerCard from "@/components/dashboard/CaseManagerCard";
 import DashboardSkeleton from "@/components/dashboard/DashboardSkeleton";
 import AgreementDocumentCard from "@/components/dashboard/AgreementDocumentCard";
 import LegalAdviceJourney from "@/components/dashboard/LegalAdviceJourney";
+import {
+  journeyButtonBase,
+  journeyStatusWidth,
+} from "@/components/dashboard/journeyRowStyles";
 import LegalTeamCard from "@/components/dashboard/LegalTeamCard";
 import StatCard, {
   ApprovedPill,
@@ -271,14 +275,14 @@ const statusText = (progress: StepProgress) =>
       ? "In Progress"
       : "Not Started";
 
-const stepButtonBase =
-  "ml-4 flex-shrink-0 rounded-lg px-4 py-2 text-xs font-semibold";
+/** One fixed size for every row action, so the buttons line up. */
+const stepButtonBase = journeyButtonBase;
 const stepButtonDone = `${stepButtonBase} bg-[#DCFCE7] text-[#16A34A] hover:bg-[#BBF7D0]`;
 const stepButtonTodo = `${stepButtonBase} bg-primary text-white hover:bg-primary/90`;
 const stepButtonMuted = `${stepButtonBase} bg-[#F1F1F6] text-[#9494AA] hover:bg-[#E8E8F0]`;
 const stepButtonReview = `${stepButtonBase} bg-[#16A34A] text-white shadow-sm hover:bg-[#15803D]`;
 const stepButtonWaiting = `${stepButtonBase} bg-amber-100 text-amber-700`;
-const stepButtonLockedBase = `${stepButtonBase} inline-flex items-center gap-1.5 bg-[#F1F1F6] text-[#9494AA]`;
+const stepButtonLockedBase = `${stepButtonBase} gap-1.5 bg-[#F1F1F6] text-[#9494AA]`;
 /** Dead end: the step stays shut until the case is paid for. */
 const stepButtonLocked = `${stepButtonLockedBase} cursor-not-allowed opacity-80`;
 /** Clickable: opens the popup that explains why the step is still locked. */
@@ -294,7 +298,31 @@ type PopupId =
   | "p2-joint-initial"
   | "p1-review-locked"
   | "p2-review-waiting"
-  | "awaiting-review";
+  | "awaiting-review"
+  | "my-quest-complete"
+  | "joint-quest-complete";
+
+/**
+ * The two "you're done" popups are one-offs per case: the completion flags
+ * they watch stay true for good, so without this they would greet the user on
+ * every visit to the dashboard.
+ */
+function celebrationSeen(caseId: string, id: PopupId): boolean {
+  try {
+    return localStorage.getItem(`prenup_done_${id}_${caseId}`) === "1";
+  } catch {
+    // No storage (private mode): better silent than on every load.
+    return true;
+  }
+}
+
+function markCelebrationSeen(caseId: string, id: PopupId) {
+  try {
+    localStorage.setItem(`prenup_done_${id}_${caseId}`, "1");
+  } catch {
+    // As above.
+  }
+}
 
 export default function PrenupDashboard() {
   const router = useRouter();
@@ -712,9 +740,34 @@ export default function PrenupDashboard() {
     return null;
   }
 
+  // Only the case owner fills the joint questionnaire in; the partner reads it.
+  const celebration: PopupId | null =
+    isJointComplete && isUser1
+      ? "joint-quest-complete"
+      : isMyQuestComplete
+        ? "my-quest-complete"
+        : null;
+
+  useEffect(() => {
+    const caseId = cases?.caseId;
+    if (!caseId || !cases?.hasLoaded || !celebration) return;
+    if (celebrationSeen(String(caseId), celebration)) return;
+
+    markCelebrationSeen(String(caseId), celebration);
+    // localStorage is the external state here: whether this case has already
+    // been congratulated is only knowable on the client, after it loads.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setActivePopup(celebration);
+  }, [cases?.caseId, cases?.hasLoaded, celebration]);
+
   const popups: Record<
     PopupId,
-    { tone: AlertTone; title: string; body: ReactNode }
+    {
+      tone: AlertTone;
+      title: string;
+      body: ReactNode;
+      action?: AlertModalProps["action"];
+    }
   > = {
     "p1-joint-initial": {
       tone: "info",
@@ -760,6 +813,47 @@ export default function PrenupDashboard() {
           </p>
         </>
       ),
+    },
+    "my-quest-complete": {
+      tone: "success",
+      title: "My Questionnaire Completed!",
+      body: (
+        <>
+          <p>
+            You have successfully completed all six sections of your personal
+            questionnaire.
+          </p>
+          <p className="mt-2">
+            <span className="font-medium text-[#1E1B3C]">What’s next?</span>{" "}
+            {isUser1
+              ? "You can now proceed to the Joint Questionnaire."
+              : "Your partner completes the Joint Questionnaire, then sends the agreement over for your review."}
+          </p>
+        </>
+      ),
+      action: isUser1
+        ? {
+            label: "Go to Joint Questionnaire",
+            onClick: () => router.push(STEP_TARGETS.joint_questionnaire),
+          }
+        : undefined,
+    },
+    "joint-quest-complete": {
+      tone: "success",
+      title: "Joint Questionnaire Completed!",
+      body: (
+        <>
+          <p>You have completed all four sections of the joint questionnaire.</p>
+          <p className="mt-2">
+            <span className="font-medium text-[#1E1B3C]">What’s next?</span> You
+            can now review the agreement and send it to your partner.
+          </p>
+        </>
+      ),
+      action: {
+        label: "Review & Submit",
+        onClick: () => router.push(STEP_TARGETS.final_review),
+      },
     },
     "awaiting-review": {
       tone: "warning",
@@ -954,7 +1048,9 @@ export default function PrenupDashboard() {
                       </div>
                     </div>
 
-                    <div className="hidden w-56 flex-shrink-0 text-right text-xs font-medium text-[#8A8AA0] lg:block">
+                    <div
+                      className={`hidden ${journeyStatusWidth} flex-shrink-0 text-right text-xs font-medium text-[#8A8AA0] lg:block`}
+                    >
                       {inReview ? "In Progress" : STEP_STATUS[step.id]}
                     </div>
 
@@ -1005,6 +1101,7 @@ export default function PrenupDashboard() {
         onClose={() => setActivePopup(null)}
         tone={popup?.tone}
         title={popup?.title}
+        action={popup?.action}
         closeLabel="Got it"
       >
         {popup?.body}

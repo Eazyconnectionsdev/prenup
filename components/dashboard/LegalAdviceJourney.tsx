@@ -2,6 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { ClipboardList, Gavel } from "lucide-react";
+import {
+  journeyButtonBase,
+  journeyStatusWidth,
+} from "@/components/dashboard/journeyRowStyles";
 
 type Pre = Record<string, any> | undefined;
 
@@ -20,8 +24,7 @@ type IlaStep = {
   cta: string;
 };
 
-const rowButtonBase =
-  "ml-4 flex-shrink-0 rounded-lg px-4 py-2 text-xs font-semibold shadow-sm transition-colors";
+const rowButtonBase = `${journeyButtonBase} shadow-sm transition-colors`;
 const rowButtonDone = `${rowButtonBase} bg-[#DCFCE7] text-[#16A34A] hover:bg-[#BBF7D0]`;
 const rowButtonTodo = `${rowButtonBase} bg-primary text-white hover:bg-primary/90`;
 const rowButtonMuted = `${rowButtonBase} bg-[#F1F1F6] text-[#9494AA] hover:bg-[#E8E8F0]`;
@@ -147,7 +150,9 @@ export default function LegalAdviceJourney({
                 </div>
               </div>
 
-              <div className="hidden w-28 flex-shrink-0 text-right text-xs font-medium text-[#8A8AA0] lg:block">
+              <div
+                className={`hidden ${journeyStatusWidth} flex-shrink-0 text-right text-xs font-medium text-[#8A8AA0] lg:block`}
+              >
                 {statusLabel(step, isActive)}
               </div>
 
