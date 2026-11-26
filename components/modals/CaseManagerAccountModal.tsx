@@ -2,13 +2,13 @@
 
 import React, { useEffect, useState } from "react";
 import {
-  X,
   Briefcase,
   MapPin,
   Clock,
   Shield,
   ChevronDown,
 } from "lucide-react";
+import { Modal } from "./Modal";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
 import { setUserProfileData } from "@/store/slices/authSlice";
@@ -129,41 +129,28 @@ export const CaseManagerAccountModal: React.FC<AccountModalProps> = ({
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-6">
-      <div className="w-full max-w-[520px] bg-white border border-slate-300 rounded-2xl p-7 flex flex-col gap-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-        {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-200">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-slate-900 text-white font-bold text-base font-sans flex items-center justify-center shadow-xs">
-              {initials}
-            </div>
-
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <h3 className="text-lg font-bold font-sans text-slate-900 tracking-tight">
-                  {fullName}
-                </h3>
-                <span className="badge-rose-pill uppercase text-[10px] font-bold bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full">
-                  Case Manager
-                </span>
-              </div>
-              <p className="text-xs font-sans text-slate-500">
-                {user?.email || "case.manager@letsprenup.com"}
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition-all cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="md"
+      className="font-sans"
+      // A profile form rather than something to read, so a stray click beside
+      // it must not throw away an unsaved jurisdiction change.
+      closeOnBackdrop={false}
+      icon={
+        <div className="w-12 h-12 rounded-full bg-slate-900 text-white font-bold text-base font-sans flex items-center justify-center shadow-xs">
+          {initials}
         </div>
-
+      }
+      title={fullName}
+      headerAccessory={
+        <span className="badge-rose-pill uppercase text-[10px] font-bold bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full">
+          Case Manager
+        </span>
+      }
+      description={user?.email || "case.manager@letsprenup.com"}
+    >
         {/* Staff Profile Attributes - Dynamic from DB */}
         <div className="grid grid-cols-2 gap-3 font-sans text-xs">
           <div className="p-3.5 rounded-xl bg-white border border-slate-200 flex flex-col gap-1">
@@ -205,9 +192,6 @@ export const CaseManagerAccountModal: React.FC<AccountModalProps> = ({
             </span>
           </div>
         </div>
-
-        
-      </div>
-    </div>
+    </Modal>
   );
 };

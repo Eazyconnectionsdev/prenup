@@ -497,19 +497,7 @@ export async function fetchAllRows<T>(endpoint: string, filters: Filters): Promi
   return (res.data?.rows ?? []) as T[];
 }
 
-// Small modal used by the refund and GDPR forms.
-export const Modal: React.FC<{ title: string; onClose: () => void; children: React.ReactNode }> = ({ title, onClose, children }) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4" role="dialog" aria-modal="true" aria-label={title}>
-    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-      <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-        <h3 className="font-bold text-sm text-slate-900">{title}</h3>
-        <button onClick={onClose} className="text-slate-400 hover:text-slate-700 text-lg leading-none cursor-pointer" aria-label="Close">
-          ×
-        </button>
-      </div>
-      <div className="p-5 space-y-4 text-xs">{children}</div>
-    </div>
-  </div>
-);
+// The refund and GDPR forms use the application's one modal layout, from
+// `@/components/modals` -- this kit no longer carries an overlay of its own.
 
 export const fieldCls = inputCls + " w-full";

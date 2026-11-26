@@ -1,7 +1,8 @@
 "use client";
 
 import React from 'react';
-import { X, Lock, ShieldCheck, FileSpreadsheet } from 'lucide-react';
+import { Lock, ShieldCheck, FileSpreadsheet } from 'lucide-react';
+import { Modal } from "./Modal";
 import type { ReportRowData } from "@/types/case-manager";
 import type { ReportDetailModalProps } from "@/types/case-manager/report-detail-modal";
 
@@ -11,29 +12,34 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
   row,
   reportTitle,
 }) => {
-  if (!isOpen || !row) return null;
+  if (!row) return null;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 font-sans">
-      <div className="bg-white border border-slate-300 rounded-xl shadow-2xl max-w-[640px] w-full overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
-        
-        {/* Header */}
-        <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <FileSpreadsheet className="w-5 h-5 text-emerald-400" />
-            <div>
-              <h3 className="text-sm font-bold tracking-tight">Record Inspection (Read-Only)</h3>
-              <p className="text-[11px] text-slate-400 font-mono">{reportTitle}</p>
-            </div>
-          </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="lg"
+      headerVariant="dark"
+      className="font-sans"
+      title="Record Inspection (Read-Only)"
+      description={<span className="font-mono">{reportTitle}</span>}
+      icon={<FileSpreadsheet className="w-5 h-5 text-emerald-400" />}
+      bodyClassName="p-0 sm:p-0"
+      footerClassName="justify-between bg-slate-100"
+      footer={
+        <>
+          <span className="text-[11px] text-slate-500 font-sans italic">
+            No edits permitted. All report records are read-only.
+          </span>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 flex items-center justify-center transition-all cursor-pointer"
+            className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-1.5 rounded-lg text-xs font-bold font-sans transition-all cursor-pointer shadow-xs"
           >
-            <X className="w-4 h-4" />
+            Close Window
           </button>
-        </div>
-
+        </>
+      }
+    >
         {/* Read-Only Guarantee Banner */}
         <div className="bg-emerald-950/90 border-b border-emerald-800/50 px-6 py-2 flex items-center justify-between text-xs text-emerald-300">
           <span className="flex items-center gap-1.5 font-bold">
@@ -43,7 +49,7 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
         </div>
 
         {/* Body Content Key-Value Fields */}
-        <div className="p-6 max-h-[460px] overflow-y-auto grid grid-cols-2 gap-4">
+        <div className="p-6 grid grid-cols-2 gap-4">
           {Object.entries(row).map(([key, value]) => {
             if (key === 'id' || key === 'caseId') {
               return (
@@ -75,21 +81,6 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
             );
           })}
         </div>
-
-        {/* Footer */}
-        <div className="px-6 py-3.5 bg-slate-100 border-t border-slate-200 flex items-center justify-between">
-          <span className="text-[11px] text-slate-500 font-sans italic">
-            No edits permitted. All report records are read-only.
-          </span>
-          <button
-            onClick={onClose}
-            className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-1.5 rounded-lg text-xs font-bold font-sans transition-all cursor-pointer shadow-xs"
-          >
-            Close Window
-          </button>
-        </div>
-
-      </div>
-    </div>
+    </Modal>
   );
 };

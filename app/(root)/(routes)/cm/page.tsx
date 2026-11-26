@@ -7,7 +7,7 @@ import { CasesMasterView } from "@/components/caseManager/views/CasesMasterView"
 import { ArchivedVaultView } from "@/components/caseManager/views/ArchivedVaultView";
 import { ReportsView } from "@/components/caseManager/views/ReportsView";
 import { CaseSlideDrawer } from "@/components/caseManager/drawer/CaseSlideDrawer";
-import { ScorecardModal } from "@/components/caseManager/modals/ScorecardModal";
+import { ScorecardModal } from "@/components/modals";
 import { ToastContainer } from "@/components/caseManager/ui/ToastContainer";
 import type { ApiLogEntry, AuditLog, CaseItem, FilterState, NavView, RuleEntry, ToastItem } from "@/types/case-manager";
 

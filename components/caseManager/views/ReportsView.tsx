@@ -17,7 +17,7 @@ import {
   UserCheck
 } from 'lucide-react';
 import { ReusableReportTable } from '../ui/ReusableReportTable';
-import { ReportDetailModal } from '../modals/ReportDetailModal';
+import { ReportDetailModal } from '@/components/modals';
 import type { CaseItem, ReportColumnDef, ReportFilterState, ReportRowData, ReportType } from "@/types/case-manager";
 import type { ReportsViewProps } from "@/types/case-manager/reports-view";
 

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import Axios from "@/lib/ApiConfig";
+import { ConfirmModal } from "@/components/modals";
 import { AppDispatch, RootState } from "@/store/store";
 import { getCasesDetails } from "@/store/asyncThunk/casesThunk";
 import { updateApproval, updateJointInformationStatus } from "@/store/slices/casesSlice";
@@ -25,8 +26,19 @@ import {
   REVIEW_TRIGGER_LABELS,
   SPOUSAL_MAINTENANCE_LABELS,
 } from "@/lib/matrimonialAgreementLabels";
+import type { ReviewTimelineItem } from "@/types/store/cases-slice";
 import type { SectionProgress } from "@/types/lib/progress-calculator";
 import { resolvePartyInformation } from "@/lib/caseSections";
+import PartnerMessageThread from "@/components/review/PartnerMessageThread";
+
+/** A party's display name, falling back to their email and then a role. */
+const nameOf = (
+  party?: { firstName?: string | null; lastName?: string | null; email?: string | null } | null,
+  fallback = "Your partner",
+) =>
+  [party?.firstName, party?.lastName].filter(Boolean).join(" ").trim() ||
+  party?.email ||
+  fallback;
 
 type FormRow = {
   key: string;
@@ -151,6 +163,31 @@ export default function FinalReviewConfirmationPage() {
   );
   const jointData = cases.jointInformation;
   const matrimonialData = (jointData as any)?.matrimonialAgreement;
+
+  const ownerName = nameOf(cases?.owner, "Primary applicant");
+  const invitedName = nameOf(cases?.invitedUser, "Your partner");
+  /** The partner on the other side of the request I am sending. */
+  const partnerDisplayName = isOwner ? invitedName : ownerName;
+
+  // Rounds that ran before the message was recorded on the timeline left only
+  // the latest one behind, on `disapprovalReason`. Shown when the timeline
+  // itself carries no messages, so those cases still read their note.
+  const latestMessage: ReviewTimelineItem | null = cases?.approval
+    ?.disapprovalReason
+    ? {
+        action: "Sent changes",
+        actorRole:
+          String(cases.approval.disapprovedBy ?? "") ===
+          String(cases.owner?._id ?? "")
+            ? "PRIMARY"
+            : "SECONDARY",
+        p1Status: "",
+        p2Status: "",
+        mutualStatus: "",
+        timestamp: cases.approval.disapprovedAt ?? "",
+        notes: cases.approval.disapprovalReason,
+      }
+    : null;
 
   const [openSection, setOpenSection] = useState<string | null>("");
 
@@ -389,7 +426,7 @@ export default function FinalReviewConfirmationPage() {
 
       await Axios.post(
         `/cases/${caseId}/joint-information/submit`,
-        (iDisapproved || changeMessage.trim()) ? { message: changeMessage.trim() } : {},
+        { message: changeMessage.trim() },
       );
 
       dispatch(
@@ -674,6 +711,14 @@ export default function FinalReviewConfirmationPage() {
             </div>
           </div>
 
+          <PartnerMessageThread
+            timeline={cases?.approval?.reviewTimeline}
+            fallback={latestMessage}
+            ownerName={ownerName}
+            partnerName={invitedName}
+            isOwner={isOwner}
+          />
+
           <div className="grid gap-6 md:grid-cols-2">
             <div className="flex flex-col justify-between rounded-2xl border border-[#E7E7F2] bg-white p-6 shadow-sm">
               <div>
@@ -874,15 +919,15 @@ export default function FinalReviewConfirmationPage() {
           </p>
         </div>
 
-        {/* The sender's partner edited and sent it back: show their message */}
-        {isMyTurnToApprove && cases?.approval?.disapprovalReason && (
-          <div className="rounded-xl border border-[#FDE68A] bg-[#FEF9C3]/70 p-3.5 shadow-xs">
-            <h3 className="text-xs font-bold text-[#1E1B3C]">Message from your partner</h3>
-            <p className="mt-1 whitespace-pre-line text-xs leading-relaxed text-[#6B6B80]">
-              {cases.approval.disapprovalReason}
-            </p>
-          </div>
-        )}
+        {/* Every message the two of you have sent with a round of changes */}
+        <PartnerMessageThread
+          timeline={cases?.approval?.reviewTimeline}
+          fallback={latestMessage}
+          ownerName={ownerName}
+          partnerName={invitedName}
+          isOwner={isOwner}
+          highlight={isMyTurnToApprove}
+        />
 
         {/* Main Journey Container Card with White Background matching Dashboard */}
         <div className="rounded-2xl border border-[#EDEDF5] bg-white p-4 sm:p-5 shadow-xs">
@@ -1273,207 +1318,142 @@ export default function FinalReviewConfirmationPage() {
 
       </div>
 
-      {showExhibitBModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-          <div className="relative w-full max-w-[620px] rounded-2xl bg-white p-6 shadow-2xl md:p-8">
-            <button
-              type="button"
-              onClick={() => setShowExhibitBModal(false)}
-              className="absolute right-4 top-4 text-[#9494AA] hover:text-[#1E1B3C]"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#EFF6FF] text-[#2563EB]">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-7 w-7">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 10l18-7-7 18-3-7-8-4z" />
-              </svg>
-            </div>
-
-            <h3 className="mt-4 text-center text-xl font-bold text-[#1E1B3C]">
-              {p2MadeChanges || iDisapproved
-                ? "Ready to Send Your Changes for Approval?"
-                : isPartner2
-                  ? "Ready to Send Your Changes to Your Partner?"
-                  : "Ready to send for partner review?"}
-            </h3>
-            <div className="mt-1.5 text-center text-xs font-bold uppercase tracking-wider text-[#6B7280]">
-              BEFORE YOU CONTINUE
-            </div>
-
-            {(p2MadeChanges || iDisapproved || isPartner2) && (
-              <p className="mt-3 text-center text-sm leading-relaxed text-[#4B5563]">
-                You have made changes to the information shared by your partner. Before sending it back, please review the changes and provide any comments you would like your partner to know.
-              </p>
-            )}
-
-            <div className="mt-5 space-y-3">
-              {(isPartner2 || p2MadeChanges || iDisapproved ? partner2Steps : partner1Steps).map((text, idx) => (
-                <div key={idx} className="flex items-start gap-3 text-sm leading-relaxed text-[#1E1B3C]">
-                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#EFF6FF] text-xs font-bold text-[#2563EB]">
-                    {idx + 1}
-                  </span>
-                  <span className="pt-0.5">{text}</span>
-                </div>
-              ))}
-            </div>
-
-            {!(p2MadeChanges || iDisapproved || isPartner2) && (
-              <div className="mt-5 rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] p-4 text-sm text-[#166534]">
-                <div className="flex items-center gap-2 font-bold text-[#15803D]">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-5 w-5 text-[#16A34A]">
-                    <circle cx="12" cy="12" r="9" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4" />
-                  </svg>
-                  <span>What happens next?</span>
-                </div>
-                <p className="mt-1.5 text-sm leading-relaxed text-[#166534]">
-                  Once both partners approve the same version of the information, the case will be submitted for Case Manager Review.
-                </p>
-              </div>
-            )}
-
-            {(iDisapproved || isPartner2 || p2MadeChanges) && (
-              <div className="mt-5">
-                <label className="block text-sm font-bold text-[#1E1B3C]">
-                  Why did you change the information?
-                </label>
-                <textarea
-                  value={changeMessage}
-                  onChange={(e) => setChangeMessage(e.target.value)}
-                  rows={3}
-                  placeholder="Let your partner know what you changed or why."
-                  className="mt-2 w-full rounded-xl border border-[#D1D5DB] p-3.5 text-sm text-[#1E1B3C] placeholder:text-[#9CA3AF] outline-none focus:border-[#6a69ff] focus:ring-1 focus:ring-[#6a69ff]"
-                />
-              </div>
-            )}
-
-            <div className="mt-6 flex items-center justify-between gap-3">
-              <button
-                type="button"
-                onClick={() => setShowExhibitBModal(false)}
-                className="w-1/2 rounded-xl border border-[#D1D5DB] bg-white py-3.5 text-sm font-semibold text-[#1E1B3C] transition hover:bg-slate-50"
-              >
-                Go Back
-              </button>
-              <button
-                type="button"
-                disabled={
-                  isSubmitting ||
-                  !canSendForReview ||
-                  (iDisapproved && !changeMessage.trim())
-                }
-                onClick={handleConfirmSubmitForPartnerReview}
-                className="flex w-1/2 items-center justify-center rounded-xl bg-[#16A34A] py-3.5 text-sm font-semibold text-white shadow-md transition hover:bg-[#15803D] disabled:opacity-60"
-              >
-                <span>
-                  {isSubmitting
-                    ? "Sending..."
-                    : p2MadeChanges || iDisapproved
-                      ? "Send for Approval"
-                      : "Send for Partner Review"}
-                </span>
-              </button>
-            </div>
-          </div>
+      <ConfirmModal
+        isOpen={showExhibitBModal}
+        onClose={() => setShowExhibitBModal(false)}
+        onConfirm={handleConfirmSubmitForPartnerReview}
+        tone="success"
+        size="lg"
+        title="Ready to send to your partner for review?"
+        cancelLabel="Go Back"
+        confirmLabel="Send Approval Request"
+        loadingLabel="Sending..."
+        isLoading={isSubmitting}
+        confirmDisabled={Boolean(
+          !canSendForReview || (iDisapproved && !changeMessage.trim()),
+        )}
+        icon={
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 10l18-7-7 18-3-7-8-4z" />
+          </svg>
+        }
+      >
+        <div className="text-xs font-semibold uppercase tracking-wider text-[#9494AA]">
+          Before you continue:
         </div>
-      )}
 
-
-      {showExhibitDModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-          <div className="relative w-full max-w-[620px] rounded-2xl bg-white p-6 shadow-2xl md:p-8">
-            {/* Close button */}
-            <button
-              type="button"
-              onClick={() => setShowExhibitDModal(false)}
-              className="absolute right-4 top-4 text-[#9494AA] hover:text-[#1E1B3C]"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-
-            {/* Modal Icon: Checkmark */}
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#DCFCE7] text-[#16A34A]">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-7 w-7">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-
-            <h3 className="mt-4 text-center text-xl font-bold text-[#1E1B3C]">
-              Approve the Complete Information?
-            </h3>
-            <p className="mt-1.5 text-center text-sm text-[#4B5563]">
-              Please confirm that you have reviewed the complete information and agree with the current version.
-            </p>
-
-            {/* Blue Callout Box with checklist items */}
-            <div className="mt-5 rounded-xl border border-[#BFDBFE] bg-[#EFF6FF] p-4 text-sm">
-              <div className="flex items-center gap-2 font-bold text-[#1E3A8A]">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#3B82F6] text-white text-xs font-bold">
-                  i
-                </span>
-                <span>Your approval applies to the entire package, including:</span>
-              </div>
-              <div className="mt-3 space-y-2 pl-7 text-sm font-medium text-[#1E3A8A]">
-                {[
-                  "Your personal information",
-                  "Your partner's personal information",
-                  "Joint financial information",
-                ].map((item, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <span className="text-[#16A34A] font-bold">✓</span>
-                    <span>{item}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <p className="mt-4 text-sm leading-relaxed text-[#4B5563]">
-              Once you approve, your partner will be asked to review and approve the same version. If any changes
-              are made afterwards, both partners will need to review and approve the updated version again.
-            </p>
-
-            {/* Confirmation Checkbox Box */}
-            <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] p-4 transition hover:bg-[#DCFCE7]/40">
-              <input
-                type="checkbox"
-                checked={exhibitDConfirmed}
-                onChange={(e) => setExhibitDConfirmed(e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded text-[#16A34A] focus:ring-[#16A34A]"
-              />
-              <span className="text-sm font-semibold leading-relaxed text-[#14532D]">
-                I confirm that I have reviewed the complete information and that it accurately reflects my understanding and intentions.
+        <div className="mt-3 space-y-3">
+          {[
+            "Please make sure all the information you have provided is complete and accurate.",
+            "Your complete information will now be made available to your partner for review.",
+            "Your partner can approve the information or make changes.",
+            "If your partner makes changes, you will be able to review and approve those changes before the final confirmation.",
+          ].map((text, idx) => (
+            <div key={idx} className="flex items-start gap-3 text-xs leading-relaxed text-[#1E1B3C]">
+              <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-[#EFF6FF] text-[11px] font-bold text-[#3B82F6]">
+                {idx + 1}
               </span>
-            </label>
-
-            {/* Modal Actions */}
-            <div className="mt-6 flex items-center justify-between gap-3">
-              <button
-                type="button"
-                onClick={() => setShowExhibitDModal(false)}
-                className="w-1/2 rounded-xl border border-[#D1D5DB] bg-white py-3.5 text-sm font-semibold text-[#1E1B3C] transition hover:bg-slate-50"
-              >
-                Go Back
-              </button>
-              <button
-                type="button"
-                disabled={!exhibitDConfirmed || isApproving}
-                onClick={handleConfirmApprove}
-                className="flex w-1/2 items-center justify-center gap-1.5 rounded-xl bg-[#16A34A] py-3.5 text-sm font-semibold text-white shadow-md transition hover:bg-[#15803D] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-4 w-4">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-                <span>{isApproving ? "Approving..." : "Approve"}</span>
-              </button>
+              <span>{text}</span>
             </div>
+          ))}
+        </div>
+
+        <div className="mt-5 flex items-center gap-3 rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] p-3.5 text-xs text-[#166534]">
+          <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-[#DCFCE7] text-[#16A34A]">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+            </svg>
+          </div>
+          <span>
+            Once both parties approve the final information, it will proceed to Final Review & Mutual Confirmation.
+          </span>
+        </div>
+
+        <div className="mt-5">
+          <label className="block text-xs font-bold text-[#1E1B3C]">
+            {iDisapproved
+              ? "Why did you change the information?"
+              : "Message for your partner (optional)"}
+          </label>
+          <textarea
+            value={changeMessage}
+            onChange={(e) => setChangeMessage(e.target.value)}
+            rows={4}
+            placeholder={
+              iDisapproved
+                ? "Let your partner know what you changed or why."
+                : "Add anything you'd like your partner to know before they review."
+            }
+            className="mt-2 w-full rounded-xl border border-[#D1D1DC] p-3 text-sm text-[#1E1B3C] outline-none focus:border-[#6a69ff]"
+          />
+          <p className="mt-1.5 text-[11px] text-[#8A8AA0]">
+            {partnerDisplayName} will see this with the request, and it stays in
+            your message history.
+          </p>
+        </div>
+      </ConfirmModal>
+
+      <ConfirmModal
+        isOpen={showExhibitDModal}
+        onClose={() => setShowExhibitDModal(false)}
+        onConfirm={handleConfirmApprove}
+        tone="success"
+        size="lg"
+        title="Approve the complete information?"
+        description="Please confirm that you have reviewed the complete information and are happy with the current version."
+        cancelLabel="Go Back"
+        confirmLabel="Approve"
+        loadingLabel="Approving..."
+        isLoading={isApproving}
+        confirmDisabled={!exhibitDConfirmed}
+        icon={
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-5 w-5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        }
+      >
+        {/* Blue Callout Box with 4 checklist items */}
+        <div className="mt-4 rounded-xl border border-[#BFDBFE] bg-[#EFF6FF] p-4 text-xs">
+          <div className="flex items-center gap-2 font-bold text-[#1E3A8A]">
+            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#3B82F6] text-white text-[10px]">
+              i
+            </span>
+            <span>Your approval applies to the entire package, including:</span>
+          </div>
+          <div className="mt-2.5 space-y-1.5 pl-6 text-[#1E3A8A]">
+            {[
+              "Your information",
+              "Your partner's information",
+              "Joint financial information",
+              "Matrimonial agreement & intentions",
+            ].map((item, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <span className="text-[#16A34A] font-bold">✓</span>
+                <span>{item}</span>
+              </div>
+            ))}
           </div>
         </div>
-      )}
+
+        <p className="mt-3 text-xs leading-relaxed text-[#6B6B80]">
+          If you approve, your partner will be asked to review and approve the same version. If any changes
+          are made afterwards, you will need to review and approve the updated information again.
+        </p>
+
+        {/* Confirmation checkbox: the Approve button stays disabled until ticked */}
+        <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] p-3.5 transition hover:bg-[#DCFCE7]/40">
+          <input
+            type="checkbox"
+            checked={exhibitDConfirmed}
+            onChange={(e) => setExhibitDConfirmed(e.target.checked)}
+            className="mt-0.5 rounded text-[#16A34A] focus:ring-[#16A34A]"
+          />
+          <span className="text-xs font-semibold leading-relaxed text-[#14532D]">
+            I confirm that I have reviewed the information above and it accurately reflects my current instructions.
+          </span>
+        </label>
+      </ConfirmModal>
     </div>
   );
 }

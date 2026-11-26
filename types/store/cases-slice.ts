@@ -96,6 +96,21 @@ export interface JointInformationSection {
   [key: string]: unknown;
 }
 
+/**
+ * The owner's trip through the service selector.
+ *
+ * `pendingAgreementType` is the service they picked and have not paid for yet.
+ * It is deliberately separate from `CaseDetails.agreementType`, which the
+ * payment writes: until the fee is paid the case has no service, only a pick,
+ * and the owner is free to come back and choose again.
+ */
+export interface CaseOnboarding {
+  completed: boolean;
+  completedAt?: string | null;
+  residesInUK?: boolean;
+  pendingAgreementType: string | null;
+}
+
 export interface CaseDetails {
   _id: string;
   caseNumber?: string | null;
@@ -136,8 +151,11 @@ export interface CaseDetails {
   fullyLockedBy: string | null;
   fullyLockedAt: string | null;
   workflowStatus: string;
-  // The service picked in onboarding / the service selector
+  // The service the case HAS. Written only when the case is paid for, so it is
+  // null for an unpaid case even after the owner has picked one -- the pick
+  // itself lives on `onboarding.pendingAgreementType`.
   agreementType: string | null;
+  onboarding?: CaseOnboarding | null;
   // Populated with name and email once a case manager is assigned
   assignedCaseManager: string | { _id: string; firstName?: string | null; lastName?: string | null; email?: string } | null;
   createdAt: string;
@@ -179,6 +197,7 @@ export interface CasesState {
   payment?: CaseDetails["payment"];
   workflowStatus: string;
   agreementType: string | null;
+  onboarding: CaseOnboarding | null;
   assignedCaseManager: CaseDetails["assignedCaseManager"];
   myInformation: InformationSection;
   partnerInformation: InformationSection;

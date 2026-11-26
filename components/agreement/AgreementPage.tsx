@@ -22,7 +22,7 @@ import {
   compareDocumentVersions,
   fetchCaseDetails,
 } from "@/lib/api/agreement";
-import { Modal } from "../Modal";
+import { Modal } from "@/components/modals";
 import { useParams } from "next/navigation";
 import type { CaseDetails, DiffParagraph, LockStatus, VersionDetail, VersionEntry } from "@/types/agreement";
 
@@ -403,6 +403,7 @@ export default function AgreementPage() {
             isOpen={isCompareModalOpen}
             onClose={closeCompareModal}
             title="Comparison Result"
+            size="xl"
           >
             {isComparing && (
               <p className="text-[13px] text-muted-foreground">

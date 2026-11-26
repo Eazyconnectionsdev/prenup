@@ -2,6 +2,7 @@
 
 import React, { useRef, useState } from "react";
 import Axios from "@/lib/ApiConfig";
+import { DeleteModal } from "@/components/modals";
 import {
   AlertCircle,
   Download,
@@ -163,6 +164,9 @@ export function DocumentList({
 }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // The document the delete confirmation is asking about, if any.
+  const [pendingDelete, setPendingDelete] =
+    useState<StoredDocumentRecord | null>(null);
 
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
@@ -180,11 +184,11 @@ export function DocumentList({
   };
 
   const handleDelete = async (doc: StoredDocumentRecord) => {
-    if (!window.confirm(`Delete "${doc.title}"? This cannot be undone.`)) return;
     try {
       setBusyId(doc._id);
       setError(null);
       await Axios.delete(`${basePath}/documents/${doc._id}`);
+      setPendingDelete(null);
       onDeleted?.();
     } catch (err) {
       setError(apiError(err, "Could not delete the document."));
@@ -245,7 +249,7 @@ export function DocumentList({
                 <button
                   type="button"
                   disabled={busyId === doc._id}
-                  onClick={() => handleDelete(doc)}
+                  onClick={() => setPendingDelete(doc)}
                   className="text-slate-400 hover:text-red-500 transition-colors p-1 cursor-pointer disabled:opacity-50"
                   title="Delete document"
                 >
@@ -256,6 +260,16 @@ export function DocumentList({
           );
         })}
       </ul>
+
+      <DeleteModal
+        isOpen={Boolean(pendingDelete)}
+        onClose={() => setPendingDelete(null)}
+        onConfirm={async () => {
+          if (pendingDelete) await handleDelete(pendingDelete);
+        }}
+        itemName={pendingDelete?.title}
+        isDeleting={Boolean(pendingDelete) && busyId === pendingDelete?._id}
+      />
     </div>
   );
 }
