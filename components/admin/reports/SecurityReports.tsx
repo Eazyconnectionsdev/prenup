@@ -4,6 +4,7 @@ import React, { useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import { Lock, Plus } from "lucide-react";
 import Axios from "@/lib/ApiConfig";
+import { Modal } from "@/components/modals";
 import {
   apiError,
   Badge,
@@ -18,7 +19,6 @@ import {
   Filters,
   fmtDate,
   fmtDateTime,
-  Modal,
   Note,
   ReportOptions,
   ReportTabs,
@@ -404,7 +404,16 @@ const GdprDialog: React.FC<{
   };
 
   return (
-    <Modal title={isNew ? "Log GDPR request" : `GDPR request ${request.requestId}`} onClose={onClose}>
+    <Modal
+      isOpen
+      title={isNew ? "Log GDPR request" : `GDPR request ${request.requestId}`}
+      onClose={onClose}
+      size="lg"
+      className="font-sans"
+      bodyClassName="space-y-4 text-xs"
+      // A GDPR request form: a stray click beside it must not discard the entry.
+      closeOnBackdrop={false}
+    >
       {isNew ? (
         <>
           <label className="block space-y-1">

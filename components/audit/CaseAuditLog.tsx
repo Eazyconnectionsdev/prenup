@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Eye, Loader2, RefreshCw, ShieldCheck, X } from "lucide-react";
+import { Eye, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
+import { Modal } from "@/components/modals";
 import {
   auditActionLabel,
   auditRoleLabel,
@@ -243,21 +244,22 @@ export default function CaseAuditLog({
       </div>
 
       {selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-6 backdrop-blur-xs">
-          <div className="max-h-[85vh] w-full max-w-[560px] space-y-4 overflow-y-auto rounded-2xl border border-slate-300 bg-white p-6 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-              <h4 className="text-sm font-bold text-slate-900">
-                Event details
-              </h4>
-              <button
-                type="button"
-                onClick={() => setSelected(null)}
-                className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
+        <Modal
+          isOpen
+          onClose={() => setSelected(null)}
+          title="Event details"
+          size="lg"
+          bodyClassName="space-y-4"
+          footer={
+            <button
+              type="button"
+              onClick={() => setSelected(null)}
+              className="cursor-pointer rounded-lg bg-slate-900 px-4 py-1.5 text-xs font-bold text-white hover:bg-slate-800"
+            >
+              Close
+            </button>
+          }
+        >
             <dl className="space-y-2.5 text-xs">
               {(
                 [
@@ -315,18 +317,7 @@ export default function CaseAuditLog({
                   <ChangedFields changedFields={selected.changedFields} />
                 </div>
               )}
-
-            <div className="flex justify-end border-t border-slate-200 pt-2">
-              <button
-                type="button"
-                onClick={() => setSelected(null)}
-                className="cursor-pointer rounded-lg bg-slate-900 px-4 py-1.5 text-xs font-bold text-white hover:bg-slate-800"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

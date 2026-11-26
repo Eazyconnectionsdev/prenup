@@ -9,6 +9,7 @@ import {
   Users,
 } from "lucide-react";
 import { orderedStages, type CaseStage, type CaseStages } from "@/types/dashboard/case-stages";
+import { journeyButtonBase } from "@/components/dashboard/journeyRowStyles";
 
 /** One tile colour per stage, in the order the backend returns them. */
 const STAGE_TILES = [
@@ -34,11 +35,7 @@ function StatusBadge({ status }: { status: string }) {
         : "bg-[#F1F1F6] text-[#9494AA]";
 
   return (
-    <span
-      className={`ml-4 flex-shrink-0 rounded-lg px-4 py-2 text-xs font-semibold ${tone}`}
-    >
-      {status}
-    </span>
+    <span className={`${journeyButtonBase} ${tone}`}>{status}</span>
   );
 }
 
@@ -139,7 +136,7 @@ export default function PrenupJourneyStages({
               <button
                 type="button"
                 onClick={() => router.push(ilaHref)}
-                className="ml-4 flex-shrink-0 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-primary/90"
+                className={`${journeyButtonBase} bg-primary text-white shadow-sm transition-colors hover:bg-primary/90`}
               >
                 {ilaStarted ? "Continue ILA Process" : "Start ILA Process"}
               </button>

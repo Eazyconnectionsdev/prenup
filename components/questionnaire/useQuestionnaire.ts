@@ -9,7 +9,7 @@ import { getErrorMessage } from "@/lib/api/http-error";
 import { AppDispatch, RootState } from "@/store/store";
 import { getCasesDetails } from "@/store/asyncThunk/casesThunk";
 import { FIRST_STEP_SLUG, getStep } from "./steps";
-import { isCasePaid, paymentHref } from "@/lib/casePayment";
+import { isCasePaid } from "@/lib/casePayment";
 import { SERVICE_SELECTOR_HREF } from "@/components/ServiceStatus";
 import { useEditingPartnerForm } from "./EditingPartnerContext";
 import { useEnsureCaseId } from "@/hooks/useEnsureCaseId";
@@ -30,6 +30,14 @@ export function useQuestionnaire({ step, source = "own", onLoad }: Options) {
 
   // Choosing a service and paying for it are the owner's to do -- both screens
   // are read-only for the invited partner, so only the owner is sent to them.
+  const isCaseOwner =
+    user?.endUserType === "user1" ||
+    Boolean(
+      user?._id &&
+      cases.owner?._id &&
+      String(cases.owner._id) === String(user._id),
+    );
+
   const stepInfo = getStep(step);
   // The invited partner's own answers live in `partnerInformation`; the
   // owner's in `myInformation`. Resolved centrally so every screen agrees.
@@ -128,16 +136,12 @@ export function useQuestionnaire({ step, source = "own", onLoad }: Options) {
       const caseNow = fresh ?? cases;
 
       // The first form is the only one open before the case is paid for, so
-      // finishing it leads to whatever is actually outstanding -- choose a
-      // service, or pay for the one already chosen -- rather than to a form
-      // that is still locked. This is the same for both partners: either of
-      // them may pay, and whoever pays becomes Partner 1.
+      // finishing it leads to the service selector, where the client picks or
+      // confirms their agreement and goes on to pay, rather than to a form
+      // that is still locked. Choosing and paying are the owner's to do, so
+      // the invited partner goes back to their dashboard instead.
       if (stepInfo.slug === FIRST_STEP_SLUG && !isCasePaid(caseNow)) {
-        router.push(
-          caseNow?.agreementType
-            ? paymentHref(caseNow.agreementType)
-            : SERVICE_SELECTOR_HREF,
-        );
+        router.push(isCaseOwner ? SERVICE_SELECTOR_HREF : "/dashboard");
         return;
       }
 

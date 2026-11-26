@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import Axios from "@/lib/ApiConfig";
+import { ConfirmModal } from "@/components/modals";
 import { AppDispatch, RootState } from "@/store/store";
 import { getCasesDetails } from "@/store/asyncThunk/casesThunk";
 import { updateApproval, updateJointInformationStatus } from "@/store/slices/casesSlice";
@@ -15,6 +16,7 @@ import {
   getSectionProgress,
   isFormFilled,
   JOINT_FINANCIAL_KEYS,
+  JOINT_KEYS,
   MATRIMONIAL_KEYS,
   MY_PARTNER_KEYS,
 } from "@/lib/progressCalculator";
@@ -24,8 +26,19 @@ import {
   REVIEW_TRIGGER_LABELS,
   SPOUSAL_MAINTENANCE_LABELS,
 } from "@/lib/matrimonialAgreementLabels";
+import type { ReviewTimelineItem } from "@/types/store/cases-slice";
 import type { SectionProgress } from "@/types/lib/progress-calculator";
 import { resolvePartyInformation } from "@/lib/caseSections";
+import PartnerMessageThread from "@/components/review/PartnerMessageThread";
+
+/** A party's display name, falling back to their email and then a role. */
+const nameOf = (
+  party?: { firstName?: string | null; lastName?: string | null; email?: string | null } | null,
+  fallback = "Your partner",
+) =>
+  [party?.firstName, party?.lastName].filter(Boolean).join(" ").trim() ||
+  party?.email ||
+  fallback;
 
 type FormRow = {
   key: string;
@@ -37,8 +50,8 @@ type FormRow = {
 function StatusBadge({ progress }: { progress: SectionProgress }) {
   if (progress.isComplete) {
     return (
-      <span className="flex items-center gap-1.5 rounded-full bg-[#DCFCE7] px-3 py-1 text-xs font-semibold text-[#16A34A]">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-3.5 w-3.5">
+      <span className="flex items-center gap-1 rounded-full bg-[#DCFCE7] px-2.5 py-0.5 text-xs font-semibold text-[#16A34A]">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-3 w-3">
           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
         </svg>
         Completed
@@ -48,10 +61,10 @@ function StatusBadge({ progress }: { progress: SectionProgress }) {
 
   return (
     <span
-      className="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-[#FEF3C7] px-3 py-1 text-xs font-semibold text-[#B45309]"
+      className="flex items-center gap-1 whitespace-nowrap rounded-full bg-[#FEF3C7] px-2.5 py-0.5 text-xs font-semibold text-[#B45309]"
       title={`${progress.completed} of ${progress.total} forms completed`}
     >
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3.5 w-3.5">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3 w-3">
         <circle cx="12" cy="12" r="9" />
         <path strokeLinecap="round" d="M12 7v5l3 3" />
       </svg>
@@ -126,6 +139,23 @@ export default function FinalReviewConfirmationPage() {
     iDisapproved,
   } = useJointSectionStatus();
 
+  const isPartner2 = isUser2 || (!isOwner && !isUser1);
+  const isPartner1 = !isPartner2;
+
+  const partner1Steps = [
+    "Please ensure that all the information you have provided is complete and accurate.",
+    "Your completed information will be shared with your partner for review.",
+    "Your partner can approve the information or request changes.",
+    "If your partner requests changes, you will be able to review the revised information before confirming the updated version.",
+  ];
+
+  const partner2Steps = [
+    "Your updated information will be shared with your partner.",
+    "Your partner can review the changes you have made.",
+    "Your partner can accept the changes or request further changes.",
+    "Both partners must approve the same final version before the case proceeds to Case Manager Review.",
+  ];
+
   const { mine: myData, theirs: partnerData } = resolvePartyInformation(
     user?.endUserType,
     cases.myInformation,
@@ -133,6 +163,31 @@ export default function FinalReviewConfirmationPage() {
   );
   const jointData = cases.jointInformation;
   const matrimonialData = (jointData as any)?.matrimonialAgreement;
+
+  const ownerName = nameOf(cases?.owner, "Primary applicant");
+  const invitedName = nameOf(cases?.invitedUser, "Your partner");
+  /** The partner on the other side of the request I am sending. */
+  const partnerDisplayName = isOwner ? invitedName : ownerName;
+
+  // Rounds that ran before the message was recorded on the timeline left only
+  // the latest one behind, on `disapprovalReason`. Shown when the timeline
+  // itself carries no messages, so those cases still read their note.
+  const latestMessage: ReviewTimelineItem | null = cases?.approval
+    ?.disapprovalReason
+    ? {
+        action: "Sent changes",
+        actorRole:
+          String(cases.approval.disapprovedBy ?? "") ===
+          String(cases.owner?._id ?? "")
+            ? "PRIMARY"
+            : "SECONDARY",
+        p1Status: "",
+        p2Status: "",
+        mutualStatus: "",
+        timestamp: cases.approval.disapprovedAt ?? "",
+        notes: cases.approval.disapprovalReason,
+      }
+    : null;
 
   const [openSection, setOpenSection] = useState<string | null>("");
 
@@ -142,6 +197,8 @@ export default function FinalReviewConfirmationPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
+  const [isUnlockingChanges, setIsUnlockingChanges] = useState(false);
+  const [isNavigatingToEdit, setIsNavigatingToEdit] = useState(false);
   // Refs, not state: these block a second click within the same render.
   const approveInFlight = useRef(false);
   const submitInFlight = useRef(false);
@@ -160,7 +217,7 @@ export default function FinalReviewConfirmationPage() {
 
   const myProgress = getSectionProgress(myData, MY_PARTNER_KEYS);
   const partnerProgress = getSectionProgress(partnerData, MY_PARTNER_KEYS);
-  const jointProgress = getSectionProgress(jointData, JOINT_FINANCIAL_KEYS);
+  const jointProgress = getSectionProgress(jointData, JOINT_KEYS);
   const matrimonialProgress = getSectionProgress(jointData, MATRIMONIAL_KEYS);
 
   const isJointComplete = jointProgress.isComplete;
@@ -192,7 +249,7 @@ export default function FinalReviewConfirmationPage() {
           ? "Waiting for your partner to complete their information."
           : "Invite your partner so they can complete their information."
         : !isJointComplete
-          ? "Complete all three joint financial forms to continue."
+          ? "Complete all joint information and matrimonial agreement forms to continue."
           : "Complete the Matrimonial Agreement & Intentions to continue."
     : !canEdit && !isMyTurnToApprove
       ? "Your partner is editing the information right now."
@@ -311,7 +368,8 @@ export default function FinalReviewConfirmationPage() {
   // control to you and clears both approvals. The reason is asked for when you
   // send it back, not here.
   const handleReviewerMakeChanges = async () => {
-    if (!caseId) return;
+    if (!caseId || isUnlockingChanges) return;
+    setIsUnlockingChanges(true);
     setActionError(null);
     try {
       await Axios.post(`/cases/${caseId}/reject`, {});
@@ -327,20 +385,24 @@ export default function FinalReviewConfirmationPage() {
         } as any),
       );
       await dispatch(getCasesDetails(caseId));
-      toast.success("You can now edit any of the information.");
-      router.push("/dashboard/personal-info");
+      setP2MadeChanges(true);
+      toast.success("Information unlocked. You can now edit or continue editing.");
     } catch (err) {
       setActionError(
         getErrorMessage(err, "Couldn't open the information for changes. Please try again."),
       );
+    } finally {
+      setIsUnlockingChanges(false);
     }
   };
 
   const handleP1MakeChanges = () => {
+    setIsNavigatingToEdit(true);
     router.push("/dashboard/personal-info");
   };
 
   const handleP2MakeChanges = () => {
+    setIsNavigatingToEdit(true);
     setP2MadeChanges(true);
     router.push("/dashboard/personal-info");
   };
@@ -364,7 +426,7 @@ export default function FinalReviewConfirmationPage() {
 
       await Axios.post(
         `/cases/${caseId}/joint-information/submit`,
-        iDisapproved ? { message: changeMessage.trim() } : {},
+        { message: changeMessage.trim() },
       );
 
       dispatch(
@@ -446,100 +508,132 @@ export default function FinalReviewConfirmationPage() {
 
   const formattedTime = sentAt
     ? new Date(sentAt).toLocaleDateString("en-GB", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
     : new Date().toLocaleDateString("en-GB", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
 
   if (isMutualApproved) {
+    const p1PersonalInfo = (isOwner ? myData : partnerData)?.personalInformation as any;
+    const p2PersonalInfo = (isOwner ? partnerData : myData)?.personalInformation as any;
+
+    const p1Name =
+      (p1PersonalInfo?.firstName
+        ? `${p1PersonalInfo.firstName} ${p1PersonalInfo.lastName ?? ""}`.trim()
+        : "") ||
+      (cases?.owner?.firstName
+        ? `${cases.owner.firstName} ${cases.owner.lastName ?? ""}`.trim()
+        : "") ||
+      "Partner 1";
+
+    const p2Name =
+      (p2PersonalInfo?.firstName
+        ? `${p2PersonalInfo.firstName} ${p2PersonalInfo.lastName ?? ""}`.trim()
+        : "") ||
+      (cases?.invitedUser?.firstName
+        ? `${cases.invitedUser.firstName} ${cases.invitedUser.lastName ?? ""}`.trim()
+        : "") ||
+      (cases?.partnerInviteDetails?.firstName
+        ? `${cases.partnerInviteDetails.firstName} ${cases.partnerInviteDetails.lastName ?? ""}`.trim()
+        : "") ||
+      "Partner 2";
+
+    const submissionDateRaw =
+      cases?.approval?.mutualApprovalCompletedAt ||
+      cases?.approval?.user2ApprovedAt ||
+      cases?.approval?.user1ApprovedAt ||
+      cases?.status?.jointInformation?.submittedAt ||
+      new Date().toISOString();
+
+    const formattedSubmissionDate = new Date(submissionDateRaw).toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+
     return (
       <div className="min-h-screen bg-[#F8F9FC] px-4 py-8 md:px-8">
-        <div className="mx-auto max-w-4xl space-y-6">
-          <div className="rounded-2xl border border-[#BBF7D0] bg-[#F0FDF4] p-8 text-center shadow-[0_10px_25px_-5px_rgba(22,163,74,0.1)]">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#DCFCE7] text-[#16A34A] shadow-inner">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-8 w-8">
+        {/* Outer Container with enhanced width & comfortable padding */}
+        <div className="mx-auto max-w-[720px] rounded-2xl border border-[#EDEDF5] bg-white p-5 shadow-xs md:p-7">
+          {/* Top Green Box: Mutual Approval Completed */}
+          <div className="rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] p-6 text-center">
+            <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-[#DCFCE7] text-[#16A34A]">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-6 w-6">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h1 className="mt-4 text-2xl font-extrabold text-[#14532D] md:text-3xl">
-              Mutual Confirmation Complete 🎉
+            <h1 className="mt-3 text-lg font-bold text-[#15803D] md:text-xl">
+              Mutual Approval Completed 🎉
             </h1>
-            <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-[#166534] md:text-base">
-              Both parties have reviewed and confirmed all details of your prenuptial agreement.
-              Your agreed terms and combined disclosure schedule are now locked and ready for the next phase.
+            <p className="mx-auto mt-1 max-w-lg text-xs leading-relaxed text-[#374151] md:text-sm">
+              Both applicants have reviewed and approved the same version of the agreement and financial disclosures.
             </p>
+            <div className="mt-3">
+              <span className="inline-block rounded-full bg-[#DCFCE7] px-4 py-1 text-xs font-semibold text-[#16A34A]">
+                Successfully Submitted
+              </span>
+            </div>
           </div>
 
-          <div className="rounded-2xl border border-[#E7E7F2] bg-white p-6 shadow-sm md:p-8">
-            <h2 className="text-base font-bold text-[#1E1B3C]">Agreement Package Summary</h2>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <div className="flex items-center gap-3.5 rounded-xl border border-[#E2E8F0] bg-[#FAF9FF] p-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#DCFCE7] text-[#16A34A]">
-                  ✓
-                </div>
-                <div>
-                  <div className="text-xs uppercase tracking-wider text-[#9494AA]">Partner 1 (User 1)</div>
-                  <div className="text-sm font-semibold text-[#1E1B3C]">Confirmed & Approved</div>
-                </div>
+          {/* Middle Box: Approval Summary */}
+          <div className="mt-4 rounded-xl border border-[#EDEDF5] bg-[#FDFDFE] p-5 md:p-6">
+            <h2 className="text-sm font-bold text-[#1E1B3C] md:text-base">
+              Approval Summary
+            </h2>
+
+            <div className="mt-3.5 space-y-3">
+              <div className="flex items-center justify-between text-xs md:text-sm">
+                <span className="font-semibold text-[#1E1B3C]">{p1Name}</span>
+                <span className="rounded-full bg-[#DCFCE7] px-3 py-0.5 text-xs font-semibold text-[#16A34A]">
+                  Approved
+                </span>
               </div>
 
-              <div className="flex items-center gap-3.5 rounded-xl border border-[#E2E8F0] bg-[#FAF9FF] p-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#DCFCE7] text-[#16A34A]">
-                  ✓
-                </div>
-                <div>
-                  <div className="text-xs uppercase tracking-wider text-[#9494AA]">Partner 2 (User 2)</div>
-                  <div className="text-sm font-semibold text-[#1E1B3C]">Confirmed & Approved</div>
-                </div>
+              <div className="flex items-center justify-between text-xs md:text-sm">
+                <span className="font-semibold text-[#1E1B3C]">{p2Name}</span>
+                <span className="rounded-full bg-[#DCFCE7] px-3 py-0.5 text-xs font-semibold text-[#16A34A]">
+                  Approved
+                </span>
               </div>
             </div>
 
-            <div className="mt-8 rounded-xl border border-[#DDD6FE] bg-[#F5F3FF] p-6">
-              <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-[#EDE9FE] text-[#6D28D9]">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-6 w-6">
-                    <path d="M12 3l2.5 5.2L20 9l-4 3.9.9 5.5L12 15.8 7.1 18.4 8 12.9 4 9l5.5-.8z" />
-                  </svg>
-                </div>
-                <div className="flex-1">
-                  <div className="text-xs font-bold uppercase tracking-wider text-[#6D28D9]">
-                    Next Step • Section 4
-                  </div>
-                  <h3 className="mt-1 text-lg font-bold text-[#1E1B3C]">
-                    Independent Legal Advice (ILA)
-                  </h3>
-                  <p className="mt-1 text-sm leading-relaxed text-[#6B6B80]">
-                    Under England and Wales law, to ensure your prenuptial agreement is legally binding and given full
-                    weight by the family courts, both partners must receive independent legal advice from separate,
-                    SRA-regulated solicitors.
-                  </p>
-                  <div className="mt-5 flex flex-wrap gap-3">
-                    <Link
-                      href="/dashboard/solicitor-details"
-                      className="inline-flex items-center gap-2 rounded-xl bg-[#6D28D9] px-6 py-3 text-sm font-semibold text-white shadow-md shadow-[#6D28D9]/20 transition hover:bg-[#5B21B6]"
-                    >
-                      Proceed to Solicitor Details →
-                    </Link>
-                    <Link
-                      href="/dashboard"
-                      className="inline-flex items-center rounded-xl border border-[#D1D1DC] bg-white px-5 py-3 text-sm font-semibold text-[#6B6B80] transition hover:bg-slate-50"
-                    >
-                      Return to Dashboard
-                    </Link>
-                  </div>
-                </div>
+            <div className="my-4 border-t border-[#EDEDF5]" />
+
+            <div className="space-y-2.5 text-xs md:text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-[#6B7280]">Submission date</span>
+                <span className="font-medium text-[#1E1B3C]">
+                  {formattedSubmissionDate}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-[#6B7280]">Next stage</span>
+                <span className="font-bold text-[#1E1B3C]">
+                  Case Manager Review
+                </span>
               </div>
             </div>
+          </div>
+
+          {/* Bottom Button: Go to Dashboard */}
+          <div className="mt-4">
+            <Link
+              href="/dashboard"
+              className="flex w-full items-center justify-center rounded-full bg-[#16A34A] py-3.5 text-sm font-semibold text-white shadow-xs transition hover:bg-[#15803D]"
+            >
+              Go to Dashboard
+            </Link>
           </div>
         </div>
       </div>
@@ -617,6 +711,14 @@ export default function FinalReviewConfirmationPage() {
             </div>
           </div>
 
+          <PartnerMessageThread
+            timeline={cases?.approval?.reviewTimeline}
+            fallback={latestMessage}
+            ownerName={ownerName}
+            partnerName={invitedName}
+            isOwner={isOwner}
+          />
+
           <div className="grid gap-6 md:grid-cols-2">
             <div className="flex flex-col justify-between rounded-2xl border border-[#E7E7F2] bg-white p-6 shadow-sm">
               <div>
@@ -665,13 +767,12 @@ export default function FinalReviewConfirmationPage() {
                     cases.approval.reviewTimeline.map((item, idx) => (
                       <div key={idx} className="flex items-start gap-3.5">
                         <div
-                          className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${
-                            item.action.includes("Completed")
-                              ? "bg-[#DCFCE7] text-[#16A34A]"
-                              : item.action.includes("Requested")
-                                ? "bg-[#FEF3C7] text-[#B45309]"
-                                : "bg-[#EDE9FE] text-[#6D28D9]"
-                          }`}
+                          className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${item.action.includes("Completed")
+                            ? "bg-[#DCFCE7] text-[#16A34A]"
+                            : item.action.includes("Requested")
+                              ? "bg-[#FEF3C7] text-[#B45309]"
+                              : "bg-[#EDE9FE] text-[#6D28D9]"
+                            }`}
                         >
                           <svg
                             viewBox="0 0 24 24"
@@ -695,11 +796,11 @@ export default function FinalReviewConfirmationPage() {
                             <span className="text-[11px] text-[#9494AA]">
                               {item.timestamp
                                 ? new Date(item.timestamp).toLocaleDateString("en-GB", {
-                                    day: "numeric",
-                                    month: "short",
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })
+                                  day: "numeric",
+                                  month: "short",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })
                                 : formattedTime}
                             </span>
                           </div>
@@ -806,641 +907,553 @@ export default function FinalReviewConfirmationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FC] px-4 py-8 md:px-8">
-      <div className="mx-auto max-w-4xl space-y-6">
+    <div className="min-h-screen bg-[#F8F9FC] px-4 py-5 md:px-6">
+      <div className="mx-auto max-w-[760px] space-y-3.5">
         {/* Top Header */}
         <div>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-[#1E1B3C] md:text-3xl">
-            Review your information
+          <h1 className="text-lg font-bold tracking-tight text-[#1E1B3C] md:text-xl">
+            Review &amp; Confirm Your Information
           </h1>
-          <p className="mt-2 text-sm leading-relaxed text-[#6B6B80]">
-            Please review the completed information before confirming. If anything needs to be changed,
-            you can make the necessary changes before confirming.
+          <p className="mt-1 text-xs leading-relaxed text-[#6B6B80] md:text-[13px]">
+            Please carefully review your personal information, financial disclosures and joint agreement preferences before submitting them for mutual approval. You can return to any section to make changes before submitting.
           </p>
         </div>
 
-        {/* The sender's partner edited and sent it back: show their message */}
-        {isMyTurnToApprove && cases?.approval?.disapprovalReason && (
-          <div className="rounded-2xl border border-[#FDE68A] bg-[#FEF9C3]/70 p-5 shadow-sm">
-            <h3 className="text-sm font-bold text-[#1E1B3C]">Message from your partner</h3>
-            <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-[#6B6B80]">
-              {cases.approval.disapprovalReason}
-            </p>
-          </div>
-        )}
+        {/* Every message the two of you have sent with a round of changes */}
+        <PartnerMessageThread
+          timeline={cases?.approval?.reviewTimeline}
+          fallback={latestMessage}
+          ownerName={ownerName}
+          partnerName={invitedName}
+          isOwner={isOwner}
+          highlight={isMyTurnToApprove}
+        />
 
-        {/* Stage 4: Partner Review Status Matrix */}
-        <div className="rounded-2xl border border-[#E7E7F2] bg-white p-5 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#F1F1F6] pb-3">
-            <div className="flex items-center gap-2">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#EDE9FE] text-xs font-bold text-[#6D28D9]">
-                4
-              </span>
-              <span className="text-xs font-bold uppercase tracking-wider text-[#6D28D9]">
-                Stage 4: Partner Review Stage
-              </span>
-            </div>
-            <div className="text-xs font-medium text-[#6B6B80]">
-              {cases?.stages?.stage4?.scenario || "Scenario A — P2 approves without making changes"}
-            </div>
-          </div>
-          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3 text-center">
-            <div className="rounded-xl border border-[#EDE9FE] bg-[#FAF9FF] p-3.5">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-[#8A8AA0]">
-                Primary Applicant (P1)
-              </div>
-              <div className="mt-1.5 inline-block rounded-md bg-[#EDE9FE] px-2.5 py-1 text-xs font-bold text-[#6D28D9]">
-                {cases?.approval?.p1ReviewStatus || (cases?.approval?.user1Approved ? "FINAL_SUBMIT" : "IN_PROGRESS")}
-              </div>
-            </div>
-            <div className="rounded-xl border border-[#EDE9FE] bg-[#FAF9FF] p-3.5">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-[#8A8AA0]">
-                Secondary Applicant (P2)
-              </div>
-              <div className="mt-1.5 inline-block rounded-md bg-[#EDE9FE] px-2.5 py-1 text-xs font-bold text-[#6D28D9]">
-                {cases?.approval?.p2ReviewStatus || (cases?.approval?.user2Approved ? "APPROVED" : (cases?.status?.jointInformation?.submitted ? "IN_REVIEW" : "IN_PROGRESS"))}
-              </div>
-            </div>
-            <div className="rounded-xl border border-[#EDE9FE] bg-[#FAF9FF] p-3.5">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-[#8A8AA0]">
-                Mutual Approval &amp; Snapshot
-              </div>
-              <div className={`mt-1.5 inline-block rounded-md px-2.5 py-1 text-xs font-bold ${
-                isMutualApproved ? "bg-[#DCFCE7] text-[#16A34A]" : "bg-[#FEF3C7] text-[#B45309]"
-              }`}>
-                {cases?.approval?.mutualApprovalAndSnapshot || (isMutualApproved ? "COMPLETED" : "PENDING")}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 4 Accordion / Summary Cards */}
-        <div className="space-y-3.5">
-          {/* Card 1: My Information */}
-          <div className="rounded-2xl border border-[#E7E7F2] bg-white p-5 shadow-sm transition hover:border-[#DDD6FE]">
+        {/* Main Journey Container Card with White Background matching Dashboard */}
+        <div className="rounded-2xl border border-[#EDEDF5] bg-white p-4 sm:p-5 shadow-xs">
+          {/* 3 Accordion / Summary Cards */}
+          <div className="flex flex-col gap-2.5">
+            {/* Card 1: My Questionnaire */}
             <div
-              onClick={() => toggleSection("my-info")}
-              className="flex cursor-pointer items-center justify-between gap-4"
+              className={`rounded-xl border px-3.5 py-2.5 transition-all duration-200 ${openSection === "my-info"
+                ? "border-[#DDD6FE] bg-[#FAF9FF] shadow-xs"
+                : "border-[#EDEDF5] bg-white hover:border-[#DDD6FE] hover:shadow-xs"
+                }`}
             >
-              <div className="flex items-center gap-3.5">
-                <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-[#EFF6FF] text-[#3B82F6]">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
-                    <circle cx="12" cy="8" r="4" />
-                    <path d="M6 20c0-4 4-6 6-6s6 2 6 6" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-[#1E1B3C] md:text-base">My Information</h3>
-                  <p className="text-xs text-[#6B6B80]">
-                    Personal information, legal declaration, family & dependents, financial disclosure
-                  </p>
-                </div>
-              </div>
+              <div
+                onClick={() => toggleSection("my-info")}
+                className="flex cursor-pointer items-center justify-between gap-3"
+              >
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#FBBF24] to-[#F59E0B] text-white text-sm font-bold shadow-xs">
+                    1
+                  </div>
 
-              <div className="flex items-center gap-3">
-                <StatusBadge progress={myProgress} />
-                <span className="text-[#9494AA]">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    className={`h-4 w-4 transition-transform ${openSection === "my-info" ? "rotate-180" : ""}`}
-                  >
-                    <path d="M19 9l-7 7-7-7" />
-                  </svg>
-                </span>
-              </div>
-            </div>
+                  <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-[#EDE9FE] text-[#6D28D9]">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3.5 w-3.5">
+                      <circle cx="12" cy="8" r="4" />
+                      <path d="M6 20c0-4 4-6 6-6s6 2 6 6" />
+                    </svg>
+                  </div>
 
-            {openSection === "my-info" && (
-              <div className="mt-4 border-t border-[#F1F1F6] pt-4">
-                <FormRowList section={myData} rows={myRows} />
-
-                <div className="mt-4 flex justify-end">
-                  <button
-                    type="button"
-                    onClick={isUser2 ? handleP2MakeChanges : handleP1MakeChanges}
-                    className="text-xs font-semibold text-[#6D28D9] hover:underline"
-                  >
-                    Edit My Information →
-                  </button>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs md:text-sm font-semibold text-[#1E1B3C]">My Questionnaire</div>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
 
-          {/* Card 2: Partner's Information */}
-          <div className="rounded-2xl border border-[#E7E7F2] bg-white p-5 shadow-sm transition hover:border-[#DDD6FE]">
-            <div
-              onClick={() => toggleSection("partner-info")}
-              className="flex cursor-pointer items-center justify-between gap-4"
-            >
-              <div className="flex items-center gap-3.5">
-                <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-[#EFF6FF] text-[#3B82F6]">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
-                    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <path d="M23 21v-2a4 4 0 00-3-3.87" />
-                    <path d="M16 3.13a4 4 0 010 7.75" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-[#1E1B3C] md:text-base">Partner&apos;s Information</h3>
-                  <p className="text-xs text-[#6B6B80]">
-                    Personal information, family & dependents, financial disclosure
-                  </p>
+                <div className="flex items-center gap-2.5 flex-shrink-0">
+                  <StatusBadge progress={myProgress} />
+                  <span className="text-[#9494AA]">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      className={`h-3.5 w-3.5 transition-transform ${openSection === "my-info" ? "rotate-180" : ""}`}
+                    >
+                      <path d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <StatusBadge progress={partnerProgress} />
-                <span className="text-[#9494AA]">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    className={`h-4 w-4 transition-transform ${openSection === "partner-info" ? "rotate-180" : ""}`}
-                  >
-                    <path d="M19 9l-7 7-7-7" />
-                  </svg>
-                </span>
-              </div>
-            </div>
+              {openSection === "my-info" && (
+                <div className="mt-3.5 border-t border-[#F1F1F6] pt-3.5">
+                  <FormRowList section={myData} rows={myRows} />
 
-            {openSection === "partner-info" && (
-              <div className="mt-4 border-t border-[#F1F1F6] pt-4">
-                <FormRowList section={partnerData} rows={partnerRows} />
-
-                <div className="mt-4 flex justify-end">
-                  {iDisapproved ? (
-                    <Link
-                      href="/dashboard/partner-personal-info"
+                  <div className="mt-3.5 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={isUser2 ? handleP2MakeChanges : handleP1MakeChanges}
                       className="text-xs font-semibold text-[#6D28D9] hover:underline"
                     >
-                      Edit Partner&apos;s Information →
-                    </Link>
-                  ) : partnerProgress.isComplete ? (
-                    <span className="text-xs text-[#9494AA]">
-                      Shared by partner (Read-only)
-                    </span>
-                  ) : hasPartnerJoined ? (
-                    <span className="text-xs text-[#B45309]">
-                      Your partner still has{" "}
-                      {partnerProgress.total - partnerProgress.completed} form
-                      {partnerProgress.total - partnerProgress.completed === 1 ? "" : "s"}{" "}
-                      to complete
-                    </span>
-                  ) : (
-                    <Link
-                      href="/dashboard/invite-partner"
-                      className="text-xs font-semibold text-[#6D28D9] hover:underline"
-                    >
-                      Invite your partner →
-                    </Link>
-                  )}
+                      Edit My Information →
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-
-          {/* Card 3: Joint Financial Information */}
-          <div className="rounded-2xl border border-[#E7E7F2] bg-white p-5 shadow-sm transition hover:border-[#DDD6FE]">
-            <div
-              onClick={() => toggleSection("joint-info")}
-              className="flex cursor-pointer items-center justify-between gap-4"
-            >
-              <div className="flex items-center gap-3.5">
-                <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-[#EFF6FF] text-[#3B82F6]">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
-                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-                    <path d="M14 2v6h6" />
-                    <line x1="16" y1="13" x2="8" y2="13" />
-                    <line x1="16" y1="17" x2="8" y2="17" />
-                    <line x1="10" y1="9" x2="8" y2="9" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-[#1E1B3C] md:text-base">Joint Financial Information</h3>
-                  <p className="text-xs text-[#6B6B80]">
-                    Joint assets, joint income & revenue, joint liabilities & debts
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <StatusBadge progress={jointProgress} />
-                <span className="text-[#9494AA]">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    className={`h-4 w-4 transition-transform ${openSection === "joint-info" ? "rotate-180" : ""}`}
-                  >
-                    <path d="M19 9l-7 7-7-7" />
-                  </svg>
-                </span>
-              </div>
+              )}
             </div>
 
-            {openSection === "joint-info" && (
-              <div className="mt-4 border-t border-[#F1F1F6] pt-4">
-                <FormRowList
-                  section={jointData}
-                  rows={jointRows}
-                  columns="sm:grid-cols-3"
-                />
+            {/* Card 2: Partner Questionnaire */}
+            <div
+              className={`rounded-xl border px-3.5 py-2.5 transition-all duration-200 ${openSection === "partner-info"
+                ? "border-[#DDD6FE] bg-[#FAF9FF] shadow-xs"
+                : "border-[#EDEDF5] bg-white hover:border-[#DDD6FE] hover:shadow-xs"
+                }`}
+            >
+              <div
+                onClick={() => toggleSection("partner-info")}
+                className="flex cursor-pointer items-center justify-between gap-3"
+              >
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#FB7185] to-[#E11D48] text-white text-sm font-bold shadow-xs">
+                    2
+                  </div>
 
-                <div className="mt-4 flex justify-end">
-                  {canEdit ? (
-                    <Link
-                      href="/dashboard/joint-assets"
-                      className="text-xs font-semibold text-[#6D28D9] hover:underline"
+                  <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-[#EDE9FE] text-[#6D28D9]">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3.5 w-3.5">
+                      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M23 21v-2a4 4 0 00-3-3.87" />
+                      <path d="M16 3.13a4 4 0 010 7.75" />
+                    </svg>
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs md:text-sm font-semibold text-[#1E1B3C]">Partner Questionnaire</div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2.5 flex-shrink-0">
+                  <StatusBadge progress={partnerProgress} />
+                  <span className="text-[#9494AA]">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      className={`h-3.5 w-3.5 transition-transform ${openSection === "partner-info" ? "rotate-180" : ""}`}
                     >
-                      Edit Joint Information →
-                    </Link>
-                  ) : (
-                    <span className="text-xs text-[#9494AA]">
-                      Your partner is editing the joint information (Read-only)
-                    </span>
-                  )}
+                      <path d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </span>
                 </div>
               </div>
-            )}
-          </div>
 
-          {/* Card 4: Matrimonial Agreement & Intentions */}
-          <div className="rounded-2xl border border-[#E7E7F2] bg-white p-5 shadow-sm transition hover:border-[#DDD6FE]">
+              {openSection === "partner-info" && (
+                <div className="mt-3.5 border-t border-[#F1F1F6] pt-3.5">
+                  <FormRowList section={partnerData} rows={partnerRows} />
+
+                  <div className="mt-3.5 flex justify-end">
+                    {iDisapproved ? (
+                      <Link
+                        href="/dashboard/partner-personal-info"
+                        className="text-xs font-semibold text-[#6D28D9] hover:underline"
+                      >
+                        Edit Partner&apos;s Information →
+                      </Link>
+                    ) : partnerProgress.isComplete ? (
+                      <span className="text-xs text-[#9494AA]">
+                        Shared by partner (Read-only)
+                      </span>
+                    ) : hasPartnerJoined ? (
+                      <span className="text-xs text-[#B45309]">
+                        Your partner still has{" "}
+                        {partnerProgress.total - partnerProgress.completed} form
+                        {partnerProgress.total - partnerProgress.completed === 1 ? "" : "s"}{" "}
+                        to complete
+                      </span>
+                    ) : (
+                      <Link
+                        href="/dashboard/invite-partner"
+                        className="text-xs font-semibold text-[#6D28D9] hover:underline"
+                      >
+                        Invite your partner →
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Card 3: Joint Questionnaire */}
             <div
-              onClick={() => toggleSection("matrimonial-info")}
-              className="flex cursor-pointer items-center justify-between gap-4"
+              className={`rounded-xl border px-3.5 py-2.5 transition-all duration-200 ${openSection === "joint-info"
+                ? "border-[#DDD6FE] bg-[#FAF9FF] shadow-xs"
+                : "border-[#EDEDF5] bg-white hover:border-[#DDD6FE] hover:shadow-xs"
+                }`}
             >
-              <div className="flex items-center gap-3.5">
-                <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-[#EFF6FF] text-[#3B82F6]">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
-                    <path d="M12 21a9 9 0 100-18 9 9 0 000 18z" />
-                    <path d="M8 12h8" />
-                    <path d="M12 8v8" />
-                  </svg>
+              <div
+                onClick={() => toggleSection("joint-info")}
+                className="flex cursor-pointer items-center justify-between gap-3"
+              >
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#34D399] to-[#059669] text-white text-sm font-bold shadow-xs">
+                    3
+                  </div>
+
+                  <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-[#EDE9FE] text-[#6D28D9]">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3.5 w-3.5">
+                      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                      <path d="M14 2v6h6" />
+                      <line x1="16" y1="13" x2="8" y2="13" />
+                      <line x1="16" y1="17" x2="8" y2="17" />
+                      <line x1="10" y1="9" x2="8" y2="9" />
+                    </svg>
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs md:text-sm font-semibold text-[#1E1B3C]">Joint Questionnaire</div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2.5 flex-shrink-0">
+                  <StatusBadge progress={jointProgress} />
+                  <span className="text-[#9494AA]">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      className={`h-3.5 w-3.5 transition-transform ${openSection === "joint-info" ? "rotate-180" : ""}`}
+                    >
+                      <path d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </span>
+                </div>
+              </div>
+
+              {openSection === "joint-info" && (
+                <div className="mt-3.5 space-y-4 border-t border-[#F1F1F6] pt-3.5">
+                  <div>
+                    <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#8A8AA0]">
+                      Joint Financial Details
+                    </h4>
+                    <FormRowList
+                      section={jointData}
+                      rows={jointRows}
+                      columns="sm:grid-cols-3"
+                    />
+                  </div>
+
+                  <div className="border-t border-[#F1F1F6] pt-3.5">
+                    <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#8A8AA0]">
+                      Matrimonial Agreement &amp; Intentions
+                    </h4>
+                    <FormRowList
+                      section={jointData}
+                      rows={matrimonialRows}
+                      columns="sm:grid-cols-3"
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-end gap-3 border-t border-[#F1F1F6] pt-3">
+                    {canEdit ? (
+                      <>
+                        <Link
+                          href="/dashboard/joint-assets"
+                          className="text-xs font-semibold text-[#6D28D9] hover:underline"
+                        >
+                          Edit Joint Information →
+                        </Link>
+                        <span className="text-[#D1D5DB]">•</span>
+                        <Link
+                          href="/dashboard/matrimonial-agreement"
+                          className="text-xs font-semibold text-[#6D28D9] hover:underline"
+                        >
+                          Edit Matrimonial Intentions →
+                        </Link>
+                      </>
+                    ) : (
+                      <span className="text-xs text-[#9494AA]">
+                        Your partner is editing the joint information (Read-only)
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Divider below the questionnaires */}
+            <div className="my-3 border-t border-[#EDEDF5]" />
+
+            {/* Review status section / Blue callout when ready */}
+            {canSendForReview ? (
+              <div className="flex items-start gap-3 rounded-xl border border-[#BFDBFE] bg-[#EFF6FF] p-3 sm:p-3.5 transition-all duration-300">
+                <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-[#3B82F6] text-white text-[11px] font-bold">
+                  i
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-[#1E1B3C] md:text-base">
-                    Matrimonial Agreement & Intentions
+                  <h3 className="text-xs font-bold text-[#1E3A8A] sm:text-[13px]">
+                    {p2MadeChanges || iDisapproved
+                      ? "Ready to submit your changes for approval?"
+                      : "Ready to submit for partner review?"}
                   </h3>
-                  <p className="text-xs text-[#6B6B80]">Your intentions and agreed approach</p>
+                  <p className="mt-0.5 text-[11px] leading-relaxed text-[#2563EB] sm:text-xs">
+                    {p2MadeChanges || iDisapproved
+                      ? "You have unlocked the information for changes. Once ready, click 'Send for Approval' to send the revised package to your partner, or click 'Continue Editing' to modify questionnaire sections."
+                      : "Your information is complete and ready to be shared with your partner. Once submitted, your partner can review the information and approve it or request changes. If any changes are made, you will be asked to review the updated information before providing your confirmation."}
+                  </p>
                 </div>
               </div>
-
-              <div className="flex items-center gap-3">
-                <StatusBadge progress={matrimonialProgress} />
-                <span className="text-[#9494AA]">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    className={`h-4 w-4 transition-transform ${openSection === "matrimonial-info" ? "rotate-180" : ""}`}
-                  >
-                    <path d="M19 9l-7 7-7-7" />
-                  </svg>
-                </span>
-              </div>
-            </div>
-
-            {openSection === "matrimonial-info" && (
-              <div className="mt-4 border-t border-[#F1F1F6] pt-4">
-                <FormRowList section={jointData} rows={matrimonialRows} />
-
-                <div className="mt-4 flex justify-end">
-                  {canEdit ? (
-                    <Link
-                      href="/dashboard/matrimonial-agreement"
-                      className="text-xs font-semibold text-[#6D28D9] hover:underline"
-                    >
-                      Edit Matrimonial Intentions →
-                    </Link>
-                  ) : (
-                    <span className="text-xs text-[#9494AA]">
-                      Your partner is editing this section (Read-only)
-                    </span>
-                  )}
+            ) : isMyTurnToApprove ? (
+              <div className="flex items-start gap-3 rounded-xl border border-[#BFDBFE] bg-[#EFF6FF] p-3 sm:p-3.5">
+                <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-[#3B82F6] text-white text-[11px] font-bold">
+                  i
                 </div>
+                <div>
+                  <h3 className="text-xs font-bold text-[#1E3A8A] sm:text-[13px]">
+                    Partner review and approval required
+                  </h3>
+                  <p className="mt-0.5 text-[11px] leading-relaxed text-[#2563EB] sm:text-xs">
+                    Please review all sections carefully. You can approve the package as presented, or edit anything and send it back to your partner with a message.
+                  </p>
+                </div>
+              </div>
+            ) : canEdit ? (
+              <div className="rounded-xl border border-[#EDEDF5] bg-[#FAF9FF] p-3 sm:p-3.5">
+                <h3 className="text-xs font-bold text-[#1E1B3C] sm:text-[13px]">
+                  {p2MadeChanges || iDisapproved
+                    ? "Complete your changes"
+                    : "Complete required information"}
+                </h3>
+                <p className="mt-0.5 text-[11px] leading-relaxed text-[#6B6B80] sm:text-xs">
+                  {blockedReason ||
+                    "Once both questionnaires and the joint information are complete, you can review and confirm your information."}
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-[#EDEDF5] bg-[#FAF9FF] p-3 sm:p-3.5">
+                <h3 className="text-xs font-bold text-[#1E1B3C] sm:text-[13px]">
+                  Waiting for your partner
+                </h3>
+                <p className="mt-0.5 text-[11px] leading-relaxed text-[#6B6B80] sm:text-xs">
+                  {iAmWaitingForReview
+                    ? "Waiting for your partner to review and approve."
+                    : "Once both questionnaires and the joint information are complete, you can review and confirm your information."}
+                </p>
               </div>
             )}
-          </div>
-        </div>
 
-        {/* Ready to submit / partner review info card (matching Exhibit A) */}
-        {!areAllSectionsComplete ? (
-          <></>
-        ) : (
-          <div className="flex items-start gap-3.5 rounded-2xl border border-[#BFDBFE] bg-[#EFF6FF] p-5">
-            <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#3B82F6] text-white text-xs font-bold">
-              i
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-[#1E3A8A]">
-                {isMyTurnToApprove
-                  ? "Partner review and approval required"
-                  : "Ready to ask your partner to approve?"}
-              </h3>
-              <p className="mt-1 text-xs leading-relaxed text-[#2563EB] md:text-sm">
-                {isMyTurnToApprove
-                  ? "Please review all 4 sections carefully. You can approve the package as presented, or edit anything and send it back to your partner with a message."
-                  : "Nothing has been sent to your partner yet. When you send the approval request, your complete information is made available to them for review. They can approve it or make changes — and if they make changes, you will review and approve those before the final confirmation."}
-              </p>
-            </div>
-          </div>
-        )}
+            {actionError && (
+              <p className="mt-2 text-xs font-medium text-red-500">{actionError}</p>
+            )}
 
-        {actionError && (
-          <p className="mb-3 text-sm font-medium text-red-500">{actionError}</p>
-        )}
-        {iAmWaitingForReview && (
-          <p className="mb-3 text-sm font-medium text-[#2563EB]">
-            Waiting for your partner to review and approve.
-          </p>
-        )}
-        {/* Action Buttons Section matching Exhibit A */}
-        <div className="grid gap-4 sm:grid-cols-2 pt-2">
-          {/* Left Action Button: Make Changes / Continue Editing */}
-          <div>
-            <button
-              type="button"
-              onClick={
-                isMyTurnToApprove
-                  ? handleReviewerMakeChanges
-                  : isUser1
-                    ? handleP1MakeChanges
-                    : handleP2MakeChanges
-              }
-              className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-[#FCA5A5] bg-white py-3.5 text-sm font-bold text-[#EF4444] transition hover:bg-[#FEF2F2]"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-              </svg>
-              <span>{p2MadeChanges || iDisapproved ? "Continue Editing" : "Make Changes"}</span>
-            </button>
-            
-          </div>
-
-          <div>
-            {canApprove ? (
+            {/* Action Buttons: Stacked Full-Width Pills matching Screenshot */}
+            <div className="mt-3 flex flex-col gap-2 sm:gap-2.5">
+              {/* Button 1: Edit Information / Continue Editing / Make Changes */}
               <button
                 type="button"
-                onClick={() => setShowExhibitDModal(true)}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#16A34A] py-3.5 text-sm font-bold text-white shadow-lg shadow-[#16A34A]/25 transition hover:bg-[#15803D]"
+                disabled={isUnlockingChanges || isNavigatingToEdit}
+                onClick={
+                  isMyTurnToApprove
+                    ? handleReviewerMakeChanges
+                    : isUser1
+                      ? handleP1MakeChanges
+                      : handleP2MakeChanges
+                }
+                className="flex w-full items-center justify-center gap-2 rounded-full border border-[#D1D5DB] bg-white py-2.5 text-xs font-semibold text-[#374151] transition-all duration-200 hover:bg-gray-50 disabled:opacity-60 sm:text-sm"
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-4 w-4">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-                <span>Approve</span>
+                {isUnlockingChanges ? (
+                  <>
+                    <svg className="h-4 w-4 animate-spin text-[#6B7280]" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                    </svg>
+                    <span>Opening for changes...</span>
+                  </>
+                ) : isNavigatingToEdit ? (
+                  <>
+                    <svg className="h-4 w-4 animate-spin text-[#6B7280]" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                    </svg>
+                    <span>Opening questionnaires...</span>
+                  </>
+                ) : p2MadeChanges || iDisapproved ? (
+                  "Continue Editing"
+                ) : isMyTurnToApprove ? (
+                  "Make Changes"
+                ) : (
+                  "Edit Information"
+                )}
               </button>
-            ) : canSendForReview ? (
-              <button
-                type="button"
-                onClick={() => setShowExhibitBModal(true)}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#16A34A] py-3.5 text-sm font-bold text-white shadow-lg shadow-[#16A34A]/25 transition hover:bg-[#15803D]"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 10l18-7-7 18-3-7-8-4z" />
-                </svg>
-                <span>
-                  {partnerDisapproved
-                    ? "Resend Approval Request"
-                    : "Send Approval Request"}
-                </span>
-              </button>
-            ) : (
-              /* Nothing can be sent or approved until every form is filled in */
-              <>
+
+              {/* Button 2: Send for Partner Review / Send for Approval / Approve */}
+              {canApprove ? (
+                <button
+                  type="button"
+                  onClick={() => setShowExhibitDModal(true)}
+                  className="flex w-full items-center justify-center rounded-full bg-[#16A34A] py-2.5 text-xs font-semibold text-white shadow-xs transition-all duration-200 hover:bg-[#15803D] sm:text-sm"
+                >
+                  Approve
+                </button>
+              ) : canSendForReview ? (
+                <button
+                  type="button"
+                  onClick={() => setShowExhibitBModal(true)}
+                  className="flex w-full items-center justify-center rounded-full bg-[#16A34A] py-2.5 text-xs font-semibold text-white shadow-xs transition-all duration-200 hover:bg-[#15803D] sm:text-sm"
+                >
+                  {p2MadeChanges || iDisapproved
+                    ? "Send for Approval"
+                    : partnerDisapproved
+                      ? "Resend for Partner Review"
+                      : "Send for Partner Review"}
+                </button>
+              ) : (
                 <button
                   type="button"
                   disabled
                   title={blockedReason ?? undefined}
-                  className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl bg-[#E7E7F2] py-3.5 text-sm font-bold text-[#9494AA]"
+                  className="flex w-full cursor-not-allowed items-center justify-center rounded-full bg-[#E5E7EB] py-2.5 text-xs font-semibold text-[#9CA3AF] sm:text-sm"
                 >
-                  {isMyTurnToApprove ? (
-                    <>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-4 w-4">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span>Approve</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 10l18-7-7 18-3-7-8-4z" />
-                      </svg>
-                      <span>Send Approval Request</span>
-                    </>
-                  )}
+                  {p2MadeChanges || iDisapproved
+                    ? "Send for Approval"
+                    : "Send for Partner Review"}
                 </button>
-                {blockedReason && (
-                  <p className="mt-2 text-center text-xs text-[#B45309]">
-                    {blockedReason}
-                  </p>
-                )}
-              </>
-            )}
+              )}
+            </div>
           </div>
         </div>
 
       </div>
 
-      {showExhibitBModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-          <div className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl md:p-8">
-            <button
-              type="button"
-              onClick={() => setShowExhibitBModal(false)}
-              className="absolute right-4 top-4 text-[#9494AA] hover:text-[#1E1B3C]"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+      <ConfirmModal
+        isOpen={showExhibitBModal}
+        onClose={() => setShowExhibitBModal(false)}
+        onConfirm={handleConfirmSubmitForPartnerReview}
+        tone="success"
+        size="lg"
+        title="Ready to send to your partner for review?"
+        cancelLabel="Go Back"
+        confirmLabel="Send Approval Request"
+        loadingLabel="Sending..."
+        isLoading={isSubmitting}
+        confirmDisabled={Boolean(
+          !canSendForReview || (iDisapproved && !changeMessage.trim()),
+        )}
+        icon={
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 10l18-7-7 18-3-7-8-4z" />
+          </svg>
+        }
+      >
+        <div className="text-xs font-semibold uppercase tracking-wider text-[#9494AA]">
+          Before you continue:
+        </div>
 
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#EFF6FF] text-[#3B82F6]">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-7 w-7">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 10l18-7-7 18-3-7-8-4z" />
-              </svg>
-            </div>
-
-            <h3 className="mt-4 text-center text-lg font-bold text-[#1E1B3C] md:text-xl">
-              Ready to send to your partner for review?
-            </h3>
-            <div className="mt-1 text-center text-xs font-semibold uppercase tracking-wider text-[#9494AA]">
-              Before you continue:
-            </div>
-
-            <div className="mt-5 space-y-3">
-              {[
-                "Please make sure all the information you have provided is complete and accurate.",
-                "Your complete information will now be made available to your partner for review.",
-                "Your partner can approve the information or make changes.",
-                "If your partner makes changes, you will be able to review and approve those changes before the final confirmation.",
-              ].map((text, idx) => (
-                <div key={idx} className="flex items-start gap-3 text-xs leading-relaxed text-[#1E1B3C]">
-                  <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-[#EFF6FF] text-[11px] font-bold text-[#3B82F6]">
-                    {idx + 1}
-                  </span>
-                  <span>{text}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-5 flex items-center gap-3 rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] p-3.5 text-xs text-[#166534]">
-              <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-[#DCFCE7] text-[#16A34A]">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
-                  <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-                  <circle cx="9" cy="7" r="4" />
-                </svg>
-              </div>
-              <span>
-                Once both parties approve the final information, it will proceed to Final Review & Mutual Confirmation.
+        <div className="mt-3 space-y-3">
+          {[
+            "Please make sure all the information you have provided is complete and accurate.",
+            "Your complete information will now be made available to your partner for review.",
+            "Your partner can approve the information or make changes.",
+            "If your partner makes changes, you will be able to review and approve those changes before the final confirmation.",
+          ].map((text, idx) => (
+            <div key={idx} className="flex items-start gap-3 text-xs leading-relaxed text-[#1E1B3C]">
+              <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-[#EFF6FF] text-[11px] font-bold text-[#3B82F6]">
+                {idx + 1}
               </span>
+              <span>{text}</span>
             </div>
+          ))}
+        </div>
 
-            {iDisapproved && (
-              <div className="mt-5">
-                <label className="block text-xs font-bold text-[#1E1B3C]">
-                  Why did you change the information?
-                </label>
-                <textarea
-                  value={changeMessage}
-                  onChange={(e) => setChangeMessage(e.target.value)}
-                  rows={4}
-                  placeholder="Let your partner know what you changed or why."
-                  className="mt-2 w-full rounded-xl border border-[#D1D1DC] p-3 text-sm text-[#1E1B3C] outline-none focus:border-[#6a69ff]"
-                />
+        <div className="mt-5 flex items-center gap-3 rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] p-3.5 text-xs text-[#166534]">
+          <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-[#DCFCE7] text-[#16A34A]">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+            </svg>
+          </div>
+          <span>
+            Once both parties approve the final information, it will proceed to Final Review & Mutual Confirmation.
+          </span>
+        </div>
+
+        <div className="mt-5">
+          <label className="block text-xs font-bold text-[#1E1B3C]">
+            {iDisapproved
+              ? "Why did you change the information?"
+              : "Message for your partner (optional)"}
+          </label>
+          <textarea
+            value={changeMessage}
+            onChange={(e) => setChangeMessage(e.target.value)}
+            rows={4}
+            placeholder={
+              iDisapproved
+                ? "Let your partner know what you changed or why."
+                : "Add anything you'd like your partner to know before they review."
+            }
+            className="mt-2 w-full rounded-xl border border-[#D1D1DC] p-3 text-sm text-[#1E1B3C] outline-none focus:border-[#6a69ff]"
+          />
+          <p className="mt-1.5 text-[11px] text-[#8A8AA0]">
+            {partnerDisplayName} will see this with the request, and it stays in
+            your message history.
+          </p>
+        </div>
+      </ConfirmModal>
+
+      <ConfirmModal
+        isOpen={showExhibitDModal}
+        onClose={() => setShowExhibitDModal(false)}
+        onConfirm={handleConfirmApprove}
+        tone="success"
+        size="lg"
+        title="Approve the complete information?"
+        description="Please confirm that you have reviewed the complete information and are happy with the current version."
+        cancelLabel="Go Back"
+        confirmLabel="Approve"
+        loadingLabel="Approving..."
+        isLoading={isApproving}
+        confirmDisabled={!exhibitDConfirmed}
+        icon={
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-5 w-5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        }
+      >
+        {/* Blue Callout Box with 4 checklist items */}
+        <div className="mt-4 rounded-xl border border-[#BFDBFE] bg-[#EFF6FF] p-4 text-xs">
+          <div className="flex items-center gap-2 font-bold text-[#1E3A8A]">
+            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#3B82F6] text-white text-[10px]">
+              i
+            </span>
+            <span>Your approval applies to the entire package, including:</span>
+          </div>
+          <div className="mt-2.5 space-y-1.5 pl-6 text-[#1E3A8A]">
+            {[
+              "Your information",
+              "Your partner's information",
+              "Joint financial information",
+              "Matrimonial agreement & intentions",
+            ].map((item, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <span className="text-[#16A34A] font-bold">✓</span>
+                <span>{item}</span>
               </div>
-            )}
-
-            <div className="mt-6 flex items-center justify-between gap-3">
-              <button
-                type="button"
-                onClick={() => setShowExhibitBModal(false)}
-                className="w-1/2 rounded-xl border border-[#D1D1DC] bg-white py-3 text-xs font-bold text-[#6B6B80] transition hover:bg-slate-50"
-              >
-                Go Back
-              </button>
-              <button
-                type="button"
-                disabled={
-                  isSubmitting ||
-                  !canSendForReview ||
-                  (iDisapproved && !changeMessage.trim())
-                }
-                onClick={handleConfirmSubmitForPartnerReview}
-                className="flex w-1/2 items-center justify-center gap-1.5 rounded-xl bg-[#16A34A] py-3 text-xs font-bold text-white shadow-md transition hover:bg-[#15803D] disabled:opacity-60"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 10l18-7-7 18-3-7-8-4z" />
-                </svg>
-                <span>{isSubmitting ? "Sending..." : "Send Approval Request"}</span>
-              </button>
-            </div>
+            ))}
           </div>
         </div>
-      )}
 
+        <p className="mt-3 text-xs leading-relaxed text-[#6B6B80]">
+          If you approve, your partner will be asked to review and approve the same version. If any changes
+          are made afterwards, you will need to review and approve the updated information again.
+        </p>
 
-      {showExhibitDModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-          <div className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl md:p-8">
-            {/* Close button */}
-            <button
-              type="button"
-              onClick={() => setShowExhibitDModal(false)}
-              className="absolute right-4 top-4 text-[#9494AA] hover:text-[#1E1B3C]"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-
-            {/* Modal Icon: Checkmark */}
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#DCFCE7] text-[#16A34A]">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-7 w-7">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-
-            <h3 className="mt-4 text-center text-lg font-bold text-[#1E1B3C] md:text-xl">
-              Approve the complete information?
-            </h3>
-            <p className="mt-1 text-center text-xs text-[#6B6B80]">
-              Please confirm that you have reviewed the complete information and are happy with the current version.
-            </p>
-
-            {/* Blue Callout Box with 4 checklist items */}
-            <div className="mt-5 rounded-xl border border-[#BFDBFE] bg-[#EFF6FF] p-4 text-xs">
-              <div className="flex items-center gap-2 font-bold text-[#1E3A8A]">
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#3B82F6] text-white text-[10px]">
-                  i
-                </span>
-                <span>Your approval applies to the entire package, including:</span>
-              </div>
-              <div className="mt-2.5 space-y-1.5 pl-6 text-[#1E3A8A]">
-                {[
-                  "Your information",
-                  "Your partner's information",
-                  "Joint financial information",
-                  "Matrimonial agreement & intentions",
-                ].map((item, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <span className="text-[#16A34A] font-bold">✓</span>
-                    <span>{item}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <p className="mt-3 text-xs leading-relaxed text-[#6B6B80]">
-              If you approve, your partner will be asked to review and approve the same version. If any changes
-              are made afterwards, you will need to review and approve the updated information again.
-            </p>
-
-            {/* Confirmation Checkbox Box matching Exhibit D */}
-            <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] p-3.5 transition hover:bg-[#DCFCE7]/40">
-              <input
-                type="checkbox"
-                checked={exhibitDConfirmed}
-                onChange={(e) => setExhibitDConfirmed(e.target.checked)}
-                className="mt-0.5 rounded text-[#16A34A] focus:ring-[#16A34A]"
-              />
-              <span className="text-xs font-semibold leading-relaxed text-[#14532D]">
-                I confirm that I have reviewed the information above and it accurately reflects my current instructions.
-              </span>
-            </label>
-
-            {/* Modal Actions */}
-            <div className="mt-6 flex items-center justify-between gap-3">
-              <button
-                type="button"
-                onClick={() => setShowExhibitDModal(false)}
-                className="w-1/2 rounded-xl border border-[#D1D1DC] bg-white py-3 text-xs font-bold text-[#6B6B80] transition hover:bg-slate-50"
-              >
-                Go Back
-              </button>
-              <button
-                type="button"
-                disabled={!exhibitDConfirmed || isApproving}
-                onClick={handleConfirmApprove}
-                className="flex w-1/2 items-center justify-center gap-1.5 rounded-xl bg-[#16A34A] py-3 text-xs font-bold text-white shadow-md transition hover:bg-[#15803D] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-4 w-4">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-                <span>{isApproving ? "Approving..." : "Approve"}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+        {/* Confirmation checkbox: the Approve button stays disabled until ticked */}
+        <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] p-3.5 transition hover:bg-[#DCFCE7]/40">
+          <input
+            type="checkbox"
+            checked={exhibitDConfirmed}
+            onChange={(e) => setExhibitDConfirmed(e.target.checked)}
+            className="mt-0.5 rounded text-[#16A34A] focus:ring-[#16A34A]"
+          />
+          <span className="text-xs font-semibold leading-relaxed text-[#14532D]">
+            I confirm that I have reviewed the information above and it accurately reflects my current instructions.
+          </span>
+        </label>
+      </ConfirmModal>
     </div>
   );
 }

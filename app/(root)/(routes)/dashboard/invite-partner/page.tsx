@@ -1,6 +1,6 @@
 "use client";
 
-import{ useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { PartnerHeader } from "@/components/invite-partner/PartnerHeader";
 import { PartnerDetailsForm } from "@/components/invite-partner/PartnerDetailsForm";
 import { InvitationStatusCard } from "@/components/invite-partner/InvitationStatusCard";
@@ -13,9 +13,11 @@ import { useEnsureCaseId } from "@/hooks/useEnsureCaseId";
 import { AppDispatch, RootState } from "@/store/store";
 import { getCasesDetails } from "@/store/asyncThunk/casesThunk";
 import type { PartnerData } from "@/types/invite-partner";
+import { useRouter } from "next/navigation";
 
 export default function InvitePartnerPage() {
   const { user } = useSelector((state: RootState) => state.auth);
+  const route = useRouter();
   const ensureCaseId = useEnsureCaseId();
   const dispatch = useDispatch<AppDispatch>();
 
@@ -144,20 +146,22 @@ export default function InvitePartnerPage() {
       toast.success(
         partnerData.status === "DRAFT"
           ? "Invitation sent"
-          : "Invitation updated and re-sent"
+          : "Invitation updated and re-sent",
       );
       await dispatch(getCasesDetails(user.inviteCaseId));
       await loadInvite();
+      route.refresh();
     } catch (error: any) {
-      toast.error(getErrorMessage(error?.response?.data, "Unable to send the invitation"));
+      toast.error(
+        getErrorMessage(error?.response?.data, "Unable to send the invitation"),
+      );
     }
   };
 
   const handleResendInvitation = async () => {
     try {
       await handleSendInvitation();
-    } catch {
-    }
+    } catch {}
   };
 
   const handleEditDetails = () => {

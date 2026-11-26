@@ -44,7 +44,15 @@ export const getOnboarding = createAsyncThunk(
   async (caseId: string, { rejectWithValue }) => {
     try {
       const { data } = await Axios.get(`/cases/${caseId}/onboarding`);
-      return data as { completed: boolean; agreementType: string | null };
+      // `agreementType` is the service the case has bought, so it is null until
+      // the fee is paid; `pendingAgreementType` is what the owner picked
+      // towards it and may still change.
+      return data as {
+        completed: boolean;
+        agreementType: string | null;
+        pendingAgreementType: string | null;
+        paid: boolean;
+      };
     } catch (error: any) {
       if (error.response && error.response.data) {
         return rejectWithValue(error.response.data);
