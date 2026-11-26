@@ -4,7 +4,6 @@ import {
   checkTreatment,
   mustConfirm,
   optionalAmount,
-  optionalDate,
   optionalText,
   requiredAmount,
   requiredChoice,
@@ -14,6 +13,7 @@ import {
   treatmentShape,
   yesNo,
 } from "@/lib/validations/fields";
+import { ceremonyTimingStatus } from "@/lib/ceremonyTiming";
 
 /**
  * What each questionnaire form has to have before it can be submitted.
@@ -41,15 +41,55 @@ export const personalInfoSchema = z
     middleName: optionalText(100),
     lastName: requiredText("Legal last name", 50),
     dateOfBirth: requiredDate("Date of birth"),
-    languageFluency: requiredChoice("your level of English fluency"),
     nationality: requiredChoice("your nationality"),
-    domicileStatus: requiredChoice("your domicile or residency status"),
-    currentProfession: optionalText(120),
-    street1: optionalText(160),
-    city: optionalText(80),
-    county: optionalText(160),
-    postcode: optionalText(16),
-    marriageDate: optionalDate("Planned wedding date"),
+    currentProfession: requiredText("Current profession / occupation", 120),
+    marriageDate: requiredDate("Planned wedding / civil partnership date"),
+    ceremonyTimingAcknowledged: z.boolean().optional().default(false),
+    email: optionalText(254),
+    mobilePhone: requiredText("Mobile telephone number", 30).refine(
+      (v) => /^\+?[\d\s()-]{7,}$/.test(v),
+      "Enter a valid mobile telephone number",
+    ),
+    languageFluency: requiredChoice("your English language proficiency"),
+    requiredLanguage: optionalText(80),
+    ukDomiciled: requiredChoice("whether you live and are domiciled in the UK"),
+    domicileStatus: optionalText(160),
+    street1: requiredText("Address line 1", 160),
+    street2: optionalText(160),
+    city: requiredText("Town or city", 80),
+    postcode: requiredText("Postcode", 16),
+    country: requiredChoice("your country"),
+  })
+  .superRefine((value, ctx) => {
+    // Each "No" opens a follow-up that has to be answered for the "No" to mean
+    // anything to the solicitor.
+    if (value.languageFluency === "No" && !value.requiredLanguage?.trim()) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["requiredLanguage"],
+        message: "Tell us which language you require",
+      });
+    }
+    if (value.ukDomiciled === "No" && !value.domicileStatus?.trim()) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["domicileStatus"],
+        message: "State your country of current residence and domicile",
+      });
+    }
+
+    // 29-35 days away: allowed only once the timing risk is acknowledged.
+    // (28 days or fewer is stopped before validation, with its own pop-up.)
+    if (
+      ceremonyTimingStatus(value.marriageDate) === "TIGHT_TIMELINE_ACK" &&
+      value.ceremonyTimingAcknowledged !== true
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["ceremonyTimingAcknowledged"],
+        message: "Tick the acknowledgement to continue with this date",
+      });
+    }
   })
   .superRefine((value, ctx) => {
     // The agreement is between adults; the form said so with a toast after the
@@ -83,18 +123,51 @@ export const personalInfoSchema = z
 
 // Every declaration is a statement the person is confirming, so an unticked
 // box is an unanswered question rather than a "no".
-export const legalDeclarationSchema = z.object({
-  agreementObjectives: requiredText("An overview of what you are aiming to achieve", 1500),
-  livingSituationFuture: requiredText("Your living situation answer", 1500),
-  confirmPersonalEffects: mustConfirm("Confirm how personal possessions should be treated"),
-  confirmHouseholdDivision: mustConfirm("Confirm how household items should be divided"),
-  acknowledgeCourtChildren: mustConfirm("Acknowledge the court's powers over children's welfare"),
-  confirmCostSharing: mustConfirm("Confirm how the costs will be shared"),
-  confirmUndueInfluence: mustConfirm("Confirm you understand the undue influence point"),
-  confirmIla: mustConfirm("Confirm you understand the independent legal advice point"),
-  confirmPlatformDisclaimer: mustConfirm("Confirm you have read the platform disclaimer"),
-  confirmAccuracy: mustConfirm("Confirm the information you have given is accurate"),
-});
+export const legalDeclarationSchema = z
+  .object({
+    agreementObjectives: requiredText("What you hope to achieve with this agreement", 1500),
+    livingSituationFuture: requiredText("Your living arrangements and future plans", 1500),
+    hasPreviousAgreement: yesNo,
+    previousAgreementType: optionalText(80),
+    previousAgreementStatus: optionalText(80),
+    previousAgreementSummary: optionalText(1500),
+    hasInternationalConnections: yesNo,
+    internationalSummary: optionalText(1500),
+    confirmPersonalEffects: mustConfirm("Confirm your understanding of personal possessions"),
+    confirmHouseholdDivision: mustConfirm("Confirm your understanding of household items"),
+    acknowledgeCourtChildren: mustConfirm("Confirm your understanding of children's welfare"),
+    confirmCostSharing: mustConfirm("Confirm your understanding of the agreement and legal advice costs"),
+    confirmUndueInfluence: mustConfirm("Confirm you are taking part voluntarily"),
+    confirmIla: mustConfirm("Confirm your understanding of independent legal advice"),
+    confirmFinancialDisclosure: mustConfirm("Confirm your understanding of financial disclosure"),
+    confirmPlatformDisclaimer: mustConfirm("Confirm your understanding of the platform's role"),
+    confirmAccuracy: mustConfirm("Confirm your answers are accurate and complete"),
+  })
+  .superRefine((value, ctx) => {
+    if (value.hasPreviousAgreement === "Yes") {
+      if (!value.previousAgreementType?.trim()) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["previousAgreementType"],
+          message: "Select the type of agreement or order",
+        });
+      }
+      if (!value.previousAgreementStatus?.trim()) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["previousAgreementStatus"],
+          message: "Select whether it still applies",
+        });
+      }
+    }
+    if (value.hasInternationalConnections === "Yes" && !value.internationalSummary?.trim()) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["internationalSummary"],
+        message: "Briefly describe the countries, assets or plans involved",
+      });
+    }
+  });
 
 /* ---------------------------------------------------------------------- */
 /* 3. Family and dependents                                                */
@@ -106,16 +179,33 @@ const childRow = rowShape({
   parentalRelationship: requiredChoice("the parental relationship"),
 });
 
+const priorRelationshipRow = rowShape({
+  situation: requiredChoice("the situation that applies"),
+  details: optionalText(1500),
+  financialObligations: optionalText(20),
+  childrenFromRelationship: optionalText(20),
+});
+
 export const familySchema = z
   .object({
-    priorMarriageStatus: requiredChoice("whether you have previously been married"),
-    isLegallySeparated: z.boolean().optional().default(false),
-    hasLivingChildren: requiredChoice("whether you have living children"),
+    hasPriorRelationship: yesNo,
+    priorRelationships: z.array(priorRelationshipRow).default([]),
+    hasLivingChildren: yesNo,
     children: z.array(childRow).default([]),
     futureParentalIntentions: requiredChoice("your intentions about children"),
-    hasFamilyPets: requiredChoice("whether you have family pets"),
+    hasFamilyPets: yesNo,
+    petsDetails: optionalText(1500),
+    hasOtherDependants: yesNo,
+    dependantsDetails: optionalText(1500),
   })
   .superRefine((value, ctx) => {
+    checkListAnswered(
+      value.hasPriorRelationship,
+      value.priorRelationships,
+      "priorRelationships",
+      "Add at least one previous marriage or civil partnership",
+      ctx,
+    );
     checkListAnswered(
       value.hasLivingChildren,
       value.children,
@@ -123,6 +213,13 @@ export const familySchema = z
       "Add the details of at least one child",
       ctx,
     );
+    if (value.hasFamilyPets === "Yes" && !value.petsDetails?.trim()) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["petsDetails"],
+        message: "Briefly describe your pet(s) and the arrangements you would like",
+      });
+    }
   });
 
 /* ---------------------------------------------------------------------- */

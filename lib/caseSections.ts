@@ -25,6 +25,26 @@ export function resolvePartyInformation<T extends Record<string, any>>(
   };
 }
 
+const idOf = (v: unknown): string =>
+  v && typeof v === "object" ? String((v as { _id?: unknown })._id ?? "") : String(v ?? "");
+
+/**
+ * The user's side on this case as the case itself records it: the owner is
+ * Partner 1 ("user1"), the invited partner Partner 2 ("user2"). The label on
+ * the profile can lag behind this -- when the invited partner pays first they
+ * become Partner 1 -- so this is what the label is corrected from.
+ */
+export function endUserTypeOnCase(
+  c: { owner?: unknown; invitedUser?: unknown } | null | undefined,
+  userId: unknown,
+): "user1" | "user2" | null {
+  const me = idOf(userId);
+  if (!c || !me) return null;
+  if (idOf(c.owner) === me) return "user1";
+  if (idOf(c.invitedUser) === me) return "user2";
+  return null;
+}
+
 /** The section name holding the signed-in user's own answers. */
 export function ownSectionName(
   endUserType: string | null | undefined,

@@ -13,7 +13,11 @@ import { isCasePaid, paymentHref } from "@/lib/casePayment";
 import { SERVICE_SELECTOR_HREF } from "@/components/ServiceStatus";
 import { useEditingPartnerForm } from "./EditingPartnerContext";
 import { useEnsureCaseId } from "@/hooks/useEnsureCaseId";
-import { otherSectionName, ownSectionName } from "@/lib/caseSections";
+import {
+  endUserTypeOnCase,
+  otherSectionName,
+  ownSectionName,
+} from "@/lib/caseSections";
 import type { QuestionnaireStepSlug } from "@/types/questionnaire/steps";
 import type { Options } from "@/types/questionnaire/use-questionnaire";
 
@@ -48,6 +52,15 @@ export function useQuestionnaire({ step, source = "own", onLoad }: Options) {
   const handleLoaded = useEffectEvent((section: Record<string, any>) =>
     onLoad(section),
   );
+
+  // Before payment either partner may pay, and whoever does becomes Partner 1
+  // -- possibly from another device while this one still holds the old case.
+  // Loading the case fresh corrects this user's side (authSlice), and with it
+  // the section below, so the form opens on their own answers.
+  const casePaid = isCasePaid(cases);
+  useEffect(() => {
+    if (caseId && !casePaid) dispatch(getCasesDetails(caseId));
+  }, [caseId, casePaid, dispatch]);
 
   useEffect(() => {
     if (!caseId || !user?.endUserType) return;
@@ -86,6 +99,23 @@ export function useQuestionnaire({ step, source = "own", onLoad }: Options) {
       // The first form can be filled in before an agreement is chosen, so the
       // case is started here if the client hasn't got one yet.
       const activeCaseId = await ensureCaseId();
+
+      // The partner may have paid since this form opened, which can swap who
+      // is Partner 1. Check this user's side on the case as the server has it
+      // now, so the answers never land in the other partner's section.
+      if (!casePaid) {
+        const latest = await dispatch(getCasesDetails(activeCaseId))
+          .unwrap()
+          .catch(() => null);
+        const side = endUserTypeOnCase(latest, user?._id);
+        if (side && (side === "user2") !== isInvitedPartner) {
+          toast.info(
+            "Your partner has just paid for your agreement, so your case has been updated. Your saved answers have been reloaded. Please check them and save again.",
+          );
+          return;
+        }
+      }
+
       await Axios.post(`/cases/${activeCaseId}/questionnaire/${apiStep}`, payload);
       toast.success(`${stepInfo.title} saved.`);
 

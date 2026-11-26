@@ -58,9 +58,10 @@ export function ServiceStatus({
     );
   }
 
+  // Once chosen (and, on the dashboard, paid for) the service cannot be
+  // changed, so the card is a plain status with nothing to click through to.
   return (
     <StatCard
-      href={upgradeHref}
       tooltip={agreementTypeLabel(agreementType) ?? undefined}
       label="Selected service"
       icon={CrownIcon}

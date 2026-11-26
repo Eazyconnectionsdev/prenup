@@ -1,35 +1,18 @@
 "use client";
 
 import React, { useState } from "react";
-import { FileText, ShieldCheck } from "lucide-react";
+import { FileText } from "lucide-react";
 import { useQuestionnaire } from "@/components/questionnaire/useQuestionnaire";
 import { useFormValidation } from "@/hooks/useFormValidation";
 import { legalDeclarationSchema } from "@/lib/validations/questionnaire";
 import {
-  cardTextareaClasses,
-  fieldClassesFor,
-  CheckCard,
   FormShell,
   LoadingState,
-  NumberedQuestion,
-  SectionTitle,
   SubmitBar,
 } from "@/components/questionnaire/QuestionnaireUI";
-import {
-  DECLARATIONS,
-  initialDeclarations,
-} from "@/components/questionnaire/declarations";
+import { initialDeclarations } from "@/components/questionnaire/declarations";
+import { LegalDeclarationFields } from "@/components/questionnaire/sections/LegalDeclarationFields";
 import type { DeclarationsFormData } from "@/types/questionnaire/declarations";
-
-const firstPersonRegex = /\b(I|me|my|myself|we|us|our)\b/i;
-
-function ThirdPersonTip() {
-  return (
-    <p className="mt-2 text-[0.85rem] font-medium text-amber-700">
-      Tip: try rephrasing this in the third person using your names to keep it court-ready.
-    </p>
-  );
-}
 
 export default function LegalDeclarationsForm() {
   const [formData, setFormData] = useState<DeclarationsFormData>(initialDeclarations);
@@ -42,30 +25,34 @@ export default function LegalDeclarationsForm() {
   const { errors, validate, clearError, summary } =
     useFormValidation(legalDeclarationSchema);
 
-  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    clearError(name);
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, checked } = e.target;
-    clearError(name);
-    setFormData((prev) => ({ ...prev, [name]: checked }));
+  const handleChange = (patch: Partial<DeclarationsFormData>) => {
+    // A message goes as soon as its own field is touched.
+    Object.keys(patch).forEach((key) => clearError(key));
+    setFormData((prev) => ({ ...prev, ...patch }));
   };
 
   const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const payload = {
+    const previous = formData.hasPreviousAgreement === "Yes";
+    const international = formData.hasInternationalConnections === "Yes";
+
+    const payload: DeclarationsFormData = {
       agreementObjectives: formData.agreementObjectives,
       livingSituationFuture: formData.livingSituationFuture,
+      hasPreviousAgreement: formData.hasPreviousAgreement,
+      previousAgreementType: previous ? formData.previousAgreementType : "",
+      previousAgreementStatus: previous ? formData.previousAgreementStatus : "",
+      previousAgreementSummary: previous ? formData.previousAgreementSummary : "",
+      hasInternationalConnections: formData.hasInternationalConnections,
+      internationalSummary: international ? formData.internationalSummary : "",
       confirmPersonalEffects: formData.confirmPersonalEffects,
       confirmHouseholdDivision: formData.confirmHouseholdDivision,
       acknowledgeCourtChildren: formData.acknowledgeCourtChildren,
       confirmCostSharing: formData.confirmCostSharing,
       confirmUndueInfluence: formData.confirmUndueInfluence,
       confirmIla: formData.confirmIla,
+      confirmFinancialDisclosure: formData.confirmFinancialDisclosure,
       confirmPlatformDisclaimer: formData.confirmPlatformDisclaimer,
       confirmAccuracy: formData.confirmAccuracy,
     };
@@ -84,66 +71,10 @@ export default function LegalDeclarationsForm() {
       title="Legal Declarations"
       stepLabel={`Step ${stepInfo.number} of ${stepInfo.total}`}
       icon={<FileText className="h-5 w-5" />}
-      description="Please review and confirm your understanding of the following foundational principles for your agreement."
+      description="Please review the background questions and declarations below. Each person should complete this section independently and answer based on their own knowledge and understanding."
     >
       <form onSubmit={handleSubmit} noValidate>
-        <NumberedQuestion
-          number={1}
-          htmlFor="agreementObjectives"
-          question="Please provide a brief overview of what you are both aiming to achieve with this agreement and your primary reasons for putting it in place."
-          tooltip="Please describe the purpose of this agreement objectively. For example: &quot;James and Sarah wish to clarify their financial arrangements before marriage.&quot;"
-          error={errors.agreementObjectives}
-        >
-          <textarea
-            id="agreementObjectives"
-            name="agreementObjectives"
-            rows={4}
-            maxLength={1500}
-            placeholder="Describe what you both aim to achieve with this agreement..."
-            value={formData.agreementObjectives}
-            onChange={handleTextChange}
-            className={fieldClassesFor(cardTextareaClasses, errors.agreementObjectives)}
-          />
-          {firstPersonRegex.test(formData.agreementObjectives) && <ThirdPersonTip />}
-        </NumberedQuestion>
-
-        <NumberedQuestion
-          number={2}
-          htmlFor="livingSituationFuture"
-          question="Please provide a summary of your current living arrangements and any significant future plans (e.g., upcoming property purchases, relocating abroad, or major career changes)."
-          tooltip="Include significant future plans such as purchasing property, relocating overseas, major career changes, or plans to have children."
-          error={errors.livingSituationFuture}
-        >
-          <textarea
-            id="livingSituationFuture"
-            name="livingSituationFuture"
-            rows={4}
-            maxLength={1500}
-            placeholder="Summarise your current living arrangements and any future plans..."
-            value={formData.livingSituationFuture}
-            onChange={handleTextChange}
-            className={fieldClassesFor(cardTextareaClasses, errors.livingSituationFuture)}
-          />
-          {firstPersonRegex.test(formData.livingSituationFuture) && <ThirdPersonTip />}
-        </NumberedQuestion>
-
-        <SectionTitle icon={<ShieldCheck className="h-5 w-5" />}>
-          Declarations of Understanding
-        </SectionTitle>
-
-        {DECLARATIONS.map((d) => (
-          <CheckCard
-            key={d.id}
-            id={d.id}
-            name={d.name}
-            title={d.title}
-            description={d.description}
-            tooltip={d.tooltip}
-            checked={formData[d.name] as boolean}
-            onChange={handleCheckboxChange}
-            error={errors[d.name]}
-          />
-        ))}
+        <LegalDeclarationFields data={formData} onChange={handleChange} errors={errors} />
 
         <SubmitBar
           isSaving={isSaving}

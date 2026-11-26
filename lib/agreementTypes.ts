@@ -80,7 +80,7 @@ export function toAgreementType(
   situation: string,
 ): AgreementType | null {
   // Cohabitation is one agreement in law however the couple describe their
-  // living arrangements, so the selector asks for no situation and the
+  // living arrangements, so whichever situation the selector asks about, the
   // backend enum has a single id for it.
   if (service === "cohabitation") return "cohabitation";
   return TO_AGREEMENT_TYPE[`${service}:${situation}`] ?? null;

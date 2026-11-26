@@ -3,6 +3,8 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { REHYDRATE } from "redux-persist";
 import { emailVerification, getFreshProfile, LoginUser, logOutUser, registerUser } from "@/store/asyncThunk/authThunk";
+import { getCasesDetails } from "@/store/asyncThunk/casesThunk";
+import { endUserTypeOnCase } from "@/lib/caseSections";
 import type { authState } from "@/types/store/auth-slice";
 
 const initialState: authState = {
@@ -34,6 +36,17 @@ const AuthSlice = createSlice({
   },
 
   extraReducers: (builder) => {
+    // Who is Partner 1 is settled by whoever pays first, which can be the
+    // other person while this tab is open. Every time the case is loaded the
+    // label is brought in line with it, so "my" and "my partner's" answers
+    // never point at the wrong section until the next full page load.
+    builder.addCase(getCasesDetails.fulfilled, (state, { payload }) => {
+      const side = endUserTypeOnCase(payload, state.user?._id);
+      if (side && state.user?.endUserType !== side) {
+        state.user = { ...state.user, endUserType: side };
+      }
+    });
+
     builder
       .addCase(REHYDRATE, (state) => {
         state.isLoading = false;

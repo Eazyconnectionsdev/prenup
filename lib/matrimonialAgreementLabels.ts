@@ -15,55 +15,64 @@ import type { Treatment } from "@/types/forms/form-primitives";
 // for the review screens and the case manager / lawyer views.
 
 export const FUTURE_ASSETS_LABELS: Record<FutureAssetsTreatment, string> = {
-  SeparateToAcquirer: "Separate to whoever acquires them",
-  FamilyUseJoint: "Family-use assets joint, the rest separate",
-  PooledEqually: "Pooled and shared equally (50/50)",
-  Custom: "Custom rule agreed",
+  SeparateToAcquirer: "Keep separate",
+  FamilyUseJoint: "Family assets shared",
+  PooledEqually: "Share assets equally",
+  Custom: "Other arrangement",
 };
 
 export const FUTURE_GIFTS_LABELS: Record<FutureGiftsTreatment, string> = {
-  SeparateToRecipient: "Separate property of the recipient",
-  JointEqually: "Joint marital asset, shared equally",
-  Custom: "Custom rule agreed",
+  SeparateToRecipient: "Kept separate for the person receiving it",
+  JointEqually: "Treated as shared",
+  Custom: "Other arrangement",
 };
 
 export const INHERITANCE_SELECTION_LABELS: Record<InheritanceSelection, string> = {
-  NoneExpected: "No inheritance recorded — stays separate automatically",
-  LogDetails: "Inheritance details recorded",
+  NoneExpected: "No inheritance to record",
+  LogDetails: "Inheritance details provided",
 };
 
 export const INHERITANCE_STATUS_LABELS: Record<Exclude<InheritanceStatus, "">, string> = {
-  FutureExpectation: "Future expectation",
-  PendingProbate: "Pending / in probate",
+  FutureExpectation: "Expected",
+  PendingProbate: "Pending (in probate or settlement)",
+  Received: "Received",
 };
 
 export const SPOUSAL_MAINTENANCE_LABELS: Record<SpousalMaintenanceIntention, string> = {
-  MutualWaiver: "Mutual waiver — clean break",
-  CareerSacrificeOnly: "Payable only where a career was sacrificed",
-  Custom: "Custom framework agreed",
+  MutualWaiver: "No ongoing maintenance intended – clean break",
+  CareerSacrificeOnly: "Maintenance may be appropriate in certain circumstances",
+  Custom: "Other arrangement",
 };
 
 export const CRITICAL_ILLNESS_LABELS: Record<CriticalIllnessSafeguard, string> = {
-  TermsFixed: "Terms stay fixed",
-  Voidable: "Agreement becomes voidable",
-  Custom: "Custom safeguard agreed",
+  ReviewAgreement: "Yes – review the agreement",
+  NoSpecificReview: "No specific review arrangement",
+  Custom: "Other arrangement",
+  // Older answers
+  TermsFixed: "Terms stay fixed (earlier answer)",
+  Voidable: "Agreement becomes voidable (earlier answer)",
 };
 
 export const DEATH_WILLS_LABELS: Record<DeathWillsAlignment, string> = {
-  MirrorDivorce: "Wills will mirror this agreement",
-  ProvideDifferently: "Wills will provide differently",
-  Unsure: "Undecided at this stage",
+  FollowWills: "Follow our Wills and estate plans",
+  ReviewOnDeath: "Review our arrangements if either of us dies",
+  Custom: "Other arrangement",
+  // Older answers
+  MirrorDivorce: "Wills will mirror this agreement (earlier answer)",
+  ProvideDifferently: "Wills will provide differently (earlier answer)",
+  Unsure: "Undecided at this stage (earlier answer)",
 };
 
 export const REVIEW_TRIGGER_LABELS: Record<ReviewTriggerType, string> = {
-  Never: "No scheduled review",
+  Never: "Never – no review milestones",
   Standard: "Standard life milestones",
-  Custom: "Custom review schedule",
+  Custom: "Custom schedule",
 };
 
 export const MILESTONE_LABELS: Record<StandardMilestone, string> = {
   child_birth: "Birth or adoption of a child",
-  career_change: "Significant change in health or career capability",
+  career_change: "Significant change in health, disability or ability to work",
+  financial_change: "Significant change in financial circumstances",
   "5_year": "5th wedding anniversary",
   "10_year": "10th wedding anniversary",
 };
