@@ -151,7 +151,7 @@ const TopBar = ({
   }, [onSearchOpen]);
 
   return (
-    <div className="sticky top-0 z-40 w-full">
+    <div data-app-topbar className="sticky top-0 z-40 w-full">
       <NotificationTopBars />
       <header className="flex h-[56px] items-center justify-between gap-4 border-b border-[#EEEEF6] bg-white px-6 backdrop-blur-md">
       <div className="flex flex-wrap items-center gap-2.5 min-w-0">
