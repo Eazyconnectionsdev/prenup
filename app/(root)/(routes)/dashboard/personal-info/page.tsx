@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSelector } from "react-redux";
 import {
   UserRound,
   Globe,
@@ -9,7 +10,19 @@ import {
   ArrowLeft,
   Loader2,
   TriangleAlert,
+  BadgeCheck,
+  Phone,
 } from "lucide-react";
+import type { RootState } from "@/store/store";
+import { useEditingPartnerForm } from "@/components/questionnaire/EditingPartnerContext";
+import { CeremonyBlockedModal } from "@/components/questionnaire/CeremonyBlockedModal";
+import {
+  CEREMONY_ACK_TEXT,
+  CEREMONY_DATE_TOOLTIP,
+  ceremonyTimingStatus,
+  daysUntilCeremony,
+} from "@/lib/ceremonyTiming";
+import { COUNTRIES } from "@/lib/countries";
 import { useQuestionnaire } from "@/components/questionnaire/useQuestionnaire";
 import { useJointSectionStatus } from "@/hooks/useJointSectionStatus";
 import { useFormValidation } from "@/hooks/useFormValidation";
@@ -19,19 +32,22 @@ import {
   LoadingState,
   Tooltip,
 } from "@/components/questionnaire/QuestionnaireUI";
-import { initialPersonalInfo } from "@/components/questionnaire/sections/PersonalInfoFields";
+import {
+  DOMICILE_DETAIL_LABEL,
+  DOMICILE_DETAIL_PLACEHOLDER,
+  DOMICILE_QUESTION,
+  DOMICILE_TOOLTIP,
+  LANGUAGE_NOTE,
+  LANGUAGE_OPTIONS,
+  LANGUAGE_TOOLTIP,
+  PROFESSION_PLACEHOLDER,
+  PROFESSION_TOOLTIP,
+  normalizePersonalInfo,
+} from "@/components/questionnaire/sections/PersonalInfoFields";
 import type { personalInfoFormData } from "@/types/questionnaire/personal-info";
 
 const fieldClasses =
   "w-full rounded-xl border border-slate-200 bg-[#FBFBFE] px-4 py-3 text-[13.5px] font-medium text-slate-900 transition-all duration-200 placeholder:text-slate-400 hover:border-slate-300 focus:bg-white focus:outline-none focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 disabled:cursor-not-allowed disabled:opacity-60 min-h-[46px]";
-
-const NATIONALITIES = [
-  { value: "GB", label: "United Kingdom" },
-  { value: "US", label: "United States" },
-  { value: "CA", label: "Canada" },
-  { value: "AU", label: "Australia" },
-  { value: "IE", label: "Ireland" },
-];
 
 function Field({
   label,
@@ -72,21 +88,36 @@ function Field({
   );
 }
 
-function daysUntil(dateValue: string): number | null {
-  if (!dateValue) return null;
-  const diffTime = new Date(dateValue).getTime() - new Date().getTime();
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+/** A date whose year has been typed in full, not one still being typed. */
+function isWholeYear(value: string): boolean {
+  return Number(value?.slice(0, 4)) >= 1900;
 }
 
 export default function PersonalInfoForm() {
-  const [formData, setFormData] = useState<personalInfoFormData>(initialPersonalInfo);
+  const [formData, setFormData] = useState<personalInfoFormData>(() =>
+    normalizePersonalInfo(null),
+  );
+  const [blockedOpen, setBlockedOpen] = useState(false);
   const { lockedOut: iAmWaitingForReview } = useJointSectionStatus();
+  const user = useSelector((state: RootState) => state.auth.user);
+  // While the partner who sent the case back edits the other partner's
+  // answers, the signed-in account's own email and phone do not belong here.
+  const editingPartner = useEditingPartnerForm();
 
   const { isLoading, isSaving, save, stepInfo } = useQuestionnaire({
     step: "personal-info",
-    onLoad: (section) =>
-      setFormData((prev) => ({ ...prev, ...section.personalInformation })),
+    onLoad: (section) => {
+      const saved = normalizePersonalInfo(section.personalInformation);
+      setFormData({
+        ...saved,
+        email: saved.email || (!editingPartner ? user?.email ?? "" : ""),
+        mobilePhone: saved.mobilePhone || (!editingPartner ? user?.phone ?? "" : ""),
+      });
+    },
   });
+
+  // Pre-filled from the account (read only) when nothing has been saved yet.
+  const email = formData.email || (!editingPartner ? (user?.email ?? "") : "");
 
   useEffect(() => {
     const mainEl = document.querySelector("main");
@@ -108,26 +139,58 @@ export default function PersonalInfoForm() {
     // The message goes as soon as the field it pointed at is touched, rather
     // than staying red until the next submit.
     clearError(name);
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => {
+      const next = { ...prev, [name]: value };
+      // A follow-up answer behind a "No" is dropped when the "No" is.
+      if (name === "languageFluency" && value !== "No") next.requiredLanguage = "";
+      if (name === "ukDomiciled" && value !== "No") next.domicileStatus = "";
+      return next;
+    });
+  };
+
+  const handleMarriageDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = e.target;
+    clearError("marriageDate");
+    clearError("ceremonyTimingAcknowledged");
+    // A new date needs its own acknowledgement.
+    setFormData((prev) => ({ ...prev, marriageDate: value, ceremonyTimingAcknowledged: false }));
+    // Typing the year digit by digit passes through dates like 0202-06-01;
+    // the pop-up waits for a whole year rather than interrupting the typing.
+    if (isWholeYear(value) && ceremonyTimingStatus(value) === "UNDER_28_DAYS_BLOCKED") {
+      setBlockedOpen(true);
+    }
   };
 
   const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    // Inside the 28-day window the details cannot be saved online at all; the
+    // pop-up explains why and comes back on every attempt.
+    if (ceremonyTimingStatus(formData.marriageDate) === "UNDER_28_DAYS_BLOCKED") {
+      setBlockedOpen(true);
+      return;
+    }
 
     const payload = {
       firstName: formData.firstName,
       middleName: formData.middleName,
       lastName: formData.lastName,
       dateOfBirth: formData.dateOfBirth,
-      languageFluency: formData.languageFluency,
       nationality: formData.nationality,
-      domicileStatus: formData.domicileStatus,
       currentProfession: formData.currentProfession,
-      street1: formData.street1,
-      city: formData.city,
-      county: formData.county,
-      postcode: formData.postcode,
       marriageDate: formData.marriageDate,
+      ceremonyTimingAcknowledged: formData.ceremonyTimingAcknowledged,
+      email,
+      mobilePhone: formData.mobilePhone,
+      languageFluency: formData.languageFluency,
+      requiredLanguage: formData.languageFluency === "No" ? formData.requiredLanguage : "",
+      ukDomiciled: formData.ukDomiciled,
+      domicileStatus: formData.ukDomiciled === "No" ? formData.domicileStatus : "",
+      street1: formData.street1,
+      street2: formData.street2,
+      city: formData.city,
+      postcode: formData.postcode,
+      country: formData.country,
     };
 
     // Nothing is sent until every required answer is in. validate() also takes
@@ -139,9 +202,10 @@ export default function PersonalInfoForm() {
 
   if (isLoading) return <LoadingState />;
 
-  const diffDays = daysUntil(formData.marriageDate);
-  const showTimelineWarning =
-    diffDays !== null && diffDays >= 0 && diffDays < 28;
+  const daysLeft = daysUntilCeremony(formData.marriageDate);
+  const timing = isWholeYear(formData.marriageDate)
+    ? ceremonyTimingStatus(formData.marriageDate)
+    : null;
 
   return (
     <div className="min-h-full bg-[#F8FAFC] px-4 py-8 sm:px-8 lg:px-12">
@@ -295,7 +359,7 @@ export default function PersonalInfoForm() {
                     className={fieldCls("nationality")}
                   >
                     <option value="">Select country</option>
-                    {NATIONALITIES.map((n) => (
+                    {COUNTRIES.map((n) => (
                       <option key={n.value} value={n.value}>
                         {n.label}
                       </option>
@@ -304,52 +368,184 @@ export default function PersonalInfoForm() {
                 </Field>
               </div>
 
-              {/* Row 3: Planned wedding date, Current profession / occupation */}
+              {/* Row 3: Planned wedding date *, Current profession / occupation * */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Field
-                  label="Planned wedding date"
-                  htmlFor="marriageDate" error={errors.marriageDate}
-                  tooltip="Prenuptial agreements are generally strongest when completed well in advance of the ceremony. If your wedding or registration is within 28 days, additional legal considerations may apply."
+                  label="Planned wedding / civil partnership date"
+                  htmlFor="marriageDate"
+                  error={errors.marriageDate}
+                  required
+                  tooltip={CEREMONY_DATE_TOOLTIP}
                 >
                   <input
                     id="marriageDate"
                     name="marriageDate"
                     type="date"
+                    required
                     value={formData.marriageDate}
-                    onChange={handleChange}
+                    onChange={handleMarriageDateChange}
                     className={fieldCls("marriageDate")}
                   />
-                  {showTimelineWarning && (
-                    <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50/80 p-3 text-xs text-amber-800 leading-relaxed">
-                      <strong>Timeline guidance:</strong> Prenuptial agreements are
-                      generally strongest when completed well before the wedding. If your
-                      wedding is less than 28 days away, your solicitor will discuss any
-                      potential implications with you.
+                  {daysLeft !== null && daysLeft >= 0 && !errors.marriageDate && (
+                    <p className="mt-1.5 text-[11px] text-slate-500">
+                      {daysLeft === 1 ? "1 day" : `${daysLeft} days`} until the ceremony
                     </p>
                   )}
                 </Field>
 
                 <Field
                   label="Current profession / occupation"
-                  htmlFor="currentProfession" error={errors.currentProfession}
-                  tooltip="Please provide your current occupation, business role, or primary source of income."
+                  htmlFor="currentProfession"
+                  error={errors.currentProfession}
+                  required
+                  tooltip={PROFESSION_TOOLTIP}
                 >
                   <input
                     id="currentProfession"
                     name="currentProfession"
                     type="text"
+                    required
                     value={formData.currentProfession}
                     onChange={handleChange}
                     className={fieldCls("currentProfession")}
-                    placeholder="Primary job title"
+                    placeholder={PROFESSION_PLACEHOLDER}
                     autoComplete="organization-title"
                   />
                 </Field>
               </div>
+
+              {/* 29-35 days: amber warning with a mandatory acknowledgement */}
+              {timing === "TIGHT_TIMELINE_ACK" && (
+                <div
+                  data-error-path="ceremonyTimingAcknowledged"
+                  className={`rounded-xl border p-4 text-[12.5px] leading-relaxed ${
+                    errors.ceremonyTimingAcknowledged
+                      ? "border-rose-300 bg-rose-50/60"
+                      : "border-amber-200 bg-amber-50/80"
+                  }`}
+                >
+                  <p className="flex items-start gap-2 font-semibold text-amber-900">
+                    <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                    Your ceremony is {daysLeft} days away. This is a tight timeline for preparing
+                    your agreement.
+                  </p>
+                  <label
+                    htmlFor="ceremonyTimingAcknowledged"
+                    className="mt-3 flex cursor-pointer items-start gap-3 text-amber-950"
+                  >
+                    <input
+                      id="ceremonyTimingAcknowledged"
+                      type="checkbox"
+                      checked={formData.ceremonyTimingAcknowledged}
+                      onChange={(e) => {
+                        clearError("ceremonyTimingAcknowledged");
+                        setFormData((prev) => ({
+                          ...prev,
+                          ceremonyTimingAcknowledged: e.target.checked,
+                        }));
+                      }}
+                      className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-indigo-600"
+                    />
+                    <span>
+                      {CEREMONY_ACK_TEXT}
+                      <span className="ml-1 font-bold text-red-500">*</span>
+                    </span>
+                  </label>
+                  {errors.ceremonyTimingAcknowledged && (
+                    <p className="mt-2 text-[11px] font-medium text-red-500">
+                      {errors.ceremonyTimingAcknowledged}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* 28 days or fewer: blocked; the pop-up explains */}
+              {timing === "UNDER_28_DAYS_BLOCKED" && (
+                <div className="rounded-xl border border-rose-200 bg-rose-50/80 p-4 text-[12.5px] leading-relaxed text-rose-800">
+                  <p className="font-semibold">
+                    Your planned wedding or civil partnership date is within 28 days.
+                  </p>
+                  <p className="mt-1">
+                    We cannot proceed with our standard online prenup process for this date, so
+                    these details cannot be saved.{" "}
+                    <button
+                      type="button"
+                      onClick={() => setBlockedOpen(true)}
+                      className="font-semibold underline underline-offset-2 hover:text-rose-950"
+                    >
+                      What happens next?
+                    </button>
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Card 2: Language and residency */}
+          {/* Card 2: Contact details */}
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-6 sm:p-8 shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_rgba(99,102,241,0.06)] hover:border-slate-300/90 transition-all duration-300">
+            <div className="mb-6 flex items-start gap-3.5">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-400 via-violet-500 to-purple-600 text-white shadow-md shadow-violet-500/25 ring-1 ring-white/20 ring-inset">
+                <Phone className="h-5.5 w-5.5 text-white stroke-[2.2]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-base sm:text-[17px] font-bold text-slate-900 tracking-tight">
+                  Contact details
+                </h2>
+                <p className="mt-0.5 text-[12.5px] sm:text-[13px] text-slate-500 leading-relaxed">
+                  How your case manager and solicitor can reach you.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label
+                  htmlFor="email"
+                  className="mb-2 flex items-center gap-2 text-[13.5px] font-bold text-slate-900 leading-none"
+                >
+                  Email address
+                  {email && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700 ring-1 ring-emerald-200">
+                      <BadgeCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                      Verified
+                    </span>
+                  )}
+                </label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  readOnly
+                  value={email}
+                  className={`${fieldClasses} cursor-not-allowed bg-slate-50 text-slate-600`}
+                />
+                <p className="mt-1.5 text-[11px] text-slate-500">
+                  From your account registration. It cannot be changed here.
+                </p>
+              </div>
+
+              <Field
+                label="Mobile telephone number"
+                htmlFor="mobilePhone"
+                error={errors.mobilePhone}
+                required
+              >
+                <input
+                  id="mobilePhone"
+                  name="mobilePhone"
+                  type="tel"
+                  required
+                  autoComplete="tel"
+                  value={formData.mobilePhone}
+                  onChange={handleChange}
+                  className={fieldCls("mobilePhone")}
+                  placeholder="e.g., 07700 900123"
+                />
+              </Field>
+            </div>
+          </div>
+
+          {/* Card 3: Language and residency */}
           <div className="rounded-2xl border border-slate-200/80 bg-white p-6 sm:p-8 shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_rgba(99,102,241,0.06)] hover:border-slate-300/90 transition-all duration-300">
             <div className="mb-6 flex items-start gap-3.5">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 via-orange-500 to-amber-600 text-white shadow-md shadow-orange-500/25 ring-1 ring-white/20 ring-inset [&>svg]:h-5.5 [&>svg]:w-5.5 [&>svg]:stroke-[2.2] [&>svg]:text-white [&>svg]:drop-shadow-xs">
@@ -365,14 +561,14 @@ export default function PersonalInfoForm() {
               </div>
             </div>
 
-            <div className="space-y-5">
-              {/* Row 1: English language proficiency *, Domicile & residency * */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+              <div>
                 <Field
                   label="English language proficiency"
-                  htmlFor="languageFluency" error={errors.languageFluency}
+                  htmlFor="languageFluency"
+                  error={errors.languageFluency}
                   required
-                  tooltip="If English is not your first language, your solicitor may recommend independent translation assistance before signing any legal documents."
+                  tooltip={LANGUAGE_TOOLTIP}
                 >
                   <select
                     id="languageFluency"
@@ -383,34 +579,95 @@ export default function PersonalInfoForm() {
                     className={fieldCls("languageFluency")}
                   >
                     <option value="">Select option</option>
-                    <option value="Yes">Yes, fully fluent in English</option>
-                    <option value="No">No, language assistance needed</option>
+                    {LANGUAGE_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
                   </select>
                 </Field>
 
+                {formData.languageFluency === "No" && (
+                  <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50/80 p-4">
+                    <label
+                      htmlFor="requiredLanguage"
+                      className="mb-2 block text-[13px] font-bold text-amber-900"
+                    >
+                      Which language do you require?
+                      <span className="ml-1 font-bold text-red-500">*</span>
+                    </label>
+                    <input
+                      id="requiredLanguage"
+                      name="requiredLanguage"
+                      type="text"
+                      required
+                      maxLength={80}
+                      value={formData.requiredLanguage}
+                      onChange={handleChange}
+                      className={fieldClassesFor(`${fieldClasses} bg-white`, errors.requiredLanguage)}
+                      placeholder="e.g., Tamil, Hindi, Polish, French"
+                    />
+                    {errors.requiredLanguage && (
+                      <p className="mt-1.5 text-[11px] font-medium text-red-500">
+                        {errors.requiredLanguage}
+                      </p>
+                    )}
+                    <p className="mt-2 text-[12px] leading-relaxed text-amber-900">
+                      <strong>Note:</strong> {LANGUAGE_NOTE}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div>
                 <Field
-                  label="Domicile & residency"
-                  htmlFor="domicileStatus" error={errors.domicileStatus}
+                  label={DOMICILE_QUESTION}
+                  htmlFor="ukDomiciled"
+                  error={errors.ukDomiciled}
                   required
-                  tooltip="Your domicile and country of residence may affect which courts have jurisdiction over your agreement. For example, you may live abroad while remaining domiciled in England or Wales."
+                  tooltip={DOMICILE_TOOLTIP}
                 >
-                  <input
-                    id="domicileStatus"
-                    name="domicileStatus"
-                    type="text"
+                  <select
+                    id="ukDomiciled"
+                    name="ukDomiciled"
                     required
-                    value={formData.domicileStatus}
+                    value={formData.ukDomiciled}
                     onChange={handleChange}
-                    className={fieldCls("domicileStatus")}
-                    placeholder="Country of domicile and current residence"
-                    maxLength={100}
-                  />
+                    className={fieldCls("ukDomiciled")}
+                  >
+                    <option value="">Select option</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                  </select>
                 </Field>
+
+                {formData.ukDomiciled === "No" && (
+                  <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+                    <Field
+                      label={DOMICILE_DETAIL_LABEL}
+                      htmlFor="domicileStatus"
+                      error={errors.domicileStatus}
+                      required
+                    >
+                      <input
+                        id="domicileStatus"
+                        name="domicileStatus"
+                        type="text"
+                        required
+                        maxLength={160}
+                        value={formData.domicileStatus}
+                        onChange={handleChange}
+                        className={fieldClassesFor(`${fieldClasses} bg-white`, errors.domicileStatus)}
+                        placeholder={DOMICILE_DETAIL_PLACEHOLDER}
+                      />
+                    </Field>
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
-          {/* Card 3: Home address */}
+          {/* Card 4: Home address */}
           <div className="rounded-2xl border border-slate-200/80 bg-white p-6 sm:p-8 shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_rgba(99,102,241,0.06)] hover:border-slate-300/90 transition-all duration-300">
             <div className="mb-6 flex items-start gap-3.5">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-400 via-blue-500 to-indigo-600 text-white shadow-md shadow-blue-500/25 ring-1 ring-white/20 ring-inset [&>svg]:h-5.5 [&>svg]:w-5.5 [&>svg]:stroke-[2.2] [&>svg]:text-white [&>svg]:drop-shadow-xs">
@@ -430,12 +687,12 @@ export default function PersonalInfoForm() {
             </div>
 
             <div className="space-y-4">
-              {/* Row 1: Address line 1 */}
-              <Field label="Address line 1" htmlFor="street1" error={errors.street1}>
+              <Field label="Address line 1" htmlFor="street1" error={errors.street1} required>
                 <input
                   id="street1"
                   name="street1"
                   type="text"
+                  required
                   autoComplete="address-line1"
                   value={formData.street1}
                   onChange={handleChange}
@@ -444,27 +701,26 @@ export default function PersonalInfoForm() {
                 />
               </Field>
 
-              {/* Row 2: Address line 2 (optional) */}
-              <Field label="Address line 2 (optional)" htmlFor="county" error={errors.county}>
+              <Field label="Address line 2 (optional)" htmlFor="street2" error={errors.street2}>
                 <input
-                  id="county"
-                  name="county"
+                  id="street2"
+                  name="street2"
                   type="text"
                   autoComplete="address-line2"
-                  value={formData.county}
+                  value={formData.street2}
                   onChange={handleChange}
-                  className={fieldCls("county")}
+                  className={fieldCls("street2")}
                   placeholder="Apartment, suite, unit, etc."
                 />
               </Field>
 
-              {/* Row 3: Town or city, Postcode, Country * */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <Field label="Town or city" htmlFor="city" error={errors.city}>
+                <Field label="Town or city" htmlFor="city" error={errors.city} required>
                   <input
                     id="city"
                     name="city"
                     type="text"
+                    required
                     autoComplete="address-level2"
                     value={formData.city}
                     onChange={handleChange}
@@ -472,11 +728,12 @@ export default function PersonalInfoForm() {
                     placeholder="Town or city"
                   />
                 </Field>
-                <Field label="Postcode" htmlFor="postcode" error={errors.postcode}>
+                <Field label="Postcode" htmlFor="postcode" error={errors.postcode} required>
                   <input
                     id="postcode"
                     name="postcode"
                     type="text"
+                    required
                     autoComplete="postal-code"
                     value={formData.postcode}
                     onChange={handleChange}
@@ -484,15 +741,17 @@ export default function PersonalInfoForm() {
                     placeholder="Postcode"
                   />
                 </Field>
-                <Field label="Country" htmlFor="country" error={errors.nationality} required>
+                <Field label="Country" htmlFor="country" error={errors.country} required>
                   <select
                     id="country"
-                    name="nationality"
-                    value={formData.nationality || "GB"}
+                    name="country"
+                    required
+                    autoComplete="country"
+                    value={formData.country}
                     onChange={handleChange}
-                    className={fieldCls("nationality")}
+                    className={fieldCls("country")}
                   >
-                    {NATIONALITIES.map((n) => (
+                    {COUNTRIES.map((n) => (
                       <option key={n.value} value={n.value}>
                         {n.label}
                       </option>
@@ -541,6 +800,8 @@ export default function PersonalInfoForm() {
           </div>
         </form>
       </div>
+
+      <CeremonyBlockedModal open={blockedOpen} onClose={() => setBlockedOpen(false)} />
     </div>
   );
 }

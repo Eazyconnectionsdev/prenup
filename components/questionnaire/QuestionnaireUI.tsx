@@ -434,7 +434,9 @@ export function Tooltip({ text }: { text: string }) {
           </span>
 
           {/* Content */}
-          <span className="block text-[12.5px] font-normal leading-relaxed text-slate-200 antialiased normal-case tracking-normal">
+          {/* Line breaks in the text are kept, so longer guidance can be
+              written as paragraphs and bullet lists; very long notes scroll. */}
+          <span className="block max-h-[55vh] overflow-y-auto whitespace-pre-line text-[12.5px] font-normal leading-relaxed text-slate-200 antialiased normal-case tracking-normal">
             {text}
           </span>
 
@@ -696,7 +698,8 @@ export function CheckCard({
   readOnly,
   error,
   path,
-}: CheckCardProps & { error?: string; path?: string }) {
+  acknowledgement,
+}: CheckCardProps & { error?: string; path?: string; acknowledgement?: string }) {
   return (
     <label
       htmlFor={id}
@@ -745,6 +748,15 @@ export function CheckCard({
         </div>
         {description && (
           <div className="mt-1 text-[12.5px] font-normal leading-relaxed text-slate-500">{description}</div>
+        )}
+        {acknowledgement && (
+          <div
+            className={`mt-2.5 border-t border-slate-200/80 pt-2.5 text-[13px] font-semibold leading-relaxed ${
+              checked ? "text-[#4338CA]" : "text-slate-800"
+            }`}
+          >
+            {acknowledgement}
+          </div>
         )}
         <FieldMessage error={error} path={path ?? name} />
       </div>

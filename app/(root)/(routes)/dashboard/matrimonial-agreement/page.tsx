@@ -16,6 +16,7 @@ import {
   HeartPulse,
   HelpingHand,
   Home,
+  Info,
   Landmark,
   PackagePlus,
   Scale,
@@ -199,108 +200,108 @@ function YesNoCards({
 const futureAssetsOptions: Choice<FutureAssetsTreatment>[] = [
   {
     value: "SeparateToAcquirer",
-    title: "Keep them with whoever acquires them",
-    desc: "They must remain entirely the separate property or sole liability of the person who acquires them.",
+    title: "Keep separate",
+    desc: "Each person keeps assets acquired in their own name, subject to the agreement and applicable law.",
   },
   {
     value: "FamilyUseJoint",
-    title: "Family-use assets joint, everything else separate",
-    desc: "Assets acquired specifically for family use (for example, a family home) will be treated as joint marital assets, while all other assets and liabilities remain separate.",
+    title: "Family assets shared",
+    desc: "Assets acquired for family use, such as a family home, are intended to be shared; other assets remain separate.",
   },
   {
     value: "PooledEqually",
-    title: "Pool and share everything equally",
-    desc: "They will be pooled automatically and shared equally (50/50) as joint marital assets/debts.",
+    title: "Share assets equally",
+    desc: "Assets acquired during the marriage are intended to be shared equally.",
   },
   {
     value: "Custom",
     title: "Other",
-    desc: "We want to write a custom rule for future assets and debts.",
+    desc: "We would like to describe a different arrangement.",
   },
 ];
 
 const futureGiftsOptions: Choice<FutureGiftsTreatment>[] = [
   {
     value: "SeparateToRecipient",
-    title: "Separate property of the recipient",
-    desc: "The gift will be considered a separate asset entirely for the person who receives it.",
+    title: "Keep the gift separate for the person receiving it.",
+    desc: "The gift remains the separate property of the person who receives it.",
   },
   {
     value: "JointEqually",
-    title: "Joint marital asset",
-    desc: "The gift will be treated as a joint marital asset shared equally between both of us.",
+    title: "Treat the gift as shared between us.",
+    desc: "The gift is treated as a shared asset between both of us.",
   },
   {
     value: "Custom",
     title: "Other",
-    desc: "We want to write a custom rule for future gifts.",
+    desc: "We would like to describe a different arrangement.",
   },
 ];
 
 const inheritanceOptions: Choice<InheritanceSelection>[] = [
   {
     value: "NoneExpected",
-    title: "No inheritance to record",
-    desc: "Neither of us expects an inheritance / Any future inheritance stays separate automatically.",
+    title: "No inheritance to record.",
+    desc: "Neither of us expects, or is currently receiving, an inheritance we wish to record.",
   },
   {
     value: "LogDetails",
-    title: "Record our inheritance details",
-    desc: "Yes, we want to log our inheritance details and define their rules now.",
+    title: "Yes, we would like to provide details.",
+    desc: "Record each expected, pending or received inheritance below.",
   },
 ];
 
 const spousalMaintenanceOptions: Choice<SpousalMaintenanceIntention>[] = [
   {
     value: "MutualWaiver",
-    title: "Mutual waiver — clean break",
-    desc: "We both completely waive the right to claim spousal maintenance from each other, ensuring an immediate financial clean break.",
+    title: "No ongoing maintenance intended \u2013 clean break",
+    desc: "We intend that neither person should pay ongoing spousal maintenance to the other.",
   },
   {
     value: "CareerSacrificeOnly",
-    title: "Payable only where a career was sacrificed",
-    desc: "Spousal maintenance will be payable, but only to support a partner who sacrificed their career to raise our mutual children.",
+    title: "Maintenance may be appropriate in certain circumstances",
+    desc: "For example, where one person has reduced their working hours or given up their career to care for children or family.",
   },
   {
     value: "Custom",
     title: "Other",
-    desc: "We want to draft a custom framework for potential spousal support.",
+    desc: "We would like to describe a different arrangement.",
   },
 ];
 
 const criticalIllnessOptions: Choice<CriticalIllnessSafeguard>[] = [
   {
-    value: "TermsFixed",
-    title: "No — the terms stay fixed",
-    desc: "The terms of this agreement must remain fixed regardless of subsequent health changes.",
+    value: "ReviewAgreement",
+    title: "Yes \u2013 review the agreement",
+    desc: "We would like to review our financial arrangements if either of us experiences a serious illness or disability.",
   },
   {
-    value: "Voidable",
-    title: "Yes — the agreement becomes voidable",
-    desc: "This agreement will become voidable, allowing the courts or the parties to renegotiate a fair distribution based on the new health and care needs.",
+    value: "NoSpecificReview",
+    title: "No specific review arrangement",
+    desc: "We do not wish to set a specific review arrangement for this situation.",
   },
   {
     value: "Custom",
     title: "Other",
-    desc: "We want to define a specific custom safeguard for illness.",
+    desc: "We would like to describe a different arrangement.",
   },
 ];
 
 const deathWillsOptions: Choice<DeathWillsAlignment>[] = [
   {
-    value: "MirrorDivorce",
-    title: "Yes — our Wills will mirror this agreement",
-    desc: "Our intentions for asset splitting upon death will mirror our intentions for divorce.",
+    value: "FollowWills",
+    title: "Follow our Wills and estate plans",
+    desc: "We intend for our existing or future Wills and estate plans to guide how our assets are distributed.",
   },
   {
-    value: "ProvideDifferently",
-    title: "No — we will provide for each other differently",
-    desc: "We intend to provide for each other differently in our Wills if we are happily married when one of us passes away.",
+    value: "ReviewOnDeath",
+    title: "Review our arrangements if either of us dies",
+    desc: "We would like our financial arrangements and estate plans to be reviewed if either of us dies.",
   },
   {
-    value: "Unsure",
-    title: "Other / Unsure at this stage",
-    desc: "We have not yet decided how our Wills should relate to this agreement.",
+    value: "Custom",
+    title: "Other",
+    desc: "We would like to describe a different arrangement.",
   },
 ];
 
@@ -308,25 +309,29 @@ const reviewTriggerOptions: Choice<ReviewTriggerType>[] = [
   {
     value: "Never",
     title: "Never",
-    desc: "This agreement is intended to remain permanent unless overridden later.",
+    desc: "We do not wish to specify any particular review milestones.",
   },
   {
     value: "Standard",
     title: "Standard Life Milestones",
-    desc: "Review automatically during major marital timeline updates.",
+    desc: "We would like the agreement to be reviewed at certain major life milestones.",
   },
   {
     value: "Custom",
     title: "Custom Schedule",
-    desc: "We want to define our own specific review milestones.",
+    desc: "We would like to define our own specific review milestones.",
   },
 ];
 
 const milestoneOptions: { value: StandardMilestone; label: string }[] = [
-  { value: "child_birth", label: "Upon the birth or adoption of a child" },
-  { value: "career_change", label: "Upon a significant change in health or career capability" },
-  { value: "5_year", label: "On our 5th Wedding Anniversary" },
-  { value: "10_year", label: "On our 10th Wedding Anniversary" },
+  { value: "child_birth", label: "Upon the birth or adoption of a child." },
+  {
+    value: "career_change",
+    label: "Following a significant change in health, disability or ability to work.",
+  },
+  { value: "financial_change", label: "Upon a significant change in financial circumstances." },
+  { value: "5_year", label: "On our 5th wedding anniversary." },
+  { value: "10_year", label: "On our 10th wedding anniversary." },
 ];
 
 const inheritanceTreatmentOptions: { value: Treatment; label: string }[] = [
@@ -345,6 +350,58 @@ const currencyOptions = [
   { value: "CAD", label: "CAD ($)" },
 ];
 
+/* ---------------------------------------------------------------------- */
+/* Guidance notes                                                          */
+/* ---------------------------------------------------------------------- */
+
+const FUTURE_ASSETS_TOOLTIP = `Please consider how you would like assets and debts acquired by either of you during your marriage to be treated if you separate or divorce.
+
+This may include property, savings, investments, business interests, vehicles and loans. For example, you may wish to keep assets acquired in each person's own name separate, share assets used by the family, or share assets equally.
+
+Choose the option that best reflects your intentions. If you have a different arrangement in mind, select Other and briefly describe it.
+
+Your answers will help your solicitors understand your intentions and prepare suitable terms for the agreement. The legal treatment of assets and debts may depend on the circumstances and applicable law.`;
+
+const FUTURE_GIFTS_TOOLTIP = `Please consider how you would like significant gifts received by either of you from family members, friends or other third parties during your marriage to be treated if you separate or divorce.
+
+Gifts may include money, property, jewellery, vehicles, investments or other valuable items.
+
+For example, you may wish for a gift to remain the separate property of the person receiving it, to be treated as a shared asset, or to follow another arrangement.
+
+Choose the option that best reflects your intentions. If you have a different arrangement in mind, select Other and briefly describe it.
+
+Your answers will help your solicitors understand your intentions and prepare suitable terms for the agreement.`;
+
+const INHERITANCE_AMOUNT_TOOLTIP =
+  "Enter the inheritance amount in the currency in which it is expected to be received or has been received. If the inheritance is in a foreign currency, select that currency and provide an approximate equivalent value in GBP (\u00a3), if known. If the inheritance amount is not yet known, you can leave these fields blank.";
+
+const INHERITANCE_BASIS_TOOLTIP =
+  "You may mention an estimated valuation, the date of the valuation, the exchange rate used, or any supporting information such as a will, probate papers or a family trust document.";
+
+const SPOUSAL_MAINTENANCE_TOOLTIP = `Spousal maintenance is ongoing financial support that one person may be required to pay to their former spouse or civil partner following separation or divorce.
+
+Consider whether you would prefer a clean financial break, whether ongoing financial support may be appropriate in certain circumstances, or whether you have another arrangement in mind.
+
+For example, one person may reduce their working hours or give up their career to care for children or support the family.
+
+Choose the option that best reflects your intentions. Your solicitors can advise on how these intentions may be reflected in the agreement.`;
+
+const CRITICAL_ILLNESS_TOOLTIP = `During a marriage, circumstances may change because of serious illness, disability or a significant loss of earning capacity.
+
+For example, one person may become unable to work, require long-term care or need additional financial support.
+
+Consider whether you would like these circumstances to trigger a review of your financial arrangements.
+
+A review does not automatically change or cancel the agreement. Any proposed changes should be discussed with independent solicitors and properly documented.`;
+
+const DEATH_WILLS_TOOLTIP = `A prenuptial agreement primarily deals with financial arrangements if your marriage ends through separation or divorce. It does not replace a Will or determine how your estate will automatically be distributed when you die.
+
+Consider whether you have Wills in place and whether you would like your estate plans to be reviewed following marriage or a significant change in circumstances.
+
+For example, you may wish to provide for your spouse, children from a previous relationship, or other family members.
+
+Your solicitors can advise on how your intentions should be reflected in your agreement and whether your Wills need to be updated.`;
+
 const complexityGates: {
   key: SpecialCircumstanceKey;
   tag: string;
@@ -354,42 +411,40 @@ const complexityGates: {
   {
     key: "pregnancyOrAdoption",
     tag: "Pregnancy",
-    question:
-      "Is either partner currently pregnant, or are you in the active stages of adopting a child?",
+    question: "Is either of you currently pregnant, or actively pursuing adoption?",
     icon: Baby,
   },
   {
     key: "sharedBusiness",
     tag: "Shared Commerce",
-    question: "Are you and your partner both involved in owning or running the same company?",
+    question: "Do you jointly own, operate or manage a business?",
     icon: Briefcase,
   },
   {
     key: "financialReliance",
     tag: "Financial Reliance",
     question:
-      "Is one of you currently out of work, on extended sick leave, or relying on the other partner for financial support?",
+      "Is either of you financially dependent on the other, unable to work, or on extended sick leave?",
     icon: HelpingHand,
   },
   {
     key: "coOwnedRealEstate",
     tag: "Co-Owned Real Estate",
     question:
-      "Is your primary home (or shared property) co-owned with a third party, like a parent or outside investor?",
+      "Is your family home or another property jointly owned with someone outside your relationship?",
     icon: Home,
   },
   {
     key: "highValueAssets",
     tag: "High-Value Threshold",
-    question:
-      "To the best of your knowledge, do your combined net global assets exceed a total valuation of £3,000,000 (3 million Pounds)?",
+    question: "Do your combined worldwide net assets have an estimated value of \u00a33 million or more?",
     icon: Gem,
   },
   {
     key: "priorDependents",
-    tag: "Prior Dependents",
+    tag: "Prior Dependants",
     question:
-      "Do you have any children from previous relationships, or from your current relationship, living inside your household?",
+      "Does a child from either of your current or previous relationships live with you, either full-time or part-time?",
     icon: Users,
   },
 ];
@@ -424,11 +479,12 @@ const defaultValues: MatrimonialAgreementFormValues = {
   inheritanceEntries: [],
   spousalMaintenanceIntention: "MutualWaiver",
   customSpousalMaintenance: "",
-  criticalIllnessSafeguard: "TermsFixed",
+  criticalIllnessSafeguard: "ReviewAgreement",
   customHealthSafeguards: "",
-  deathWillsAlignment: "MirrorDivorce",
+  deathWillsAlignment: "FollowWills",
+  customDeathWills: "",
   reviewTriggerType: "Standard",
-  standardMilestones: ["child_birth", "career_change", "5_year", "10_year"],
+  standardMilestones: ["child_birth", "career_change", "financial_change", "5_year", "10_year"],
   customReviewTriggers: "",
   specialCircumstances: {
     pregnancyOrAdoption: "No",
@@ -463,6 +519,18 @@ export default function MatrimonialAgreementPage() {
   const { canEdit } = useJointSectionStatus();
 
   const [formData, setFormData] = useState<MatrimonialAgreementFormValues>(defaultValues);
+
+  // The inheritance register is stored against "Partner 1" (the case owner)
+  // and "Partner 2" (the invited partner), but shown with their names.
+  const fullNameOf = (info: unknown) => {
+    const p = (info as { personalInformation?: { firstName?: string; lastName?: string } })
+      ?.personalInformation;
+    return [p?.firstName, p?.lastName].filter(Boolean).join(" ").trim();
+  };
+  const recipientOptions = [
+    { value: "Partner 1", label: fullNameOf(cases.myInformation) || "Partner 1" },
+    { value: "Partner 2", label: fullNameOf(cases.partnerInformation) || "Partner 2" },
+  ];
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -598,6 +666,15 @@ export default function MatrimonialAgreementPage() {
           : "",
       customHealthSafeguards:
         formData.criticalIllnessSafeguard === "Custom" ? formData.customHealthSafeguards : "",
+      customDeathWills:
+        formData.deathWillsAlignment === "Custom" ? formData.customDeathWills : "",
+      // A GBP amount is its own estimated value; only another currency needs
+      // the approximate GBP equivalent entered separately.
+      inheritanceEntries: formData.inheritanceEntries.map((entry) =>
+        entry.originalCurrency === "GBP"
+          ? { ...entry, gbpEquivalent: entry.originalAmount }
+          : entry,
+      ),
       standardMilestones:
         formData.reviewTriggerType === "Standard" ? formData.standardMilestones : [],
       customReviewTriggers:
@@ -655,12 +732,12 @@ export default function MatrimonialAgreementPage() {
                 <h2 className="text-base sm:text-[17px] font-bold text-slate-900 tracking-tight">
                   Future Acquired Assets &amp; Debts
                 </h2>
-                <Tooltip text="This section records how you would like future assets and liabilities acquired during the relationship to be treated if you separate." />
+                <Tooltip text={FUTURE_ASSETS_TOOLTIP} />
               </div>
             </div>
             <label className={labelClasses}>
-              1. How should future assets or debts acquired in either of your sole names after the
-              marriage ceremony be treated if you separate?
+              1. How would you like assets and debts acquired during your marriage to be treated if
+              you separate?
             </label>
             <ChoiceCards
               name="futureAssetsTreatment"
@@ -671,14 +748,14 @@ export default function MatrimonialAgreementPage() {
             {formData.futureAssetsTreatment === "Custom" && (
               <NestedBlock>
                 <label className={nestedLabelClasses}>
-                  Custom Future Asset Allocation Rules:
+                  Describe your arrangement:
                 </label>
                 <textarea
                   rows={3}
                   required
                   value={formData.customFutureAssets}
                   onChange={(e) => setField("customFutureAssets", e.target.value)}
-                  placeholder="Describe alternative asset routing configurations..."
+                  placeholder="Describe how you would like assets and debts acquired during the marriage to be treated..."
                   className={fieldClassesFor(fieldClasses, errors.customFutureAssets)}
                 />
                 <FieldMessage error={errors.customFutureAssets} path="customFutureAssets" />
@@ -704,12 +781,12 @@ export default function MatrimonialAgreementPage() {
                 <h2 className="text-base sm:text-[17px] font-bold text-slate-900 tracking-tight">
                   Future Gifts Treatment
                 </h2>
-                <Tooltip text="Gifts received from third parties may be treated differently depending on how they are used during the relationship." />
+                <Tooltip text={FUTURE_GIFTS_TOOLTIP} />
               </div>
             </div>
             <label className={labelClasses}>
-              2. If one of you is specifically gifted a significant item or sum of money by a third
-              party during the marriage, how should it be treated?
+              2. How would you like significant gifts received by either of you during your marriage
+              to be treated if you separate?
             </label>
             <ChoiceCards
               name="futureGiftsTreatment"
@@ -719,13 +796,13 @@ export default function MatrimonialAgreementPage() {
             />
             {formData.futureGiftsTreatment === "Custom" && (
               <NestedBlock>
-                <label className={nestedLabelClasses}>Custom Rules for Personal Gifts:</label>
+                <label className={nestedLabelClasses}>Describe your arrangement:</label>
                 <textarea
                   rows={3}
                   required
                   value={formData.customFutureGifts}
                   onChange={(e) => setField("customFutureGifts", e.target.value)}
-                  placeholder="Define exactly how third-party gifts should be treated if you separate..."
+                  placeholder="Describe how you would like significant gifts to be treated if you separate..."
                   className={fieldClassesFor(fieldClasses, errors.customFutureGifts)}
                 />
                 <FieldMessage error={errors.customFutureGifts} path="customFutureGifts" />
@@ -751,8 +828,8 @@ export default function MatrimonialAgreementPage() {
               </div>
             </div>
             <label className={labelClasses}>
-              3. Do either of you expect to receive a family inheritance, or do you have a pending
-              inheritance currently in probate?
+              3. Do either of you expect to receive, or are you currently receiving, an
+              inheritance?
             </label>
             <ChoiceCards
               name="inheritanceSelection"
@@ -764,7 +841,7 @@ export default function MatrimonialAgreementPage() {
             {formData.inheritanceSelection === "LogDetails" && (
               <div className="mt-4 rounded-xl border border-[#E7E7F2] bg-white/70 p-4">
                 <div className="mb-3 text-xs font-bold uppercase tracking-wider text-[#9494AA]">
-                  Expected &amp; Pending Inheritance Register
+                  Inheritance Register
                 </div>
 
                 <FieldMessage
@@ -798,7 +875,9 @@ export default function MatrimonialAgreementPage() {
 
                     <div className="mb-3.5 grid grid-cols-1 gap-3.5 pr-6 sm:grid-cols-2">
                       <div>
-                        <label className={subLabelClasses}>Recipient Partner</label>
+                        <label className={subLabelClasses}>
+                          Recipient Partner <span className="text-red-500">*</span>
+                        </label>
                         <select
                           required
                           value={row.recipientPartner}
@@ -810,14 +889,19 @@ export default function MatrimonialAgreementPage() {
                           }
                           className={fieldClasses}
                         >
-                          <option value="">Select Recipient</option>
-                          <option value="Partner 1">Partner 1</option>
-                          <option value="Partner 2">Partner 2</option>
+                          <option value="">Select recipient</option>
+                          {recipientOptions.map((o) => (
+                            <option key={o.value} value={o.value}>
+                              {o.label}
+                            </option>
+                          ))}
                         </select>
                       </div>
 
                       <div>
-                        <label className={subLabelClasses}>Inheritance Status</label>
+                        <label className={subLabelClasses}>
+                          Inheritance Status <span className="text-red-500">*</span>
+                        </label>
                         <select
                           required
                           value={row.inheritanceStatus}
@@ -829,19 +913,18 @@ export default function MatrimonialAgreementPage() {
                           }
                           className={fieldClasses}
                         >
-                          <option value="">Select Status</option>
-                          <option value="FutureExpectation">
-                            Future Expectation (Anticipated in the future)
-                          </option>
-                          <option value="PendingProbate">
-                            Pending / In Progress (Passed away, currently in probate or settlement)
-                          </option>
+                          <option value="">Select status</option>
+                          <option value="FutureExpectation">Expected</option>
+                          <option value="PendingProbate">Pending (in probate or settlement)</option>
+                          <option value="Received">Received</option>
                         </select>
                       </div>
                     </div>
 
                     <div className="mb-3.5">
-                      <label className={subLabelClasses}>Inheritance Composition</label>
+                      <label className={subLabelClasses}>
+                        Inheritance Description <span className="text-red-500">*</span>
+                      </label>
                       <input
                         type="text"
                         required
@@ -849,34 +932,71 @@ export default function MatrimonialAgreementPage() {
                         onChange={(e) =>
                           updateRow(setEntries, row.id, { composition: e.target.value })
                         }
-                        placeholder="e.g., Family estate, cash, property or real estate portfolio"
+                        placeholder="e.g., Family property, cash inheritance, shares or investments"
                         className={fieldClasses}
                       />
                     </div>
 
-                    <div className="mb-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-3">
+                    {row.inheritanceStatus === "FutureExpectation" && (
+                      <div className="mb-3.5 rounded-lg border border-amber-200 bg-amber-50/70 px-3.5 py-2.5 text-[12px] leading-relaxed text-amber-900">
+                        As this inheritance is only expected, any amount and value you enter are
+                        estimates.
+                      </div>
+                    )}
+                    {row.inheritanceStatus === "Received" && (
+                      <div className="mb-3.5 rounded-lg border border-indigo-100 bg-indigo-50/60 px-3.5 py-2.5 text-[12px] leading-relaxed text-indigo-900">
+                        As this inheritance has been received, you can enter the actual amount or its
+                        current estimated value.
+                      </div>
+                    )}
+
+                    <div
+                      className={`mb-3.5 grid grid-cols-1 gap-3.5 ${
+                        row.originalCurrency === "GBP" ? "sm:grid-cols-2" : "sm:grid-cols-3"
+                      }`}
+                    >
                       <div>
-                        <label className={subLabelClasses}>Original Amount</label>
+                        <label className={`${subLabelClasses} flex items-center`}>
+                          Inheritance Amount
+                          <span className="ml-1 font-normal text-slate-400">(optional)</span>
+                          <Tooltip text={INHERITANCE_AMOUNT_TOOLTIP} />
+                        </label>
                         <input
                           type="number"
                           min={0}
-                          required
                           value={row.originalAmount}
                           onChange={(e) =>
-                            updateRow(setEntries, row.id, { originalAmount: e.target.value })
+                            updateRow(setEntries, row.id, {
+                              originalAmount: e.target.value,
+                              ...(row.originalCurrency === "GBP"
+                                ? { gbpEquivalent: e.target.value }
+                                : {}),
+                            })
                           }
-                          placeholder="Value"
+                          placeholder={
+                            row.inheritanceStatus === "FutureExpectation"
+                              ? "Estimated amount"
+                              : "Amount"
+                          }
                           className={fieldClasses}
                         />
                       </div>
                       <div>
-                        <label className={subLabelClasses}>Original Currency</label>
+                        <label className={subLabelClasses}>
+                          Currency
+                          {row.originalAmount && <span className="ml-1 text-red-500">*</span>}
+                        </label>
                         <select
-                          required
                           value={row.originalCurrency}
-                          onChange={(e) =>
-                            updateRow(setEntries, row.id, { originalCurrency: e.target.value })
-                          }
+                          onChange={(e) => {
+                            const currency = e.target.value;
+                            updateRow(setEntries, row.id, {
+                              originalCurrency: currency,
+                              // GBP copies the amount across; another currency
+                              // needs its own approximate GBP value entered.
+                              gbpEquivalent: currency === "GBP" ? row.originalAmount : "",
+                            });
+                          }}
                           className={fieldClasses}
                         >
                           {currencyOptions.map((currency) => (
@@ -886,43 +1006,53 @@ export default function MatrimonialAgreementPage() {
                           ))}
                         </select>
                       </div>
-                      <div>
-                        <label className={subLabelClasses}>Est. GBP Value</label>
-                        <input
-                          type="number"
-                          min={0}
-                          required
-                          value={row.gbpEquivalent}
-                          onChange={(e) =>
-                            updateRow(setEntries, row.id, { gbpEquivalent: e.target.value })
-                          }
-                          placeholder="£ Equivalent"
-                          className={fieldClasses}
-                        />
-                      </div>
+                      {row.originalCurrency !== "GBP" && (
+                        <div>
+                          <label className={subLabelClasses}>
+                            Estimated Value (&pound;)
+                            <span className="ml-1 font-normal text-slate-400">(recommended)</span>
+                          </label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={row.gbpEquivalent}
+                            onChange={(e) =>
+                              updateRow(setEntries, row.id, { gbpEquivalent: e.target.value })
+                            }
+                            placeholder="Approximate £ equivalent"
+                            className={fieldClasses}
+                          />
+                        </div>
+                      )}
                     </div>
+                    {row.originalCurrency !== "GBP" && (
+                      <p className="-mt-2 mb-3.5 text-[11.5px] leading-relaxed text-slate-500">
+                        Please enter an approximate GBP equivalent yourself. We do not convert
+                        amounts using a live exchange rate.
+                      </p>
+                    )}
 
                     <div className="mb-3.5">
-                      <label className={subLabelClasses}>Basis of Estimate</label>
+                      <label className={`${subLabelClasses} flex items-center`}>
+                        Basis of Estimate
+                        <span className="ml-1 font-normal text-slate-400">(optional)</span>
+                        <Tooltip text={INHERITANCE_BASIS_TOOLTIP} />
+                      </label>
                       <textarea
                         rows={2}
-                        required
                         value={row.basisOfEstimate}
                         onChange={(e) =>
                           updateRow(setEntries, row.id, { basisOfEstimate: e.target.value })
                         }
-                        placeholder="Explain valuations, dates, or family trust sources..."
+                        placeholder="e.g., estimated valuation, valuation date, exchange rate or supporting information"
                         className={fieldClasses}
                       />
-                      <div className={captionClasses}>
-                        Explain how this estimate was reached (e.g., current valuations of
-                        parents&apos; property, family trust documentation, valuation dates, or
-                        sources).
-                      </div>
                     </div>
 
                     <div>
-                      <label className={subLabelClasses}>Future Matrimonial Treatment</label>
+                      <label className={subLabelClasses}>
+                        Future Matrimonial Treatment <span className="text-red-500">*</span>
+                      </label>
                       <div className="relative w-full">
                         <select
                           required
@@ -1048,12 +1178,11 @@ export default function MatrimonialAgreementPage() {
                 <h2 className="text-base sm:text-[17px] font-bold text-slate-900 tracking-tight">
                   Spousal Maintenance Waiver
                 </h2>
-                <Tooltip text="Spousal maintenance refers to ongoing financial support paid by one former partner to another following separation or divorce." />
+                <Tooltip text={SPOUSAL_MAINTENANCE_TOOLTIP} />
               </div>
             </div>
             <label className={labelClasses}>
-              4. If the marriage dissolves, what is your intention regarding ongoing spousal
-              maintenance (financial support paid from one ex-partner to the other)?
+              4. What is your intended approach to spousal maintenance if you separate?
             </label>
             <ChoiceCards
               name="spousalMaintenanceIntention"
@@ -1064,14 +1193,14 @@ export default function MatrimonialAgreementPage() {
             {formData.spousalMaintenanceIntention === "Custom" && (
               <NestedBlock>
                 <label className={nestedLabelClasses}>
-                  Custom Spousal Support Maintenance Formula:
+                  Describe your arrangement:
                 </label>
                 <textarea
                   rows={3}
                   required
                   value={formData.customSpousalMaintenance}
                   onChange={(e) => setField("customSpousalMaintenance", e.target.value)}
-                  placeholder="Describe how potential ongoing structural maintenance should be calculated..."
+                  placeholder="Describe your intended approach to spousal maintenance if you separate..."
                   className={fieldClassesFor(fieldClasses, errors.customSpousalMaintenance)}
                 />
                 <FieldMessage error={errors.customSpousalMaintenance} path="customSpousalMaintenance" />
@@ -1093,12 +1222,12 @@ export default function MatrimonialAgreementPage() {
                 <h2 className="text-base sm:text-[17px] font-bold text-slate-900 tracking-tight">
                   Critical Illness Safeguards
                 </h2>
-                <Tooltip text="Major changes in health or care needs can affect the fairness and enforceability of an agreement over time." />
+                <Tooltip text={CRITICAL_ILLNESS_TOOLTIP} />
               </div>
             </div>
             <label className={labelClasses}>
-              5. If one partner suffers a permanent, career-ending illness or disability during the
-              marriage, should the terms of this separation agreement be modified?
+              5. Should a serious illness or disability affecting either of you be considered when
+              reviewing your agreement?
             </label>
             <ChoiceCards
               name="criticalIllnessSafeguard"
@@ -1109,14 +1238,14 @@ export default function MatrimonialAgreementPage() {
             {formData.criticalIllnessSafeguard === "Custom" && (
               <NestedBlock>
                 <label className={nestedLabelClasses}>
-                  Specific Safe-Guard / Adjustment Exception Parameters:
+                  What specific arrangement would you like considered?
                 </label>
                 <textarea
                   rows={3}
                   required
                   value={formData.customHealthSafeguards}
                   onChange={(e) => setField("customHealthSafeguards", e.target.value)}
-                  placeholder="Outline structural exceptions or asset readjustments if severe medical conditions arise..."
+                  placeholder="Describe how you would like your financial arrangements to be reviewed or adjusted if either of you experiences a serious illness or disability. For example, you may wish to consider additional financial support, changes to how certain assets are treated, or a review of your existing arrangements."
                   className={fieldClassesFor(fieldClasses, errors.customHealthSafeguards)}
                 />
                 <FieldMessage error={errors.customHealthSafeguards} path="customHealthSafeguards" />
@@ -1138,24 +1267,33 @@ export default function MatrimonialAgreementPage() {
                 <h2 className="text-base sm:text-[17px] font-bold text-slate-900 tracking-tight">
                   Death &amp; Wills Alignment
                 </h2>
-                <Tooltip text="Prenuptial agreements do not govern what happens upon death. You should consider reviewing or updating your Will after marriage or civil partnership." />
+                <Tooltip text={DEATH_WILLS_TOOLTIP} />
               </div>
             </div>
             <label className={labelClasses}>
-              6. Do you expect what you leave each other in your Wills to match how your assets are
-              split in this agreement?
+              6. How would you like your financial arrangements to be considered if either of you
+              dies during the marriage?
             </label>
-            <p className={helpClasses}>
-              This agreement primarily governs what happens in the event of a separation or divorce,
-              not death. However, it is strongly advisable that you create or update your Wills once
-              married.
-            </p>
             <ChoiceCards
               name="deathWillsAlignment"
               value={formData.deathWillsAlignment}
               options={deathWillsOptions}
               onChange={(value) => setField("deathWillsAlignment", value)}
             />
+            {formData.deathWillsAlignment === "Custom" && (
+              <NestedBlock>
+                <label className={nestedLabelClasses}>Describe your arrangement:</label>
+                <textarea
+                  rows={3}
+                  required
+                  value={formData.customDeathWills}
+                  onChange={(e) => setField("customDeathWills", e.target.value)}
+                  placeholder="Describe how you would like your financial arrangements to be considered if either of you dies during the marriage..."
+                  className={fieldClassesFor(fieldClasses, errors.customDeathWills)}
+                />
+                <FieldMessage error={errors.customDeathWills} path="customDeathWills" />
+              </NestedBlock>
+            )}
           </div>
 
           {/* 7. Review triggers */}
@@ -1176,7 +1314,7 @@ export default function MatrimonialAgreementPage() {
               </div>
             </div>
             <label className={labelClasses}>
-              7. When should this agreement be automatically reviewed or updated?
+              7. When should this agreement be reviewed?
             </label>
             <p className={helpClasses}>
               A nuptial agreement is legally stronger if reviewed during major life changes.
@@ -1219,13 +1357,13 @@ export default function MatrimonialAgreementPage() {
 
             {formData.reviewTriggerType === "Custom" && (
               <NestedBlock>
-                <label className={nestedLabelClasses}>Our review milestones:</label>
+                <label className={nestedLabelClasses}>Our Review Milestones</label>
                 <textarea
                   rows={3}
                   required
                   value={formData.customReviewTriggers}
                   onChange={(e) => setField("customReviewTriggers", e.target.value)}
-                  placeholder="e.g., Every 3 years, or if we relocate outside the UK permanently..."
+                  placeholder="e.g. Every 3 years, if either of us relocates permanently outside the UK, or following a significant inheritance..."
                   className={fieldClassesFor(fieldClasses, errors.customReviewTriggers)}
                 />
                 <FieldMessage error={errors.customReviewTriggers} path="customReviewTriggers" />
@@ -1241,10 +1379,14 @@ export default function MatrimonialAgreementPage() {
       <div className="border-t border-[#EDEDF5] pt-8">
         <TrackHeader>Special Circumstances &amp; Case Complexity</TrackHeader>
 
-        <div className="mb-6 rounded-lg border border-[#C7D2FE] bg-[#EEF2FF] p-4 text-sm font-medium leading-relaxed text-[#4338CA]">
-          <strong>⚠️ Enforceability Assessment Notice:</strong> To guarantee the strict compliance
-          standards of UK family courts, our legal review parameters must scan for special
-          operational complexities. Please answer the system indicators below.
+        <div className="mb-6 flex items-start gap-2.5 rounded-lg border border-[#C7D2FE] bg-[#EEF2FF] p-4 text-[13px] leading-relaxed text-[#3730A3]">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-[#4F46E5]" aria-hidden="true" />
+          <p>
+            <strong>Why we ask these questions:</strong> Your answers help identify circumstances
+            that may require additional legal consideration when preparing your prenuptial
+            agreement. Please answer each question accurately so your legal team can assess your
+            circumstances appropriately.
+          </p>
         </div>
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
@@ -1279,20 +1421,26 @@ export default function MatrimonialAgreementPage() {
 
         {hasSpecialCircumstances && (
           <div className="mt-6 rounded-r-xl border border-[#FBD5D5] border-l-4 border-l-red-500 bg-red-50/40 p-5 md:p-6">
-            <span className="mb-3 inline-block rounded-full bg-red-500 px-3 py-1 text-[0.7rem] font-bold uppercase tracking-wider text-white">
-              Case Complexity Context
+            <span className="mb-3 inline-block rounded-full bg-red-100 px-3 py-1 text-[0.7rem] font-bold uppercase tracking-wider text-red-700">
+              Additional context
             </span>
-            <div className="flex items-center gap-2">
-              <label className="block text-sm font-bold text-red-600">
-                Special Circumstances Overview
-              </label>
-              <Tooltip text="Please provide any additional information that may assist your case manager and independent solicitors when reviewing your file." />
-            </div>
+            <label
+              htmlFor="specialCircumstancesOverview"
+              className="block text-sm font-bold text-red-700"
+            >
+              Additional Information for Your Legal Team
+            </label>
+            <p className="mt-1 text-[12.5px] leading-relaxed text-slate-600">
+              Please provide any additional information about the circumstances you have identified
+              above. This will help your legal team understand your situation and determine whether
+              further information or legal consideration is required.
+            </p>
             <textarea
+              id="specialCircumstancesOverview"
               rows={4}
               value={formData.specialCircumstancesOverview}
               onChange={(e) => setField("specialCircumstancesOverview", e.target.value)}
-              placeholder="You have indicated one or more special circumstances above. Please provide a brief overview or summary of these items so your dedicated case manager and independent lawyers can prepare your file correctly..."
+              placeholder="Please provide any relevant details about your circumstances..."
               className={fieldClassesFor(
                 `mt-3 ${fieldClasses}`,
                 errors.specialCircumstancesOverview,

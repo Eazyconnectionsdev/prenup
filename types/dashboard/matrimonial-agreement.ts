@@ -22,9 +22,20 @@ export type SpousalMaintenanceIntention =
   | "CareerSacrificeOnly"
   | "Custom";
 
-export type CriticalIllnessSafeguard = "TermsFixed" | "Voidable" | "Custom";
+// "TermsFixed" and "Voidable" are older answers; the form no longer offers them.
+export type CriticalIllnessSafeguard =
+  | "ReviewAgreement"
+  | "NoSpecificReview"
+  | "Custom"
+  | "TermsFixed"
+  | "Voidable";
 
+// "MirrorDivorce", "ProvideDifferently" and "Unsure" are older answers; the
+// form no longer offers them.
 export type DeathWillsAlignment =
+  | "FollowWills"
+  | "ReviewOnDeath"
+  | "Custom"
   | "MirrorDivorce"
   | "ProvideDifferently"
   | "Unsure";
@@ -34,6 +45,7 @@ export type ReviewTriggerType = "Never" | "Standard" | "Custom";
 export type StandardMilestone =
   | "child_birth"
   | "career_change"
+  | "financial_change"
   | "5_year"
   | "10_year";
 
@@ -43,7 +55,8 @@ export type StandardMilestone =
 
 export type InheritanceRecipient = "" | "Partner 1" | "Partner 2";
 
-export type InheritanceStatus = "" | "FutureExpectation" | "PendingProbate";
+// "FutureExpectation" = Expected, "PendingProbate" = Pending (in probate or settlement)
+export type InheritanceStatus = "" | "FutureExpectation" | "PendingProbate" | "Received";
 
 export interface InheritanceEntry {
   id: string;
@@ -96,6 +109,7 @@ export interface MatrimonialAgreementFormValues {
   customHealthSafeguards: string;
 
   deathWillsAlignment: DeathWillsAlignment;
+  customDeathWills: string;
 
   reviewTriggerType: ReviewTriggerType;
   standardMilestones: StandardMilestone[];

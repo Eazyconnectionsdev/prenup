@@ -27,6 +27,11 @@ import {
 } from "@/store/asyncThunk/casesThunk";
 import { getFreshProfile } from "@/store/asyncThunk/authThunk";
 import { getErrorMessage } from "@/lib/getErrorMessage";
+import {
+  formatPounds,
+  LEGAL_ADVICE_FEE_GBP,
+  LEGAL_ADVICE_FEES_TOTAL_GBP,
+} from "@/lib/servicePricing";
 import { SERVICE_SELECTOR_HREF } from "@/components/ServiceStatus";
 
 type PaymentFormData = {
@@ -166,6 +171,13 @@ export default function PaymentPage() {
   }, [load]);
 
   const price = info?.display ?? "";
+  // Our fee is what is charged today; each partner's independent legal advice
+  // is paid to their own lawyer, so it only counts towards the expected total.
+  const serviceFee = info ? formatPounds(info.amount) : "";
+  const legalAdviceFee = formatPounds(LEGAL_ADVICE_FEE_GBP);
+  const totalExpected = info
+    ? formatPounds(info.amount + LEGAL_ADVICE_FEES_TOTAL_GBP)
+    : "";
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -324,35 +336,77 @@ export default function PaymentPage() {
             </span>
           </div>
 
-          <p className="mt-10 text-sm text-white/70">Pay LetsPrenup</p>
-          <p className="mt-1 text-4xl font-semibold tracking-tight">{price}</p>
+          <h2 className="mt-10 text-2xl font-semibold tracking-tight">
+            Your Order
+          </h2>
+          {info.serviceName && (
+            <p className="mt-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">
+              {info.serviceName}
+            </p>
+          )}
 
-          <div className="mt-8 rounded-xl bg-white/10 p-5 ring-1 ring-white/15 backdrop-blur">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="font-medium">{info.serviceName}</p>
-                <p className="mt-1 text-sm text-white/70">
-                  {info.serviceDescription}
+          {/* What is paid to us today */}
+          <div className="mt-6 flex items-start justify-between gap-4">
+            <div>
+              <p className="font-medium">LetsPrenup service</p>
+              <p className="mt-1 text-sm text-white/70">
+                Agreement preparation and platform access
+              </p>
+            </div>
+            <p className="shrink-0 text-lg font-semibold">{serviceFee}</p>
+          </div>
+
+          {/* What each partner pays their own lawyer, outside this payment */}
+          <div className="mt-6 border-t border-white/15 pt-6">
+            <p className="font-medium">Independent legal advice fees</p>
+            <div className="mt-3 rounded-xl bg-white/10 p-4 ring-1 ring-white/15 backdrop-blur">
+              <dl className="space-y-2 text-sm">
+                <div className="flex justify-between gap-4">
+                  <dt className="text-white/80">Your independent lawyer</dt>
+                  <dd className="font-medium">{legalAdviceFee}</dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-white/80">
+                    Your partner&apos;s independent lawyer
+                  </dt>
+                  <dd className="font-medium">{legalAdviceFee}</dd>
+                </div>
+              </dl>
+              <div className="mt-3 border-t border-white/15 pt-3">
+                <p className="text-sm font-semibold">
+                  {formatPounds(LEGAL_ADVICE_FEES_TOTAL_GBP)} paid separately
+                  to your respective lawyers
+                </p>
+                <p className="mt-1 text-xs text-white/65">
+                  These fees are not included in today&apos;s payment and are
+                  paid directly to each lawyer.
                 </p>
               </div>
-              <p className="shrink-0 font-medium">{price}</p>
             </div>
           </div>
 
-          <dl className="mt-6 space-y-2 text-sm">
-            <div className="flex justify-between text-white/75">
-              <dt>Subtotal</dt>
-              <dd>{price}</dd>
-            </div>
-            <div className="flex justify-between border-t border-white/15 pt-3 text-base font-semibold">
-              <dt>Total due today</dt>
-              <dd>{price}</dd>
-            </div>
-          </dl>
+          <div className="mt-6 flex items-baseline justify-between gap-4 border-t border-white/15 pt-6">
+            <p className="font-medium">Total expected cost</p>
+            <p className="text-2xl font-semibold tracking-tight">
+              {totalExpected}
+            </p>
+          </div>
+
+          <div className="mt-5 rounded-xl bg-white p-5 text-slate-900 shadow-lg shadow-black/10">
+            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#635bff]">
+              Amount you pay today
+            </p>
+            <p className="mt-1 text-3xl font-semibold tracking-tight">
+              {price}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              Payable to LetsPrenup by card
+            </p>
+          </div>
 
           {info.caseNumber && (
             <p className="mt-6 text-xs text-white/50">
-              Case {info.caseNumber}
+              Case ID: {info.caseNumber}
             </p>
           )}
 
@@ -511,6 +565,21 @@ export default function PaymentPage() {
           >
             {isPaying ? "Processing..." : `Pay ${price}`}
           </button>
+          <p className="flex items-center justify-center gap-1.5 text-xs text-slate-500">
+            <svg
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              className="h-3.5 w-3.5 text-emerald-500"
+              aria-hidden="true"
+            >
+              <path
+                fillRule="evenodd"
+                d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
+                clipRule="evenodd"
+              />
+            </svg>
+            Secure payment processing
+          </p>
         </form>
       </section>
     </main>

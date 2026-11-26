@@ -6,6 +6,7 @@ import {
   optionalText,
   requiredAmount,
   requiredChoice,
+  requiredOneOf,
   requiredText,
   rowShape,
   treatmentShape,
@@ -231,15 +232,27 @@ export const jointLiabilitiesSchema = z
 /* ---------------------------------------------------------------------- */
 
 const inheritanceEntry = rowShape({
-  recipientPartner: requiredChoice("who the inheritance is for"),
-  inheritanceStatus: requiredChoice("the status"),
-  composition: requiredText("What the inheritance consists of", 1000),
-  originalAmount: optionalAmount("Original amount"),
+  recipientPartner: requiredChoice("the recipient partner"),
+  inheritanceStatus: requiredChoice("the inheritance status"),
+  composition: requiredText("The inheritance description", 1000),
+  // The amount may not be known yet, especially for an expected inheritance.
+  originalAmount: optionalAmount("Inheritance amount"),
   originalCurrency: optionalText(10),
-  gbpEquivalent: requiredAmount("The GBP equivalent"),
+  gbpEquivalent: optionalAmount("Estimated value (£)"),
   basisOfEstimate: optionalText(1000),
   ...treatmentShape,
-}).superRefine((row, ctx) => checkTreatment(row, ctx));
+})
+  .superRefine((row, ctx) => checkTreatment(row, ctx))
+  .superRefine((row, ctx) => {
+    // A currency is only needed to make sense of an amount.
+    if (String(row.originalAmount ?? "").trim() && !String(row.originalCurrency ?? "").trim()) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["originalCurrency"],
+        message: "Select the currency of the inheritance amount",
+      });
+    }
+  });
 
 /**
  * Every question on this form starts on a default answer, so what is left to
@@ -259,10 +272,18 @@ export const matrimonialAgreementSchema = z
     spousalMaintenanceIntention: requiredChoice("your maintenance intentions"),
     customSpousalMaintenance: optionalText(2000),
 
-    criticalIllnessSafeguard: requiredChoice("the critical illness safeguard"),
+    // Only the current answers: an older saved answer has to be chosen again.
+    criticalIllnessSafeguard: requiredOneOf(
+      ["ReviewAgreement", "NoSpecificReview", "Custom"],
+      "Whether illness or disability should prompt a review",
+    ),
     customHealthSafeguards: optionalText(2000),
 
-    deathWillsAlignment: requiredChoice("how wills should align"),
+    deathWillsAlignment: requiredOneOf(
+      ["FollowWills", "ReviewOnDeath", "Custom"],
+      "How your arrangements should be considered on death",
+    ),
+    customDeathWills: optionalText(2000),
 
     reviewTriggerType: requiredChoice("when the agreement should be reviewed"),
     standardMilestones: z.array(z.string()).default([]),
@@ -314,7 +335,13 @@ export const matrimonialAgreementSchema = z
       value.criticalIllnessSafeguard,
       value.customHealthSafeguards,
       "customHealthSafeguards",
-      "Describe the safeguards you have in mind",
+      "Describe the arrangement you would like considered",
+    );
+    requireWhenCustom(
+      value.deathWillsAlignment,
+      value.customDeathWills,
+      "customDeathWills",
+      "Describe the arrangement you have in mind",
     );
     requireWhenCustom(
       value.reviewTriggerType,
@@ -349,7 +376,7 @@ export const matrimonialAgreementSchema = z
       ctx.addIssue({
         code: "custom",
         path: ["specialCircumstancesOverview"],
-        message: "Tell us about the circumstances you have flagged",
+        message: "Please provide additional information about the circumstances you identified",
       });
     }
   });

@@ -38,6 +38,7 @@ import {
   journeyStatusWidth,
 } from "@/components/dashboard/journeyRowStyles";
 import LegalTeamCard from "@/components/dashboard/LegalTeamCard";
+import PurchasePrompt from "@/components/dashboard/PurchasePrompt";
 import StatCard, {
   ApprovedPill,
   statCardActionClasses,
@@ -876,7 +877,9 @@ export default function PrenupDashboard() {
             Welcome , {user.firstName} 👋
           </h1>
           <p className="mt-1 text-sm text-[#6B6B80]">
-            {!isAgreementReady
+            {!isPaymentDone
+              ? "You're one step closer to a clear and fair agreement."
+              : !isAgreementReady
               ? "Your prenup is taking shape."
               : isLegalAdviceStage
                 ? "Your case is approved. Next, each of you picks an independent lawyer."
@@ -886,7 +889,13 @@ export default function PrenupDashboard() {
           </p>
         </div>
 
-        {!isBothCompleted && (
+        {/* Until the case is paid for, what to buy and what it unlocks stand
+            in for the progress cards and the journey. */}
+        {!isPaymentDone && (
+          <PurchasePrompt agreementType={cases?.agreementType} />
+        )}
+
+        {isPaymentDone && !isBothCompleted && (
           <div className="mt-6 grid gap-4 md:grid-cols-3">
             <StatCard
               label="Progress"
@@ -983,7 +992,7 @@ export default function PrenupDashboard() {
           </div>
         )}
 
-        {!isAgreementReady && (
+        {isPaymentDone && !isAgreementReady && (
           <div className="mt-8 bg-white p-5 rounded-2xl shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
